@@ -5,11 +5,6 @@ from .models import Candidatura, Vaga, SolicitacaoVaga, PesquisaDemissional
 
 
 class CandidaturaForm(forms.ModelForm):
-    termo_lgpd = forms.BooleanField(
-        required=True,
-        label="Li e concordo com o armazenamento dos meus dados conforme a LGPD."
-    )
-
     class Meta:
         model = Candidatura
         fields = ['nome_completo', 'email', 'telefone', 'linkedin', 'curriculo']
@@ -25,7 +20,7 @@ class CandidaturaForm(forms.ModelForm):
         arquivo = self.cleaned_data.get('curriculo')
 
         if arquivo:
-            tamanho_maximo = 5 * 1024 * 1024  # 5 MB em bytes
+            tamanho_maximo = 5 * 1024 * 1024  # 5 MB
             if arquivo.size > tamanho_maximo:
                 raise ValidationError('O arquivo excede o limite de 5MB.')
 
@@ -37,12 +32,6 @@ class CandidaturaForm(forms.ModelForm):
 
         return arquivo
 
-    def save(self, commit=True):
-        instancia = super().save(commit=False)
-        instancia.lgpd_consentimento = self.cleaned_data.get('termo_lgpd')
-        if commit:
-            instancia.save()
-        return instancia
 
 
 class VagaForm(forms.ModelForm):
@@ -56,7 +45,6 @@ class VagaForm(forms.ModelForm):
             'requisitos': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Ex: Superior completo, experiência com Python, Django, etc...'}),
             'ativa': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'})
         }
-
 
 class SolicitacaoVagaForm(forms.ModelForm):
     class Meta:
@@ -102,7 +90,6 @@ class SolicitacaoVagaForm(forms.ModelForm):
                                'Como o motivo é substituição, é obrigatório informar o nome de quem está saindo.')
 
         return cleaned_data
-
 
 class PesquisaDemissionalGeracaoForm(forms.ModelForm):
     """
