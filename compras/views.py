@@ -1,12 +1,15 @@
 import pandas as pd
 from django.http import JsonResponse
-from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+import csv
+import json
+from datetime import datetime
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Sum, Avg, Count, F, Q
+from django.contrib import messages
+from django.db.models import Sum, Avg, Count, Q
 from .models import DataWarehouseCompras
-
 
 @csrf_exempt
 def api_upload_compras(request):
@@ -71,17 +74,6 @@ def api_upload_compras(request):
     return JsonResponse({'erro': 'Requisição inválida ou sem arquivo.'}, status=400)
 
 
-import csv
-import json
-from datetime import datetime
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.db.models import Sum, Avg, Count, Q
-from .models import DataWarehouseCompras
-
-
 @login_required(login_url='/login/')
 def dashboard_compras(request):
     if not (request.user.is_superuser or getattr(request.user, 'is_compras', False) or getattr(request.user, 'is_diretoria', False) or getattr(
@@ -93,6 +85,7 @@ def dashboard_compras(request):
     data_fim = request.GET.get('data_fim')
     projeto_filtro = request.GET.get('projeto')
     tarefa_filtro = request.GET.get('tarefa')
+    fornecedor_filtro = request.GET.get('nome_fornecedor')
     exportar_csv = request.GET.get('export_csv')
 
     pedidos_efetivados = DataWarehouseCompras.objects.exclude(status='PENDENTE')
@@ -101,6 +94,8 @@ def dashboard_compras(request):
         pedidos_efetivados = pedidos_efetivados.filter(projeto_cod=projeto_filtro)
     if tarefa_filtro:
         pedidos_efetivados = pedidos_efetivados.filter(tarefa_cod=tarefa_filtro)
+    if fornecedor_filtro:
+        pedidos_efetivados = pedidos_efetivados.filter(nome_fornecedor=fornecedor_filtro)
 
     if data_inicio and data_fim:
         try:
@@ -151,6 +146,7 @@ def dashboard_compras(request):
     backlog_query = DataWarehouseCompras.objects.filter(status='PENDENTE')
     if projeto_filtro: backlog_query = backlog_query.filter(projeto_cod=projeto_filtro)
     if tarefa_filtro: backlog_query = backlog_query.filter(tarefa_cod=tarefa_filtro)
+    if fornecedor_filtro: backlog_query = backlog_query.filter(nome_fornecedor=fornecedor_filtro)
     backlog_sc = backlog_query.count()
 
     pedidos_entregues = pedidos_efetivados.filter(status='ENTREGUE')
@@ -190,6 +186,7 @@ def dashboard_compras(request):
     if projeto_filtro:
         tarefas_query = tarefas_query.filter(projeto_cod=projeto_filtro)
     lista_tarefas = tarefas_query.values_list('tarefa_cod', flat=True).distinct().order_by('tarefa_cod')
+    lista_fornecedor = DataWarehouseCompras.objects.exclude(nome_fornecedor='').values_list('nome_fornecedor', flat=True).distinct().order_by('nome_fornecedor')
 
     context = {
         'spend_total': spend_total,
@@ -206,6 +203,7 @@ def dashboard_compras(request):
 
         'lista_projetos': lista_projetos,
         'lista_tarefas': lista_tarefas,
+        'lista_fornecedor': lista_fornecedor,
         'filtros': {
             'data_inicio': data_inicio,
             'data_fim': data_fim,
