@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 import mimetypes
 from pathlib import Path
+
+from django.conf.global_settings import USE_THOUSAND_SEPARATOR
 from dotenv import load_dotenv
 
 
@@ -129,6 +131,8 @@ TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 
 USE_TZ = True
+
+USE_THOUSAND_SEPARATOR = True
 
 
 # Static files (CSS, JavaScript, Images)
