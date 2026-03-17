@@ -13,12 +13,12 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 import mimetypes
 from pathlib import Path
-
-from django.conf.global_settings import USE_THOUSAND_SEPARATOR
+from django.conf.global_settings import USE_THOUSAND_SEPARATOR, EMAIL_HOST_PASSWORD
 from dotenv import load_dotenv
 
 
 load_dotenv()
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 mimetypes.add_type('text/css', '.css', True)
 
@@ -147,8 +147,10 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'home'
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = 'login'
+
+
 
 

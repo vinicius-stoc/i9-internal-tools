@@ -52,7 +52,7 @@ class Chamado(models.Model):
         ('FINANCEIRO', 'Financeiro'),
         ('OBRA','Obra'),
         ('ORCAMENTO', 'Orçamento'),
-        ('PLANETAMENTO PROCESSO E QUALIDADE', 'Planejamento Processo e Qualidade'),
+        ('SGQ', 'SGQ'),
         ('PRODUCAO', 'Produção'),
         ('PROJETOS', 'Projetos'),
         ('RECURSOS HUMADOS','Recursos Humados'),
