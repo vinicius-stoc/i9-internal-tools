@@ -115,3 +115,16 @@ class RNC(models.Model):
 
     def __str__(self):
         return f"RNC #{self.id} - {self.get_status_display()}"
+
+
+class RNCImagem(models.Model):
+    rnc = models.ForeignKey(RNC, on_delete=models.CASCADE, related_name='imagens')
+    imagem = models.ImageField('Anexo de Imagem', upload_to='qualidade/rnc/imagens/')
+    enviado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Imagem da RNC'
+        verbose_name_plural = 'Imagens da RNC'
+
+    def __str__(self):
+        return f"Anexo da RNC #{self.rnc.id}"
