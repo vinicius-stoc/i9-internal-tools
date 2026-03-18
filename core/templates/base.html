@@ -369,7 +369,7 @@
                     <div class="collapse {% if 'qualidade' in request.path %}show{% endif %}" id="menuQualidade" data-bs-parent="#sidebarMenu">
                         <ul class="nav flex-column ms-3 ps-2 border-start border-secondary mb-2 mt-1">
                             <li class="nav-item">
-                                <a href="#" class="nav-link submenu-link">
+                                <a href="{% url 'dashboard_qualidade' %}" class="nav-link submenu-link">
                                     <i class="bi bi-exclamation-triangle me-2"></i> Registros de Não Conformidade (RNC)
                                 </a>
                             </li>
