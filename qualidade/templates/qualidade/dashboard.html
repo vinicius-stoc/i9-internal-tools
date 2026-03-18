@@ -5,12 +5,12 @@
 
 {% block content %}
 {% csrf_token %}
-<link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
-<script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
-<script src="https://oss.sheetjs.com/sheetjs/xlsx.full.min.js"></script>
+
+<link href="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.2/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
-    /* Pequeno ajuste para a tabela ficar com visual limpo de ERP */
     .tabulator { border: none !important; border-radius: 8px; }
     .tabulator-header { background-color: #f8f9fa !important; color: #495057 !important; font-weight: 600; }
     .tabulator-row:nth-child(even) { background-color: #fcfcfc !important; }
@@ -50,15 +50,13 @@
             pagination: "local",
             paginationSize: 15,
             movableColumns: true,
-            initialSort: [
-                {column: "id", dir: "desc"},
-            ],
+            initialSort: [{column: "id", dir: "desc"}],
 
-            // 3. Mapeamento das Colunas
+            // 3. Mapeamento de Colunas com Novos Editores 'list' e 'date'
             columns: [
                 {title: "ID", field: "id", width: 70, headerFilter: "input", frozen: true},
 
-                {title: "Status", field: "status", width: 140, headerFilter: "select", headerFilterParams: {values: true},
+                {title: "Status", field: "status", width: 140, headerFilter: "list", headerFilterParams: {valuesLookup:true, clearable:true},
                  editor: "list", editorParams: {values: ["Não iniciada", "Em andamento", "Concluído", "Fora dos trilhos", "Registro preliminar", "Cancelado"]},
                  formatter: function(cell) {
                      let val = cell.getValue();
@@ -72,33 +70,31 @@
                 },
 
                 {title: "Registrador (Criador)", field: "registrador", width: 150, headerFilter: "input"},
-                {title: "Detector", field: "detector", width: 120, headerFilter: "select", headerFilterParams: {values: true}},
+                {title: "Detector", field: "detector", width: 120, headerFilter: "list", headerFilterParams: {valuesLookup:true, clearable:true}},
                 {title: "Data Abertura", field: "data_abertura", width: 120, headerFilter: "input"},
                 {title: "Projeto", field: "projeto_cod", width: 110, headerFilter: "input"},
                 {title: "Elemento Rast.", field: "elemento_rastreador", width: 130, headerFilter: "input"},
                 {title: "Local", field: "local", width: 130, headerFilter: "input"},
                 {title: "Equipamento", field: "equipamento", width: 160, headerFilter: "input"},
 
-                // Classificação e Justificativa
-                {title: "Classificação", field: "classificacao", width: 130, headerFilter: "select", headerFilterParams: {values: true}},
-                {title: "Criticidade", field: "criticidade", width: 110, headerFilter: "select", headerFilterParams: {values: true}},
+                {title: "Classificação", field: "classificacao", width: 130, headerFilter: "list", headerFilterParams: {valuesLookup:true, clearable:true}},
+                {title: "Criticidade", field: "criticidade", width: 110, headerFilter: "list", headerFilterParams: {valuesLookup:true, clearable:true}},
                 {title: "Justificativa Criticidade", field: "justificativa_criticidade", width: 250, formatter: "textarea", editor: "textarea"},
 
                 {title: "Tipo NC", field: "tipo_nc", width: 150, headerFilter: "input"},
 
-                // Textos Longos (Descrições e Ações)
                 {title: "Descrição da NC", field: "descricao", width: 300, formatter: "textarea", editor: "textarea"},
                 {title: "Correção Imediata", field: "correcao", width: 250, formatter: "textarea", editor: "textarea"},
                 {title: "Causas Principais", field: "causas_principais", width: 250, formatter: "textarea", editor: "textarea"},
                 {title: "Ação Corretiva", field: "acao_corretiva", width: 250, formatter: "textarea", editor: "textarea"},
                 {title: "Eficácia (Texto)", field: "eficacia_texto", width: 250, formatter: "textarea", editor: "textarea"},
 
-                // Responsáveis e Prazos
                 {title: "Responsáveis", field: "responsaveis", width: 200, headerFilter: "input"},
-                {title: "Prev. Conclusão", field: "data_prevista_conclusao", width: 130},
-                {title: "Encerramento", field: "data_encerramento", width: 130},
 
-                // Mídias e Links
+                // Editores de Calendário
+                {title: "Prev. Conclusão", field: "data_prevista_conclusao", width: 130, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
+                {title: "Encerramento", field: "data_encerramento", width: 130, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
+
                 {title: "Ishikawa", field: "ishikawa_link", width: 100, formatter: function(cell){
                     let url = cell.getValue();
                     if(url) return `<a href="${url}" target="_blank" class="text-primary text-decoration-none"><i class="bi bi-diagram-3"></i> Acessar</a>`;
@@ -111,8 +107,10 @@
                 }},
                 {title: "Imagens", field: "qtd_imagens", width: 90, formatter: function(cell){
                     let qtd = cell.getValue();
-                    let url = cell.getRow().getData().primeira_imagem_url;
-                    if(qtd > 0) return `<a href="${url}" target="_blank" class="btn btn-sm btn-outline-primary py-0" style="font-size: 0.75rem;"><i class="bi bi-image"></i> (${qtd})</a>`;
+                    if(qtd > 0) {
+                        let url = cell.getRow().getData().primeira_imagem_url;
+                        return `<a href="${url}" target="_blank" class="btn btn-sm btn-outline-primary py-0" style="font-size: 0.75rem;"><i class="bi bi-image"></i> (${qtd})</a>`;
+                    }
                     return "-";
                 }}
             ],
@@ -121,25 +119,21 @@
             langs: {
                 "pt-br": {
                     "pagination": {
-                        "first": "Primeira", "first_title": "Primeira Página",
-                        "last": "Última", "last_title": "Última Página",
-                        "prev": "Anterior", "prev_title": "Página Anterior",
-                        "next": "Próxima", "next_title": "Próxima Página",
+                        "first": "Primeira", "last": "Última",
+                        "prev": "Anterior", "next": "Próxima"
                     }
                 }
-            }, // VÍRGULA AQUI! O cellEdited continua dentro da configuração
+            },
 
-            // O GATILHO DE EDIÇÃO
+            // 4. Gatilho de Salvamento com Logs e Cookies Robustos
             cellEdited: function(cell){
                 let id_rnc = cell.getRow().getData().id;
                 let campo_editado = cell.getField();
                 let novo_valor = cell.getValue();
-                let valor_antigo = cell.getOldValue();
 
-                // 1. Print no terminal do navegador para sabermos se o gatilho funcionou
-                console.log(`[SGQ] Tentando salvar RNC ${id_rnc} | Campo: ${campo_editado} | Valor: ${novo_valor}`);
+                console.log(`[SGQ] Iniciando salvamento | RNC ID: ${id_rnc} | Coluna: ${campo_editado} | Valor: ${novo_valor}`);
 
-                // 2. Função infalível do Django para pegar o Token de Segurança
+                // Função para extrair o Cookie de Segurança (CSRF)
                 function getCookie(name) {
                     let cookieValue = null;
                     if (document.cookie && document.cookie !== '') {
@@ -157,7 +151,7 @@
 
                 let csrfToken = getCookie('csrftoken');
 
-                // 3. O Dardo Assíncrono com Tratamento Rigoroso de Erros
+                // Envia a requisição silenciosa (AJAX)
                 fetch(`/qualidade/api/rncs/${id_rnc}/atualizar/`, {
                     method: 'POST',
                     headers: {
@@ -170,7 +164,6 @@
                     })
                 })
                 .then(async response => {
-                    // Se o servidor explodir um Erro 500, capturamos aqui antes de tentar ler o JSON
                     if (!response.ok) {
                         let errText = await response.text();
                         throw new Error(`HTTP ${response.status}: ${errText.substring(0, 100)}`);
@@ -179,30 +172,29 @@
                 })
                 .then(data => {
                     if(data.status === 'sucesso'){
-                        console.log("[SGQ] Sucesso! Banco de dados atualizado.");
-                        // Sucesso visual profissional: Transição suave de fundo verde
+                        console.log("[SGQ] Sucesso! Banco de dados atualizado com segurança.");
+                        // Feedback Visual: Pisca o fundo verde suavemente
                         cell.getElement().style.transition = "background-color 0.5s ease";
                         cell.getElement().style.backgroundColor = "#d1e7dd";
                         setTimeout(() => { cell.getElement().style.backgroundColor = ""; }, 1500);
                     } else {
-                        console.error("[SGQ] O Servidor recusou:", data.mensagem);
+                        console.error("[SGQ] Servidor recusou a atualização:", data.mensagem);
                         alert("Erro ao salvar: " + data.mensagem);
                         cell.restoreOldValue();
                     }
                 })
                 .catch(error => {
-                    console.error("[SGQ] Falha Crítica na Requisição:", error);
-                    alert("Falha de comunicação: " + error.message);
+                    console.error("[SGQ] Falha crítica na comunicação:", error);
+                    alert("Falha de rede. O dado retornará ao valor anterior.");
                     cell.restoreOldValue();
                 });
             }
         });
 
-        // 4. Gatilho do Botão de Exportação Excel
+        // 5. Exportação Excel
         document.getElementById("download-xlsx").addEventListener("click", function(){
             table.download("xlsx", "Controle_RNCs_I9TMG.xlsx", {sheetName:"RNCs"});
         });
     });
 </script>
-
 {% endblock %}
