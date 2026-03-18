@@ -4,6 +4,7 @@
 {% block title %}SGQ - Controle de RNCs{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
 <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 <script src="https://oss.sheetjs.com/sheetjs/xlsx.full.min.js"></script>
@@ -40,24 +41,25 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        
+
         // 2. Inicialização do Motor da Tabela
         var table = new Tabulator("#tabela-rnc", {
-            ajaxURL: "{% url 'api_listar_rncs' %}", // Aponta para a sua API Python
-            layout: "fitDataFill", // Ajusta a largura das colunas dinamicamente
-            responsiveLayout: "collapse", // Se a tela for pequena (celular), cria um botão de "+" para expandir
-            pagination: "local", // Pagina no navegador
+            ajaxURL: "{% url 'api_listar_rncs' %}",
+            layout: "fitDataFill",
+            responsiveLayout: "collapse",
+            pagination: "local",
             paginationSize: 15,
-            movableColumns: true, // Permite ao usuário arrastar as colunas para reordenar
+            movableColumns: true,
             initialSort: [
-                {column: "id", dir: "desc"}, // Por padrão, a RNC mais nova fica no topo
+                {column: "id", dir: "desc"},
             ],
-            
-            // 3. Mapeamento das Colunas (A chave 'field' deve ser idêntica ao seu JSON)
+
+            // 3. Mapeamento das Colunas
             columns: [
-                {title: "ID", field: "id", width: 70, headerFilter: "input", frozen: true}, // frozen fixa a coluna ao rolar a tela
+                {title: "ID", field: "id", width: 70, headerFilter: "input", frozen: true},
 
                 {title: "Status", field: "status", width: 140, headerFilter: "select", headerFilterParams: {values: true},
+                 editor: "list", editorParams: {values: ["Não iniciada", "Em andamento", "Concluído", "Fora dos trilhos", "Registro preliminar", "Cancelado"]},
                  formatter: function(cell) {
                      let val = cell.getValue();
                      let color = "secondary";
@@ -80,16 +82,16 @@
                 // Classificação e Justificativa
                 {title: "Classificação", field: "classificacao", width: 130, headerFilter: "select", headerFilterParams: {values: true}},
                 {title: "Criticidade", field: "criticidade", width: 110, headerFilter: "select", headerFilterParams: {values: true}},
-                {title: "Justificativa Criticidade", field: "justificativa_criticidade", width: 250, formatter: "textarea"},
+                {title: "Justificativa Criticidade", field: "justificativa_criticidade", width: 250, formatter: "textarea", editor: "textarea"},
 
                 {title: "Tipo NC", field: "tipo_nc", width: 150, headerFilter: "input"},
 
                 // Textos Longos (Descrições e Ações)
-                {title: "Descrição da NC", field: "descricao", width: 300, formatter: "textarea"},
-                {title: "Correção Imediata", field: "correcao", width: 250, formatter: "textarea"},
-                {title: "Causas Principais", field: "causas_principais", width: 250, formatter: "textarea"},
-                {title: "Ação Corretiva", field: "acao_corretiva", width: 250, formatter: "textarea"},
-                {title: "Eficácia (Texto)", field: "eficacia_texto", width: 250, formatter: "textarea"},
+                {title: "Descrição da NC", field: "descricao", width: 300, formatter: "textarea", editor: "textarea"},
+                {title: "Correção Imediata", field: "correcao", width: 250, formatter: "textarea", editor: "textarea"},
+                {title: "Causas Principais", field: "causas_principais", width: 250, formatter: "textarea", editor: "textarea"},
+                {title: "Ação Corretiva", field: "acao_corretiva", width: 250, formatter: "textarea", editor: "textarea"},
+                {title: "Eficácia (Texto)", field: "eficacia_texto", width: 250, formatter: "textarea", editor: "textarea"},
 
                 // Responsáveis e Prazos
                 {title: "Responsáveis", field: "responsaveis", width: 200, headerFilter: "input"},
@@ -114,8 +116,7 @@
                     return "-";
                 }}
             ],
-            
-            // Tradução nativa para Português
+
             locale: "pt-br",
             langs: {
                 "pt-br": {
@@ -126,14 +127,50 @@
                         "next": "Próxima", "next_title": "Próxima Página",
                     }
                 }
+            }, // VÍRGULA AQUI! O cellEdited continua dentro da configuração
+
+            // O GATILHO DE EDIÇÃO
+            cellEdited: function(cell){
+                let id_rnc = cell.getRow().getData().id;
+                let campo_editado = cell.getField();
+                let novo_valor = cell.getValue();
+                let valor_antigo = cell.getOldValue();
+
+                let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                fetch(`/qualidade/api/rncs/${id_rnc}/atualizar/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        campo: campo_editado,
+                        valor: novo_valor
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'sucesso'){
+                        cell.getElement().style.border = "2px solid #198754";
+                        setTimeout(() => { cell.getElement().style.border = ""; }, 1500);
+                    } else {
+                        alert("Erro ao salvar: " + data.mensagem);
+                        cell.restoreOldValue();
+                    }
+                })
+                .catch(error => {
+                    alert("Erro de comunicação com o servidor.");
+                    cell.restoreOldValue();
+                });
             }
-        });
+        }); // AGORA SIM, fechamos o Tabulator!
 
         // 4. Gatilho do Botão de Exportação Excel
         document.getElementById("download-xlsx").addEventListener("click", function(){
-            // Exporta exatamente o que o usuário está vendo (com filtros aplicados)
             table.download("xlsx", "Controle_RNCs_I9TMG.xlsx", {sheetName:"RNCs"});
         });
     });
 </script>
+
 {% endblock %}

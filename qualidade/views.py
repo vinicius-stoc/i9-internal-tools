@@ -1,7 +1,11 @@
-from django.shortcuts import render
-from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
 from .models import RNC
+import json
+
+
 
 
 @login_required(login_url='/login/')
@@ -61,3 +65,52 @@ def api_listar_rncs(request):
         })
 
     return JsonResponse(data, safe=False)
+
+
+@login_required(login_url='/login/')
+@require_POST # Bloqueia acessos via navegador, aceita apenas envio de dados
+def api_atualizar_rnc(request, rnc_id):
+    """
+    Recebe requisições AJAX do Tabulator para atualizar uma célula específica.
+    """
+    try:
+        # Lê o JSON enviado pelo Tabulator no frontend
+        dados = json.loads(request.body)
+        campo = dados.get('campo')
+        valor = dados.get('valor')
+
+        # Busca a RNC no banco de dados
+        rnc = get_object_or_404(RNC, id=rnc_id)
+
+        # colunas do Tabulator podem ser editadas diretamente
+        campos_permitidos = {
+            'descricao': 'descricao',
+            'correcao': 'correcao',
+            'causas_principais': 'causas_principais',
+            'acao_corretiva': 'acao_corretiva',
+            'eficacia_texto': 'eficacia_texto',
+            'justificativa_criticidade': 'justificativa_criticidade',
+        }
+
+        # Tratamento especial para o Enum de Status
+        mapa_status = {
+            'Não iniciada': 'NI', 'Em andamento': 'EA', 'Concluído': 'CO',
+            'Fora dos trilhos': 'FT', 'Registro preliminar': 'PR', 'Cancelado': 'CA'
+        }
+
+        if campo == 'status' and valor in mapa_status:
+            rnc.status = mapa_status[valor]
+            rnc.save(update_fields=['status', 'atualizado_em'])
+            return JsonResponse({'status': 'sucesso'})
+
+        elif campo in campos_permitidos:
+            campo_model = campos_permitidos[campo]
+            setattr(rnc, campo_model, valor)
+            rnc.save(update_fields=[campo_model, 'atualizado_em'])
+            return JsonResponse({'status': 'sucesso'})
+
+        else:
+            return JsonResponse({'status': 'erro', 'mensagem': 'Campo não autorizado para edição inline.'}, status=403)
+
+    except Exception as e:
+        return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=500)
