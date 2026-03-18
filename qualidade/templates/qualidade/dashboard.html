@@ -125,73 +125,68 @@
                 }
             },
 
-            // 4. Gatilho de Salvamento com Logs e Cookies Robustos
-            cellEdited: function(cell){
-                let id_rnc = cell.getRow().getData().id;
-                let campo_editado = cell.getField();
-                let novo_valor = cell.getValue();
+            table.on("cellEdited", function(cell){
+            let id_rnc = cell.getRow().getData().id;
+            let campo_editado = cell.getField();
+            let novo_valor = cell.getValue();
 
-                console.log(`[SGQ] Iniciando salvamento | RNC ID: ${id_rnc} | Coluna: ${campo_editado} | Valor: ${novo_valor}`);
+            console.log(`[SGQ] Iniciando salvamento | RNC ID: ${id_rnc} | Coluna: ${campo_editado} | Valor: ${novo_valor}`);
 
-                // Função para extrair o Cookie de Segurança (CSRF)
-                function getCookie(name) {
-                    let cookieValue = null;
-                    if (document.cookie && document.cookie !== '') {
-                        const cookies = document.cookie.split(';');
-                        for (let i = 0; i < cookies.length; i++) {
-                            const cookie = cookies[i].trim();
-                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                                break;
-                            }
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
                         }
                     }
-                    return cookieValue;
                 }
-
-                let csrfToken = getCookie('csrftoken');
-
-                // Envia a requisição silenciosa (AJAX)
-                fetch(`/qualidade/api/rncs/${id_rnc}/atualizar/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({
-                        campo: campo_editado,
-                        valor: novo_valor
-                    })
-                })
-                .then(async response => {
-                    if (!response.ok) {
-                        let errText = await response.text();
-                        throw new Error(`HTTP ${response.status}: ${errText.substring(0, 100)}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if(data.status === 'sucesso'){
-                        console.log("[SGQ] Sucesso! Banco de dados atualizado com segurança.");
-                        // Feedback Visual: Pisca o fundo verde suavemente
-                        cell.getElement().style.transition = "background-color 0.5s ease";
-                        cell.getElement().style.backgroundColor = "#d1e7dd";
-                        setTimeout(() => { cell.getElement().style.backgroundColor = ""; }, 1500);
-                    } else {
-                        console.error("[SGQ] Servidor recusou a atualização:", data.mensagem);
-                        alert("Erro ao salvar: " + data.mensagem);
-                        cell.restoreOldValue();
-                    }
-                })
-                .catch(error => {
-                    console.error("[SGQ] Falha crítica na comunicação:", error);
-                    alert("Falha de rede. O dado retornará ao valor anterior.");
-                    cell.restoreOldValue();
-                });
+                return cookieValue;
             }
+
+            let csrfToken = getCookie('csrftoken');
+
+            fetch(`/qualidade/api/rncs/${id_rnc}/atualizar/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    campo: campo_editado,
+                    valor: novo_valor
+                })
+            })
+            .then(async response => {
+                if (!response.ok) {
+                    let errText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errText.substring(0, 100)}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if(data.status === 'sucesso'){
+                    console.log("[SGQ] Sucesso! Banco de dados atualizado com segurança.");
+                    cell.getElement().style.transition = "background-color 0.5s ease";
+                    cell.getElement().style.backgroundColor = "#d1e7dd";
+                    setTimeout(() => { cell.getElement().style.backgroundColor = ""; }, 1500);
+                } else {
+                    console.error("[SGQ] Servidor recusou a atualização:", data.mensagem);
+                    alert("Erro ao salvar: " + data.mensagem);
+                    cell.restoreOldValue();
+                }
+            })
+            .catch(error => {
+                console.error("[SGQ] Falha crítica na comunicação:", error);
+                alert("Falha de rede. O dado retornará ao valor anterior.");
+                cell.restoreOldValue();
+            });
         });
 
-        // 5. Exportação Excel
+        // Exportação Excel
         document.getElementById("download-xlsx").addEventListener("click", function(){
             table.download("xlsx", "Controle_RNCs_I9TMG.xlsx", {sheetName:"RNCs"});
         });
