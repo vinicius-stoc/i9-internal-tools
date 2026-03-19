@@ -79,7 +79,10 @@ def api_atualizar_rnc(request, rnc_id):
             'justificativa_criticidade',
             'status',
             'data_prevista_conclusao',
-            'data_encerramento'
+            'data_encerramento',
+            'detector',
+            'classificacao',
+            'criticidade'
         ]
 
         # Se o utilizador tentar enviar um campo que não está na lista, bloqueamos com erro 403 (Forbidden)
