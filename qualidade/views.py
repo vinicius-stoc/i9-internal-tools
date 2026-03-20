@@ -71,7 +71,7 @@ def api_atualizar_rnc(request, rnc_id):
         valor = dados.get('valor')
 
         campos_permitidos = [
-            'projeto_cod'
+            'projeto_cod',
             'elemento_rastreador',
             'detector',
             'classificacao',

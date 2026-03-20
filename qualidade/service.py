@@ -8,7 +8,7 @@ class RNCService:
     @staticmethod
     def atualizar_rnc(rnc_id, campo, valor):
         with transaction.atomic():
-        # Busca a instancia e guarda o estado anterior
+            # Busca a instancia e guarda o estado anterior
             rnc = RNC.objects.get(id=rnc_id)
             valor_antigo = getattr(rnc, campo)
 
@@ -32,6 +32,14 @@ class RNCService:
             if campo =='detector' and valor in mapa_detector:
                 valor = mapa_detector[valor]
 
+            mapa_classificacao = {'SISTEMA': 'SI', 'PRODUTO': 'PR', 'PROCESSO': 'PO'}
+            if campo =='classificacao' and valor in mapa_classificacao:
+                valor = mapa_classificacao[valor]
+
+            mapa_criticidade = {'ALTO': 'A', 'MEDIO': 'M', 'BAIXO': 'B'}
+            if campo == 'criticidade' and valor in mapa_criticidade:
+                valor = mapa_criticidade[valor]
+
             setattr(rnc, campo, valor)
             rnc.versao += 1
             rnc.save(update_fields=[campo, 'versao', 'atualizado_em'])
@@ -47,13 +55,25 @@ class RNCService:
         rnc = RNC.objects.get(id=rnc.id)
         emails = [resp.email for resp in rnc.responsaveis.all() if resp.email]
         if emails:
+            nome_equipamento = rnc.equipamento.nome if rnc.equipamento else "Não informado"
+            codigo_projeto = rnc.projeto_cod if rnc.projeto_cod else "Não informado"
+
+            mensagem_texto = (
+                f"Atenção, a data de encerramento da RNC foi atualizada.\n\n"
+                f"DETALHES DA RNC:\n"
+                f"- ID: {rnc.id}\n"
+                f"- Equipamento: {rnc.equipamento}\n"
+                f"- Projeto: {codigo_projeto}\n"
+                f"- Descrição da Não Conformidade: {rnc.descricao}\n\n"
+                f"Nova Data de Encerramento: {rnc.data_encerramento.strftime('%d/%m/%Y') if rnc.data_encerramento else 'Não informado'}\n"
+            )
             try:
                 send_mail(
                     subject=f'[SGQ] Alteração de Prazo - RNC #{rnc.id}',
-                    message=f'A RNC {rnc.id} teve sua data de encerramento alterada para {rnc.data_encerramento}.',
+                    message=mensagem_texto,
                     from_email=settings.EMAIL_HOST_USER,
                     recipient_list=emails,
                     fail_silently=False
                 )
             except Exception as e:
-                print(f'Erro ao enviar email da RNC {rnc,id}: {e}')
+                print(f'Erro ao enviar email da RNC {rnc.id}: {e}')
