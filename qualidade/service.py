@@ -21,10 +21,16 @@ class RNCService:
 
             # tratamento especial para status
             mapa_status = {
-                'Não iniciada': 'NI', 'Em andamento': 'EA', 'Concluido': 'CO', 'Fora dos trilhos': 'FT', 'Registro preliminar': 'PR', 'Cancelado': 'CA', 'detector': 'DE', 'classficacao': 'CL', 'criticidade': 'CR'
+                'Não iniciada': 'NI', 'Em andamento': 'EA', 'Concluido': 'CO', 'Fora dos trilhos': 'FT', 'Registro preliminar': 'PR', 'Cancelado': 'CA'
             }
             if campo =='status' and valor in mapa_status:
                 valor = mapa_status[valor]
+
+            mapa_detector = {
+                'Cliente': 'CL', 'Interno': 'IN', 'Auditor Interno': 'AI', 'Auditor Externo': 'AE', 'Fornecedor': 'FO'
+            }
+            if campo =='detector' and valor in mapa_detector:
+                valor = mapa_detector[valor]
 
             setattr(rnc, campo, valor)
             rnc.versao += 1

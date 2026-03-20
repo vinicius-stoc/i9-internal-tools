@@ -71,18 +71,26 @@ def api_atualizar_rnc(request, rnc_id):
         valor = dados.get('valor')
 
         campos_permitidos = [
+            'projeto_cod'
+            'elemento_rastreador',
+            'detector',
+            'classificacao',
+            'criticidade',
+            'justificativa_criticidade',
+            'status',
+            'equipamento',
+            'local',
+            'tipo_nc',
             'descricao',
             'correcao',
+            'ishikawa_link',
             'causas_principais',
             'acao_corretiva',
             'eficacia_texto',
-            'justificativa_criticidade',
-            'status',
-            'data_prevista_conclusao',
+            'eficacia_pdf',
+            'responsaveis',
             'data_encerramento',
-            'detector',
-            'classificacao',
-            'criticidade'
+            'versao',
         ]
 
         # Se o utilizador tentar enviar um campo que não está na lista, bloqueamos com erro 403 (Forbidden)
