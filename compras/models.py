@@ -19,10 +19,10 @@ class DataWarehouseCompras(models.Model):
     status = models.CharField(max_length=50, null=True, blank=True)
 
     # Datas (Mantidas como CharField para evitar erro com o "-" gerado no seu ETL)
-    emissao_sc = models.CharField(max_length=20, null=True, blank=True)
-    emissao_pedido = models.CharField(max_length=20, null=True, blank=True)
-    data_prev_recebimento_fisico = models.CharField(max_length=20, null=True, blank=True)
-    data_recebimento_real = models.CharField(max_length=20, null=True, blank=True)
+    emissao_sc = models.DateField(null=True, blank=True)
+    emissao_pedido = models.DateField(null=True, blank=True)
+    data_prev_recebimento_fisico = models.DateField(null=True, blank=True)
+    data_recebimento_real = models.DateField(null=True, blank=True)
 
     # Valores e Quantidades
     qtd_solicitada = models.FloatField(default=0)

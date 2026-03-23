@@ -1,0 +1,178 @@
+import os
+import paramiko
+import pandas as pd
+import numpy as np
+import sqlite3
+import requests
+
+
+SFTP_HOST = 'prafindustrial171165.protheus.cloudtotvs.com.br'
+SFTP_PORT = 1401
+SFTP_USER = 'ftp_C97AI8_production'
+SFTP_PASS = 'CpI6j5cm'
+SFTP_REMOTE_DIR = '/ftp_C97AI8_production/dev/spool'
+
+API_URL = 'https://inovetmg.pythonanywhere.com/compras/api/upload-dw/'
+API_TOKEN = 'l_^e1#ye7@wro)4@gti24vxcmrr$01(@sxdp@=qg40(^vkvwzr'
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+EXCEL_PATH = os.path.join(DATA_DIR, 'report_SC_x_PC.xlsx')
+
+ARQUIVOS_ALVO = [
+    'sc1_extracao.sqlite.sdb', 'sc7_extracao.sqlite.sdb',
+    'sa2_extracao.sqlite.sdb', 'sd1_extracao.sqlite.sdb', 'afg_extracao.sqlite.sdb'
+]
+
+
+def baixar_dados_totvs():
+    os.makedirs(DATA_DIR, exist_ok=True)
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    print("[1/4] Conectando ao servidor TOTVS via SFTP...")
+    try:
+        ssh.connect(hostname=SFTP_HOST, port=SFTP_PORT, username=SFTP_USER, password=SFTP_PASS)
+        sftp = ssh.open_sftp()
+        sftp.chdir(SFTP_REMOTE_DIR)
+
+        for arquivo in ARQUIVOS_ALVO:
+            print(f"Baixando {arquivo}...")
+            sftp.get(arquivo, os.path.join(DATA_DIR, arquivo))
+
+        print("Download concluído.")
+    except Exception as e:
+        print(f"[ERRO] Falha no SFTP: {e}")
+        raise
+    finally:
+        if 'sftp' in locals(): sftp.close()
+        ssh.close()
+
+
+def ler_tabela_sqlite(nome_arquivo):
+    caminho = os.path.join(DATA_DIR, nome_arquivo)
+    con = sqlite3.connect(caminho)
+    con.text_factory = bytes
+    cursor = con.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    table_name = cursor.fetchone()[0].decode('latin1', errors='ignore')
+
+    df = pd.read_sql(f"SELECT * FROM {table_name}", con)
+    con.close()
+
+    def clean_bytes(valor):
+        return valor.decode('latin1', errors='ignore') if isinstance(valor, bytes) else valor
+
+    df = df.map(clean_bytes) if hasattr(df, 'map') else df.applymap(clean_bytes)
+    df.columns = df.columns.str.strip().str.upper()
+    return df.astype(str)
+
+
+def processar_dados():
+    print("[2/4] Processando e limpando dados (ETL)...")
+
+    # 1. Leitura
+    df_sc1 = ler_tabela_sqlite('sc1_extracao.sqlite.sdb')
+    df_sc7 = ler_tabela_sqlite('sc7_extracao.sqlite.sdb')
+    df_sa2 = ler_tabela_sqlite('sa2_extracao.sqlite.sdb')
+    df_sd1 = ler_tabela_sqlite('sd1_extracao.sqlite.sdb')
+    df_afg = ler_tabela_sqlite('afg_extracao.sqlite.sdb')
+
+    # 2. Limpeza Padrão Protheus
+    for df in [df_sc1, df_sc7, df_sa2, df_sd1, df_afg]:
+        if 'D_E_L_E_T_' in df.columns: df.drop(df[df['D_E_L_E_T_'] == '*'].index, inplace=True)
+        colunas_remover = [c for c in ['D_E_L_E_T_', 'R_E_C_N_O_', 'R_E_C_D_E_L_'] if c in df.columns]
+        df.drop(columns=colunas_remover, inplace=True, errors='ignore')
+        for col in df.columns: df[col] = df[col].str.strip()  # Strip geral
+
+    # 3. Merges
+    df_merged = pd.merge(df_sc1, df_sc7, how='left', left_on=['C1_FILIAL', 'C1_NUM', 'C1_ITEM'],
+                         right_on=['C7_FILIAL', 'C7_NUMSC', 'C7_ITEMSC'])
+
+    if 'AFG_NUMSC' in df_afg.columns:
+        df_afg_unique = df_afg.drop_duplicates(subset=['AFG_NUMSC', 'AFG_ITEMSC']).copy()
+        df_merged = pd.merge(df_merged, df_afg_unique, how='left', left_on=['C1_NUM', 'C1_ITEM'],
+                             right_on=['AFG_NUMSC', 'AFG_ITEMSC'])
+        df_merged['PROJETO_CODIGO'] = df_merged['AFG_PROJET']
+    else:
+        df_merged['PROJETO_CODIGO'], df_merged['AFG_TAREFA'] = '', ''
+
+    df_merged = pd.merge(df_merged, df_sa2, how='left', left_on=['C7_FORNECE', 'C7_LOJA'],
+                         right_on=['A2_COD', 'A2_LOJA'])
+    df_merged = pd.merge(df_merged, df_sd1, how='left', left_on=['C7_FILIAL', 'C7_NUM', 'C7_ITEM'],
+                         right_on=['D1_FILIAL', 'D1_PEDIDO', 'D1_ITEMPC'])
+
+    # 4. Regras de Negócio e Datas
+    def convert_date(serie):
+        return pd.to_datetime(serie, format='%Y%m%d', errors='coerce')
+
+    df_merged['DATA_SC_REAL'] = convert_date(df_merged.get('C1_EMISSAO', pd.Series(dtype=str)))
+    df_merged['DATA_PEDIDO_REAL'] = convert_date(df_merged.get('C7_EMISSAO', pd.Series(dtype=str)))
+    df_merged['DATA_PREV_RECEBIMENTO'] = convert_date(df_merged.get('C7_DATPRF', pd.Series(dtype=str)))
+    df_merged['DATA_RECEBIMENTO_REAL'] = convert_date(df_merged.get('D1_DTDIGIT', pd.Series(dtype=str)))
+
+    df_merged['STATUS_COMPRA'] = np.where(df_merged['C7_NUM'].isna() | (df_merged['C7_NUM'] == ''), 'PENDENTE',
+                                          'COM PEDIDO')
+    df_merged['STATUS_COMPRA'] = np.where(df_merged['D1_DTDIGIT'].notna() & (df_merged['D1_DTDIGIT'] != ''), 'ENTREGUE',
+                                          df_merged['STATUS_COMPRA'])
+
+    df_merged['DIAS_LEAD_TIME'] = (df_merged['DATA_PEDIDO_REAL'] - df_merged['DATA_SC_REAL']).dt.days.fillna(0).astype(
+        int)
+    df_merged['DIAS_LEAD_FORNECEDOR'] = (
+                df_merged['DATA_PREV_RECEBIMENTO'] - df_merged['DATA_PEDIDO_REAL']).dt.days.fillna(0).astype(int)
+    df_merged['DIAS_ATRASO_ENTREGA'] = (
+                df_merged['DATA_RECEBIMENTO_REAL'] - df_merged['DATA_PREV_RECEBIMENTO']).dt.days.fillna(0).astype(int)
+
+    # 5. Exportação
+    colunas_map = {
+        'C1_FILIAL': 'Filial', 'C1_NUM': 'Num_SC', 'C1_PRODUTO': 'Cod_Produto', 'C1_DESCRI': 'Descricao',
+        'C1_QUANT': 'Qtd_Solicitada',
+        'PROJETO_CODIGO': 'Projeto_Cod', 'AFG_TAREFA': 'Tarefa_Cod', 'C7_NUM': 'Num_Pedido',
+        'C7_FORNECE': 'Cod_Fornecedor',
+        'A2_NOME': 'Nome_Fornecedor', 'C7_QUANT': 'Qtd_Pedido', 'D1_QUANT': 'Qtd_Recebida',
+        'C7_PRECO': 'Valor_Unitario',
+        'C7_TOTAL': 'Valor_Total', 'STATUS_COMPRA': 'Status', 'DIAS_LEAD_TIME': 'LeadTime_Compras',
+        'DIAS_LEAD_FORNECEDOR': 'LeadTime_Fornecedor', 'DIAS_ATRASO_ENTREGA': 'Dias_Atraso_Entrega'
+    }
+
+    # Formatação de datas em string
+    df_merged['Emissao_SC'] = df_merged['DATA_SC_REAL'].dt.strftime('%d/%m/%Y')
+    df_merged['Emissao_Pedido'] = df_merged['DATA_PEDIDO_REAL'].dt.strftime('%d/%m/%Y').fillna('-')
+    df_merged['Data_Prev_Recebimento_Fisico'] = df_merged['DATA_PREV_RECEBIMENTO'].dt.strftime('%d/%m/%Y').fillna('-')
+    df_merged['Data_Recebimento_Real'] = df_merged['DATA_RECEBIMENTO_REAL'].dt.strftime('%d/%m/%Y').fillna('-')
+
+    df_final = df_merged.rename(columns=colunas_map)
+    cols_existentes = [c for c in
+                       list(colunas_map.values()) + ['Emissao_SC', 'Emissao_Pedido', 'Data_Prev_Recebimento_Fisico',
+                                                     'Data_Recebimento_Real'] if c in df_final.columns]
+    df_final = df_final[cols_existentes]
+
+    for col in ['Qtd_Solicitada', 'Qtd_Pedido', 'Qtd_Recebida', 'Valor_Unitario', 'Valor_Total']:
+        if col in df_final.columns: df_final[col] = pd.to_numeric(df_final[col], errors='coerce').fillna(0)
+
+    print(f"[3/4] Gerando arquivo Excel em: {EXCEL_PATH}")
+    df_final.to_excel(EXCEL_PATH, index=False, engine='openpyxl')
+
+
+def enviar_para_nuvem():
+    print("[4/4] Enviando dados para o PythonAnywhere...")
+    try:
+        with open(EXCEL_PATH, 'rb') as f:
+            files = {'arquivo': ('report.xlsx', f, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+            headers = {'X-Api-Key': API_TOKEN}
+            resposta = requests.post(API_URL, headers=headers, files=files)
+
+        if resposta.status_code == 200:
+            print(f"[OK] Nuvem atualizada: {resposta.json().get('mensagem')}")
+        else:
+            print(f"[ERRO] Falha na API ({resposta.status_code}): {resposta.text}")
+    except Exception as e:
+        print(f"[ERRO CRÍTICO] Falha de conexão: {e}")
+
+
+if __name__ == "__main__":
+    print("=== INICIANDO PIPELINE DE COMPRAS ===")
+    baixar_dados_totvs()
+    processar_dados()
+    enviar_para_nuvem()
+    print("=== PIPELINE FINALIZADO ===")

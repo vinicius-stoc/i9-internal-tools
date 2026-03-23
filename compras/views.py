@@ -11,6 +11,7 @@ from django.contrib import messages
 from django.db.models import Sum, Avg, Count, Q
 from .models import DataWarehouseCompras
 
+
 @csrf_exempt
 def api_upload_compras(request):
     """
@@ -31,11 +32,23 @@ def api_upload_compras(request):
 
             registros = []
             for index, row in df.iterrows():
-                def limpa_str(val): return str(val).strip() if pd.notna(val) else ''
+                def limpa_str(val):
+                    return str(val).strip() if pd.notna(val) else ''
 
-                def limpa_num(val): return float(val) if pd.notna(val) else 0.0
+                def limpa_num(val):
+                    return float(val) if pd.notna(val) else 0.0
 
-                def limpa_int(val): return int(val) if pd.notna(val) else 0
+                def limpa_int(val):
+                    return int(val) if pd.notna(val) else 0
+
+                def limpa_data(val):
+                    val_str = str(val).strip()
+                    if val_str and val_str not in ['-', 'nan', 'NaT']:
+                        try:
+                            return datetime.strptime(val_str, '%d/%m/%Y').date()
+                        except ValueError:
+                            return None
+                    return None
 
                 registros.append(
                     DataWarehouseCompras(
@@ -49,10 +62,10 @@ def api_upload_compras(request):
                         cod_fornecedor=limpa_str(row.get('Cod_Fornecedor')),
                         nome_fornecedor=limpa_str(row.get('Nome_Fornecedor')),
                         status=limpa_str(row.get('Status')),
-                        emissao_sc=limpa_str(row.get('Emissao_SC')),
-                        emissao_pedido=limpa_str(row.get('Emissao_Pedido')),
-                        data_prev_recebimento_fisico=limpa_str(row.get('Data_Prev_Recebimento_Fisico')),
-                        data_recebimento_real=limpa_str(row.get('Data_Recebimento_Real')),
+                        emissao_sc=limpa_data(row.get('Emissao_SC')),
+                        emissao_pedido=limpa_data(row.get('Emissao_Pedido')),
+                        data_prev_recebimento_fisico=limpa_data(row.get('Data_Prev_Recebimento_Fisico')),
+                        data_recebimento_real=limpa_data(row.get('Data_Recebimento_Real')),
                         qtd_solicitada=limpa_num(row.get('Qtd_Solicitada')),
                         qtd_pedido=limpa_num(row.get('Qtd_Pedido')),
                         qtd_recebida=limpa_num(row.get('Qtd_Recebida')),
@@ -76,11 +89,15 @@ def api_upload_compras(request):
 
 @login_required(login_url='/login/')
 def dashboard_compras(request):
-    if not (request.user.is_superuser or getattr(request.user, 'is_compras', False) or getattr(request.user, 'is_diretoria', False) or getattr(
+    # Controle de Acesso
+    if not (request.user.is_superuser or getattr(request.user, 'is_compras', False) or getattr(request.user,
+                                                                                               'is_diretoria',
+                                                                                               False) or getattr(
             request.user, 'is_ti', False)):
         messages.error(request, "Acesso restrito à Diretoria e equipe de Compras.")
         return redirect('home')
 
+    # Captura de Filtros do GET
     data_inicio = request.GET.get('data_inicio')
     data_fim = request.GET.get('data_fim')
     projeto_filtro = request.GET.get('projeto')
@@ -88,8 +105,10 @@ def dashboard_compras(request):
     fornecedor_filtro = request.GET.get('nome_fornecedor')
     exportar_csv = request.GET.get('export_csv')
 
+    # QuerySet Base (Apenas Efetivados)
     pedidos_efetivados = DataWarehouseCompras.objects.exclude(status='PENDENTE')
 
+    # Aplicação de Filtros
     if projeto_filtro:
         pedidos_efetivados = pedidos_efetivados.filter(projeto_cod=projeto_filtro)
     if tarefa_filtro:
@@ -97,29 +116,20 @@ def dashboard_compras(request):
     if fornecedor_filtro:
         pedidos_efetivados = pedidos_efetivados.filter(nome_fornecedor=fornecedor_filtro)
 
+    # Filtro de Datas (Otimizado via ORM)
     if data_inicio and data_fim:
         try:
-            dt_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
-            dt_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
-
-            ids_validos = []
-            for ped in pedidos_efetivados:
-                if ped.emissao_pedido and ped.emissao_pedido != '-':
-                    dt_ped = datetime.strptime(ped.emissao_pedido, '%d/%m/%Y').date()
-                    if dt_inicio <= dt_ped <= dt_fim:
-                        ids_validos.append(ped.id)
-
-            pedidos_efetivados = pedidos_efetivados.filter(id__in=ids_validos)
+            pedidos_efetivados = pedidos_efetivados.filter(emissao_pedido__range=(data_inicio, data_fim))
         except Exception as e:
             messages.warning(request, "Erro ao filtrar datas. Verifique o formato.")
 
+    # Exportação CSV
     if exportar_csv == '1':
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="base_completa_compras.csv"'
         response.write(u'\ufeff'.encode('utf8'))
 
         writer = csv.writer(response, delimiter=';')
-
         writer.writerow([
             'Filial', 'Num_SC', 'Emissao_SC', 'Cod_Produto', 'Descricao',
             'Projeto_Cod', 'Tarefa_Cod', 'Num_Pedido', 'Emissao_Pedido',
@@ -129,20 +139,25 @@ def dashboard_compras(request):
             'LeadTime_Fornecedor', 'Dias_Atraso_Entrega'
         ])
 
+        def formata_dt(data_obj):
+            return data_obj.strftime('%d/%m/%Y') if data_obj else '-'
+
         for obj in pedidos_efetivados:
             writer.writerow([
-                obj.filial, obj.num_sc, obj.emissao_sc, obj.cod_produto, obj.descricao,
-                obj.projeto_cod, obj.tarefa_cod, obj.num_pedido, obj.emissao_pedido,
-                obj.data_prev_recebimento_fisico, obj.data_recebimento_real, obj.cod_fornecedor,
-                obj.nome_fornecedor, obj.status, obj.qtd_solicitada, obj.qtd_pedido, obj.qtd_recebida,
-                obj.valor_unitario, obj.valor_total, obj.leadtime_compras,
-                obj.leadtime_fornecedor, obj.dias_atraso_entrega
+                obj.filial, obj.num_sc, formata_dt(obj.emissao_sc), obj.cod_produto, obj.descricao,
+                obj.projeto_cod, obj.tarefa_cod, obj.num_pedido, formata_dt(obj.emissao_pedido),
+                formata_dt(obj.data_prev_recebimento_fisico), formata_dt(obj.data_recebimento_real),
+                obj.cod_fornecedor, obj.nome_fornecedor, obj.status, obj.qtd_solicitada,
+                obj.qtd_pedido, obj.qtd_recebida, obj.valor_unitario, obj.valor_total,
+                obj.leadtime_compras, obj.leadtime_fornecedor, obj.dias_atraso_entrega
             ])
         return response
 
+    # KPIs Principais
     spend_total = pedidos_efetivados.aggregate(total=Sum('valor_total'))['total'] or 0.0
     lead_time_compras = pedidos_efetivados.aggregate(media=Avg('leadtime_compras'))['media'] or 0.0
 
+    # KPI de Backlog
     backlog_query = DataWarehouseCompras.objects.filter(status='PENDENTE')
     if projeto_filtro: backlog_query = backlog_query.filter(projeto_cod=projeto_filtro)
     if tarefa_filtro: backlog_query = backlog_query.filter(tarefa_cod=tarefa_filtro)
@@ -152,6 +167,7 @@ def dashboard_compras(request):
     pedidos_entregues = pedidos_efetivados.filter(status='ENTREGUE')
     atraso_medio_fornecedores = pedidos_entregues.aggregate(media=Avg('dias_atraso_entrega'))['media'] or 0.0
 
+    # Gráfico Curva ABC
     curva_abc_projetos = pedidos_efetivados.exclude(projeto_cod='').values('projeto_cod').annotate(
         custo_total=Sum('valor_total')
     ).order_by('-custo_total')[:5]
@@ -180,13 +196,17 @@ def dashboard_compras(request):
                            for f in piores_fornecedores]
     fornecedores_data = [float(f['media_atraso']) for f in piores_fornecedores]
 
-    lista_projetos = DataWarehouseCompras.objects.exclude(projeto_cod='').values_list('projeto_cod', flat=True).distinct().order_by('projeto_cod')
+    lista_projetos = DataWarehouseCompras.objects.exclude(projeto_cod='').values_list('projeto_cod',
+                                                                                      flat=True).distinct().order_by(
+        'projeto_cod')
 
     tarefas_query = DataWarehouseCompras.objects.exclude(tarefa_cod='')
-    if projeto_filtro:
-        tarefas_query = tarefas_query.filter(projeto_cod=projeto_filtro)
+    if projeto_filtro: tarefas_query = tarefas_query.filter(projeto_cod=projeto_filtro)
     lista_tarefas = tarefas_query.values_list('tarefa_cod', flat=True).distinct().order_by('tarefa_cod')
-    lista_fornecedor = DataWarehouseCompras.objects.exclude(nome_fornecedor='').values_list('nome_fornecedor', flat=True).distinct().order_by('nome_fornecedor')
+
+    lista_fornecedor = DataWarehouseCompras.objects.exclude(nome_fornecedor='').values_list('nome_fornecedor',
+                                                                                            flat=True).distinct().order_by(
+        'nome_fornecedor')
 
     context = {
         'spend_total': spend_total,
@@ -208,7 +228,8 @@ def dashboard_compras(request):
             'data_inicio': data_inicio,
             'data_fim': data_fim,
             'projeto': projeto_filtro,
-            'tarefa': tarefa_filtro
+            'tarefa': tarefa_filtro,
+            'fornecedor': fornecedor_filtro
         }
     }
 
