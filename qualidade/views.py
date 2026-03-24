@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -151,9 +152,6 @@ def api_criar_rnc(request):
             status = 'PR'
         )
 
-        notifica_user = RNCService._notificar_data_encerramento(request, nova_rnc)
-        return JsonResponse({'status': 'sucesso'})
-
         return JsonResponse({'status': 'sucesso', 'rnc_id': nova_rnc.id})
 
     except Exception as e:
@@ -165,6 +163,12 @@ def api_criar_rnc(request):
 def api_editar_rnc_avancado(request, rnc_id):
     try:
         rnc = RNC.objects.get(id=rnc_id)
+
+        data_antiga = rnc.data_encerramento
+
+        nova_data_texto = request.POST.get('data_encerramento')
+        if nova_data_texto:
+            rnc.data_encerramento = datetime.strptime(nova_data_texto, '%Y-%m-%d').date()
 
         data_encerramento = request.POST.get('data_encerramento')
         if data_encerramento:
@@ -188,6 +192,9 @@ def api_editar_rnc_avancado(request, rnc_id):
         imagens = request.FILES.getlist('imagens')
         for img in imagens:
             RNCImagem.objects.create(rnc=rnc, imagem=img)
+
+        if rnc.data_encerramento != data_antiga:
+            RNCService._notificar_data_encerramento(rnc.id)
 
         return JsonResponse({'status': 'sucesso'})
 
