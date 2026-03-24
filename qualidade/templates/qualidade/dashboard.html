@@ -318,9 +318,12 @@ document.addEventListener('DOMContentLoaded', function() {
             alert("Erro de conexão com o servidor. Veja o Console (F12).");
         })
         .finally(() => {
+            // Volta o botão ao normal independente se deu certo ou errado
             btnSalvar.innerHTML = textoOriginal;
             btnSalvar.disabled = false;
         });
     });
+});
+
 </script>
 {% endblock %}
