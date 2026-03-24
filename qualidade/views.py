@@ -147,4 +147,4 @@ def api_criar_rnc(request):
         return JsonResponse({'status': 'sucesso', 'rnc_id': nova_rnc.id})
 
     except Exception as e:
-        return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=500)
+        return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)
