@@ -21,7 +21,7 @@ def dashboard_qualidade(request):
         'locais': locais_ativos,
         'equipamentos': equipamento_ativos,
         'tipos_nc': tipo_nc_ativos,
-        'usuarioe': usuarios_ativos
+        'usuarios': usuarios_ativos
     }
     return render(request, 'qualidade/dashboard.html', context)
 
