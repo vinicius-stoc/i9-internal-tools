@@ -156,6 +156,16 @@ document.addEventListener('DOMContentLoaded', function() {
         movableColumns: true,
 
         columns: [
+            {title: "Ações", field: "acoes", width: 90, hozAlign: "center", formatter: function(cell){
+                return `<button class="btn btn-sm btn-primary py-0 btn-editar-rnc" title="Editar RNC completo">
+                            <i class="bi bi-pencil-square"></i> Editar
+                        </button>`;
+            }, cellClick: function(e, cell){
+                // Quando clicar no botão, vamos pegar os dados daquela linha!
+                let dadosDaLinha = cell.getRow().getData();
+                abrirModalEdicao(dadosDaLinha);
+            }},
+
             {title: "ID", field: "id", width: 70, headerFilter: "input", frozen: false},
 
             {title: "Status", field: "status", width: 140, headerFilter: "list", headerFilterParams: {valuesLookup:true, clearable:true},
