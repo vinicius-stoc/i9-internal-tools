@@ -191,9 +191,12 @@
 </div>
 
 <script>
+// ABERTURA DO ESCOPO PRINCIPAL DO JAVASCRIPT
 document.addEventListener('DOMContentLoaded', function() {
 
-    // Função para exibir a data no padrão Brasileiro na tabela
+    // ==========================================
+    // FORMATAÇÃO E INICIALIZAÇÃO DA TABELA
+    // ==========================================
     var formatarDataBR = function(cell){
         let val = cell.getValue();
         if(val && val.includes('-')){
@@ -203,7 +206,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return val || "-";
     };
 
-    // Inicializa a tabela
     var table = new Tabulator("#tabela-rnc", {
         ajaxURL: "{% url 'api_listar_rncs' %}",
         layout: "fitDataFill",
@@ -220,7 +222,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="bi bi-pencil-square"></i> Editar
                         </button>`;
             }, cellClick: function(e, cell){
-                // Quando clicar no botão, vamos pegar os dados daquela linha!
                 let dadosDaLinha = cell.getRow().getData();
                 abrirModalEdicao(dadosDaLinha);
             }},
@@ -241,37 +242,25 @@ document.addEventListener('DOMContentLoaded', function() {
             },
 
             {title: "Registrador", field: "registrador", width: 150, headerFilter: "input"},
-
             {title: "Detector", field: "detector", width: 120, headerFilter: "list", headerFilterParams: {valuesLookup:true, clearable:true},
              editor: "list", editorParams: {values: ["Cliente", "Interno", "Auditor Interno", "Auditor Externo", "Fornecedor"]}},
-
             {title: "Data Abertura", field: "data_abertura", width: 120, headerFilter: "input", formatter: formatarDataBR},
-
             {title: "Projeto", field: "projeto_cod", width: 110, headerFilter: "input", editor: "input"},
-
             {title: "Elemento Rast.", field: "elemento_rastreador", width: 130, headerFilter: "input", editor: "input"},
-
             {title: "Local", field: "local", width: 130, headerFilter: "input"},
             {title: "Equipamento", field: "equipamento", width: 160, headerFilter: "input"},
-
             {title: "Classificação", field: "classificacao", width: 130, headerFilter: "list", headerFilterParams: {valuesLookup:true, clearable:true},
              editor: "list", editorParams: {values: ["Sistema", "Produto", "Processo"]}},
-
             {title: "Criticidade", field: "criticidade", width: 110, headerFilter: "list", headerFilterParams: {valuesLookup:true, clearable:true},
              editor: "list", editorParams: {values: ["Alto", "Médio", "Baixo"]}},
-
             {title: "Justificativa Criticidade", field: "justificativa_criticidade", width: 250, formatter: "textarea", editor: "textarea"},
-
             {title: "Tipo NC", field: "tipo_nc", width: 150, headerFilter: "input"},
-
             {title: "Descrição da NC", field: "descricao", width: 300, formatter: "textarea", editor: "textarea"},
             {title: "Correção Imediata", field: "correcao", width: 250, formatter: "textarea", editor: "textarea"},
             {title: "Causas Principais", field: "causas_principais", width: 250, formatter: "textarea", editor: "textarea"},
             {title: "Ação Corretiva", field: "acao_corretiva", width: 250, formatter: "textarea", editor: "textarea"},
             {title: "Eficácia (Texto)", field: "eficacia_texto", width: 250, formatter: "textarea", editor: "textarea"},
-
             {title: "Responsáveis", field: "responsaveis", width: 200, headerFilter: "input"},
-
             {title: "Prev. Conclusão", field: "data_prevista_conclusao", width: 130, formatter: formatarDataBR},
             {title: "Encerramento", field: "data_encerramento", width: 130, formatter: formatarDataBR, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
 
@@ -285,7 +274,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(url) return `<a href="${url}" target="_blank" class="btn btn-sm btn-outline-danger py-0" style="font-size: 0.75rem;"><i class="bi bi-file-pdf"></i> PDF</a>`;
                 return "-";
             }},
-
             {title: "Imagens", field: "qtd_imagens", width: 90, formatter: function(cell){
                 let qtd = cell.getValue();
                 if(qtd > 0) {
@@ -301,7 +289,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Gatilho de Edição Inline do Tabulator
+    // ==========================================
+    // EDIÇÃO INLINE DA TABELA (SALVAMENTO AUTOMÁTICO)
+    // ==========================================
     table.on("cellEdited", function(cell){
         let id_rnc = cell.getRow().getData().id;
         let campo_editado = cell.getField();
@@ -340,28 +330,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Exportação Excel
+    // ==========================================
+    // BOTÃO DE EXPORTAÇÃO EXCEL
+    // ==========================================
     document.getElementById("download-xlsx").addEventListener("click", function(){
         table.download("xlsx", "Controle_RNCs_I9TMG.xlsx", {sheetName:"RNCs"});
     });
 
-    // Modal
+
+    // ==========================================
+    // SUBMIT: CRIAR NOVA RNC (MODAL 1)
+    // ==========================================
     document.getElementById("formNovaRNC").addEventListener("submit", function(event){
         event.preventDefault();
 
         let formData = new FormData(this);
         let payload = Object.fromEntries(formData.entries());
-
-        // Pega o token de segurança para enviar pro Django
         let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-        // Muda o botão para "Salvando..." para dar feedback ao usuário
         let btnSalvar = document.getElementById("btnSalvarNovaRNC");
         let textoOriginal = btnSalvar.innerHTML;
         btnSalvar.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...';
         btnSalvar.disabled = true;
 
-        // Dispara o POST para a nossa nova URL do Django
         fetch("{% url 'api_criar_rnc' %}", {
             method: 'POST',
             headers: {
@@ -387,36 +378,35 @@ document.addEventListener('DOMContentLoaded', function() {
             alert("Erro de conexão com o servidor. Veja o Console (F12).");
         })
         .finally(() => {
-            // Volta o botão ao normal independente se deu certo ou errado
             btnSalvar.innerHTML = textoOriginal;
             btnSalvar.disabled = false;
         });
     });
-});
 
+    // ==========================================
+    // FUNÇÃO: ABRIR MODAL DE EDIÇÃO AVANÇADA
+    // ==========================================
     window.abrirModalEdicao = function(dados) {
-        // 1. Preenche o ID no título e no campo oculto
         document.getElementById('display_rnc_id').innerText = dados.id;
         document.getElementById('edit_rnc_id').value = dados.id;
 
-        // 2. Preenche a Data e o Link
         document.getElementById('edit_data_encerramento').value = dados.data_encerramento || '';
         document.getElementById('edit_ishikawa_link').value = dados.ishikawa_link || '';
 
-        // 3. A Magia do Multi-Select: Marca os responsáveis que já estão na RNC!
         let selectResp = document.getElementById('edit_responsaveis');
-        let idsResponsaveis = dados.responsaveis_ids || []; // Puxa os IDs numéricos que adicionámos no views.py
+        let idsResponsaveis = dados.responsaveis_ids || [];
 
         Array.from(selectResp.options).forEach(opt => {
-            // Se o ID da opção (opt.value) estiver na lista de responsáveis da RNC, marca como 'selected'
             opt.selected = idsResponsaveis.includes(parseInt(opt.value));
         });
 
-        // 4. Mostra o Modal na tela!
         var modalEditar = new bootstrap.Modal(document.getElementById('modalEditarRNC'));
         modalEditar.show();
     };
 
+    // ==========================================
+    // SUBMIT: SALVAR EDIÇÃO AVANÇADA (MODAL 2)
+    // ==========================================
     document.getElementById("formEditarRNC").addEventListener("submit", function(event){
         event.preventDefault();
 
@@ -443,8 +433,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 var modalInstance = bootstrap.Modal.getInstance(modalEl);
                 modalInstance.hide();
                 document.getElementById('formEditarRNC').reset();
-
-                // AGORA ELE VAI ACHAR A TABELA!
                 table.setData();
             } else {
                 alert("O SERVIDOR RECUSOU A EDIÇÃO:\n" + data.mensagem);
@@ -459,6 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btnSalvar.disabled = false;
         });
     });
+
 });
 </script>
 {% endblock %}
