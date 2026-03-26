@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
              editor: "list", editorParams: {values: ["Cliente", "Interno", "Auditor Interno", "Auditor Externo", "Fornecedor"]}},
             {title: "Data Abertura", field: "data_abertura", width: 120, headerFilter: "input", formatter: formatarDataBR},
             {title: "Projeto", field: "projeto_cod", width: 110, headerFilter: "input", editor: "input"},
-            {title: "Elemento Rast.", field: "elemento_rastreador", width: 130, headerFilter: "input", editor: "input"},
+            {title: "Elemento Rastreador", field: "elemento_rastreador", width: 130, headerFilter: "input", editor: "input"},
             {title: "Local", field: "local", width: 130, headerFilter: "input"},
             {title: "Equipamento", field: "equipamento", width: 160, headerFilter: "input"},
             {title: "Classificação", field: "classificacao", width: 130, headerFilter: "list", headerFilterParams: {valuesLookup:true, clearable:true},
@@ -310,8 +310,8 @@ document.addEventListener('DOMContentLoaded', function() {
             {title: "Ação Corretiva", field: "acao_corretiva", width: 250, formatter: "textarea", editor: "textarea"},
             {title: "Eficácia (Texto)", field: "eficacia_texto", width: 250, formatter: "textarea", editor: "textarea"},
             {title: "Responsáveis", field: "responsaveis", width: 200, headerFilter: "input"},
-            {title: "Prev. Conclusão", field: "data_prevista_conclusao", width: 130, formatter: formatarDataBR, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
-            {title: "Encerramento", field: "data_encerramento", width: 130, formatter: formatarDataBR, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
+            {title: "Data Previsão de Conclusão", field: "data_prevista_conclusao", width: 130, formatter: formatarDataBR, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
+            {title: "Data de Encerramento", field: "data_encerramento", width: 130, formatter: formatarDataBR, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
 
             {title: "Ishikawa", field: "ishikawa_link", width: 100, formatter: function(cell){
                 let url = cell.getValue();
