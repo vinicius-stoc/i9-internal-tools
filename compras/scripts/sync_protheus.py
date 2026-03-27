@@ -18,6 +18,7 @@ API_TOKEN = 'l_^e1#ye7@wro)4@gti24vxcmrr$01(@sxdp@=qg40(^vkvwzr'
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 EXCEL_PATH = os.path.join(DATA_DIR, 'report_SC_x_PC.xlsx')
+EXCEL_OPERACIONAL_PATH = os.path.join(DATA_DIR, 'report_operacional.xlsx')
 
 ARQUIVOS_ALVO = [
     'sc1_extracao.sqlite.sdb', 'sc7_extracao.sqlite.sdb',
@@ -168,6 +169,118 @@ def enviar_para_nuvem():
             print(f"[ERRO] Falha na API ({resposta.status_code}): {resposta.text}")
     except Exception as e:
         print(f"[ERRO CRÍTICO] Falha de conexão: {e}")
+
+
+def processar_dados_operacionais():
+    print('[ETL OPERACIONAL] processando base bottom_up')
+
+    df_sc1 = ler_tabela_sqlite('sc1_extracao.sqlite.sdb')
+    df_sc7 = ler_tabela_sqlite('sc7_extracao.sqlite.sdb')
+    df_sa2 = ler_tabela_sqlite('sa2_extracao.sqlite.sdb')
+    df_sd1 = ler_tabela_sqlite('sd1_extracao.sqlite.sdb')
+    df_afg = ler_tabela_sqlite('afg_extracao.sqlite.sdb')
+
+    for df in [df_sc1, df_sc7, df_sa2, df_sd1, df_afg]:
+        if 'D_E_L_E_T_' in df.columns:
+            df.drop(df[df['D_E_L_E_T_'] == '*'].index, inplace=True)
+
+        colunas_remover = [c for c in ['D_E_L_E_T_', 'R_E_C_N_O_', 'R_E_C_D_E_L_'] if c in df.columns]
+
+        df.drop(columns=colunas_remover, inplace=True, errors='ignore')
+        for col in df.columns: df[col] = df[col].str.strip()  # Strip geral
+
+    # Tipagem para evitar falhas em somas
+    df_sd1['D1_QUANT'] = pd.to_numeric(df_sd1['D1_QUANT'], errors='coerce').fillna(0)
+    df_sc7['C7_QUANT'] = pd.to_numeric(df_sc7['C7_QUANT'], errors='coerce').fillna(0)
+    df_sc1['C1_QUANT'] = pd.to_numeric(df_sc1['C1_QUANT'], errors='coerce').fillna(0)
+
+    # Agrupo entradas por pedido
+    df_sd1_agg = df_sc1.groupby(['D1_FILIAL', 'D1_PEDIDO', 'D1_ITEMPC']).agg(
+        QTD_RECEBIDA_TOTAL = ('D1_QUANT', 'sum'),
+        DATA_ULTIMA_ENTREGA=('D1_DTDIGIT', 'max')
+    ).reset_index()
+
+    # Junta entradas (SD1) por pedido
+    df_sc7_sd1 = pd.merge(df_sc7, df_sd1_agg, how='left',
+                          left_on=['C7_FILIAL', 'C7_NUM', 'C7_ITEM'],
+                          right_on=['D1_FILIAL', 'D1_PEDIDO', 'D1_ITEMPC'])
+    df_sc7_sd1['QTD_RECEBIDA_TOTAL'] = df_sc7_sd1['QTD_RECEBIDA_TOTAL'].fillna(0)
+
+    # Agrupa pedidos (SD7) aos Pedidos (SC7)
+    df_sc7_agg = df_sc7_sd1.groupby(['C7_FILIAL', 'C7_NUMSC', 'C7_ITEMSC']).agg(
+        QTD_PEDIDA_TOTAL = ('C7_QUANT', 'sum'),
+        QTA_RECEBIDA_TOTAL = ('QTD_RECEBIDA_TOTAL', 'sum'),
+        NUM_PEDIDOS_VINCULADOS = ('C7_NUM', lambda x: ', '.join(x.dropna().unique())),
+        COD_FORNECEDOR = ('C7_FORNECE', 'last'),
+        LOJA_FORNECEDOR = ('C7_LOJA', 'last'),
+        DATA_ULTIMO_PEDIDO = ('C7_EMISSAO', 'max'),
+        PREVISAO_ENTREGA = ('C7_DATPRF', 'max')
+    ).reset_index( )
+
+    # Base final operacional
+    df_op = pd.merge(df_sc1, df_sc7_agg, how='left',
+                     left_on=['C1_FILIAL', 'C1_NUM', 'C1_ITEM'],
+                     right_on=['C7_FILIAL', 'C7_NUMSC', 'C7_ITEMSC'])
+
+    df_op['QTD_PEDIDA_TOTAL'] = df_op['QTD_PEDIDA_TOTAL'].fillna(0)
+    df_op['QTD_RECEBIDA_TOTAL'] = df_op['QTD_RECEBIDA_TOTAL'].fillna(0)
+
+    # adiciona com Fornecedor e Projeto
+    df_op = pd.merge(df_op, df_sa2, how='left', left_on=['COD_FORNECEDOR', 'LOJA_FORNECEDOR'], right_on=['A2_COD', 'A2_LOJA'])
+
+    if 'AFG_NUMSC' in df_afg.columns:
+        df_afg_unique = df_afg.drop_duplicates(subset=['AFG_NUMSC', 'AFG_ITEMSC']).copy()
+        df_op = pd.merge(df_op, df_afg_unique, how='left', left_on=['C1_NUM', 'C1_ITEM'], right_on=['AFG_NUMSC', 'AFG_ITEMSC'])
+        df_op['PROJETO_CODIGO'] = df_op['AFG_PROJET']
+    else:
+        df_op['PROJETO_CODIGO'], df_op['AFG_TAREFA'] = '', ''
+
+    #  REGRAS
+    df_op['SALDO_A_COMPRAR'] = (df_op['C1_QUANT'] - df_op['QTD_PEDIDA_TOTAL']).clip(lower=0)
+    df_op['SALDO_A_RECEBER'] = (df_op['QTD_PEDIDA_TOTAL'] - df_op['QTD_RECEBIDA_TOTAL']).clip(lower=0)
+
+    condicoes = [
+        (df_op['QTD_PEDIDA_TOTAL'] == 0),
+        (df_op['SALDO_A_COMPRAR'] > 0) & (df_op['QTD_PEDIDA_TOTAL'] > 0),
+        (df_op['SALDO_A_COMPRAR'] == 0) & (df_op['QTD_RECEBIDA_TOTAL'] == 0),
+        (df_op['SALDO_A_COMPRAR'] == 0) & (df_op['SALDO_A_RECEBER'] > 0) & (df_op['QTD_RECEBIDA_TOTAL'] > 0),
+        (df_op['SALDO_A_COMPRAR'] == 0) & (df_op['SALDO_A_RECEBER'] == 0)
+    ]
+    resultados = ['PENDENTE COTAÇÃO', 'COMPRA PARCIAL', 'AGUARDANDO ENTREGA', 'ENTREGA PARCIAL', 'ATENDIDO TOTAL']
+    df_op['STATUS_OPERACIONAL'] = np.select(condicoes, resultados, default='DESCONHECIDO')
+
+    # Datas
+    def formatar_data(serie): return pd.to_datetime(serie, format='%Y%m%d', errors='coerce').dt.strftime('%d/%m/%Y').fillna('-')
+    df_op['EMISSAO_SC_FMT'] = formatar_data(df_op['C1_EMISSAO'])
+    df_op['EMISSAO_PEDIDO_FMT'] = formatar_data(df_op['DATA_ULTIMO_PEDIDO'])
+    df_op['PREVISAO_ENTREGA_FMT'] = formatar_data(df_op['PREVISAO_ENTREGA'])
+
+    # Exportação
+    mapa_colunas = {
+        'C1_FILIAL': 'Filial',
+        'C1_NUM': 'Num_SC',
+        'C1_ITEM': 'Item_SC',
+        'C1_PRODUTO': 'Cod_Produto',
+        'C1_DESCRI': 'Descricao',
+        'PROJETO_CODIGO': 'Projeto_Cod',
+        'AFG_TAREFA': 'Tarefa_Cod',
+        'NUM_PEDIDOS_VINCULADOS': 'Num_Pedidos_Vinculados',
+        'A2_NOME': 'Nome_Fornecedor',
+        'STATUS_OPERACIONAL': 'Status_Operacional',
+        'EMISSAO_SC_FMT': 'Emissao_SC',
+        'EMISSAO_PEDIDO_FMT': 'Emissao_Ultimo_Pedido',
+        'PREVISAO_ENTREGA_FMT': 'Previsao_Entrega',
+        'C1_QUANT': 'Qtd_Solicitada',
+        'QTD_PEDIDA_TOTAL': 'Qtd_Pedida',
+        'QTD_RECEBIDA_TOTAL': 'Qtd_Recebida',
+        'SALDO_A_COMPRAR': 'Saldo_A_Comprar',
+        'SALDO_A_RECEBER': 'Saldo_A_Receber'
+    }
+
+    df_final = df_op.rename(columns=mapa_colunas)[list(mapa_colunas.values())]
+    print(f"[3.5/4] Gerando Excel Operacional em: {EXCEL_OPERACIONAL_PATH}")
+    df_final.to_excel(EXCEL_OPERACIONAL_PATH, index=False, engine='openpyxl')
+
 
 
 if __name__ == "__main__":

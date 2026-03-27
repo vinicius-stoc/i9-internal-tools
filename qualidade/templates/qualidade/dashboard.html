@@ -243,9 +243,7 @@
 // ABERTURA DO ESCOPO PRINCIPAL DO JAVASCRIPT
 document.addEventListener('DOMContentLoaded', function() {
 
-    // ==========================================
     // FORMATAÇÃO E INICIALIZAÇÃO DA TABELA
-    // ==========================================
     var formatarDataBR = function(cell){
         let val = cell.getValue();
         if(val && val.includes('-')){
@@ -403,9 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ==========================================
     // EDIÇÃO INLINE DA TABELA (SALVAMENTO AUTOMÁTICO)
-    // ==========================================
     table.on("cellEdited", function(cell){
         let id_rnc = cell.getRow().getData().id;
         let campo_editado = cell.getField();
@@ -444,17 +440,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ==========================================
     // BOTÃO DE EXPORTAÇÃO EXCEL
-    // ==========================================
     document.getElementById("download-xlsx").addEventListener("click", function(){
         table.download("xlsx", "Controle_RNCs_I9TMG.xlsx", {sheetName:"RNCs"});
     });
 
 
-    // ==========================================
     // SUBMIT: CRIAR NOVA RNC (MODAL 1)
-    // ==========================================
     document.getElementById("formNovaRNC").addEventListener("submit", function(event){
         event.preventDefault();
 
