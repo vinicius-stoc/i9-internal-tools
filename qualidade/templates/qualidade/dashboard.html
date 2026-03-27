@@ -346,6 +346,7 @@ document.addEventListener('DOMContentLoaded', function() {
             headerFilterFunc: "in",
             headerFilterParams: {valuesLookup:true, clearable:true, multiselect:true},
             editor: "list", editorParams: {values: ["Alto", "Médio", "Baixo"]}},
+            {title: "Justificativa Criticidade", field: "justificativa_criticidade", width: 250, formatter: "textarea", editor: "textarea"},
             {title: "Imagem NC", field: "qtd_imagens", width: 90, hozAlign: "center", formatter: function(cell){
                 let qtd = cell.getValue();
                 if(qtd > 0) {
@@ -360,7 +361,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     abrirGaleriaImagens(dados, 'padrao'); // <-- Passa 'padrao'
                 }
             }},
-            {title: "Justificativa Criticidade", field: "justificativa_criticidade", width: 250, formatter: "textarea", editor: "textarea"},
             {title: "Tipo NC", field: "tipo_nc", width: 150, 
             headerFilter: "input",
             headerFilterFunc: filtroMultiploTexto},
