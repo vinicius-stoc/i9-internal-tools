@@ -31,7 +31,7 @@ jobs:
             python manage.py migrate
             python manage.py collectstatic --noinput
 
-      # 3. Avisa o PythonAnywhere para reiniciar a aplicação via API REST
+      # Avisa o PythonAnywhere para reiniciar a aplicação via API REST
       - name: Reiniciar a Aplicação Web (Reload WSGI)
         run: |
           curl -X POST \
