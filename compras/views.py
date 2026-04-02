@@ -252,14 +252,6 @@ def atualizar_dados_dw(request):
     try:
         # Importa os robôs e os caminhos
         from compras.scripts.sync_protheus import (
-            baixar_dados_totvs, processar_dados, processar_dados_operacional,
-            EXCEL_PATH, EXCEL_OPERACIONAL_PATH
-        )
-
-        # Importa as funções do script e o caminho do Excel gerado
-        from compras.scripts.sync_protheus import baixar_dados_totvs, processar_dados, EXCEL_PATH
-        # Importa os robôs e os caminhos
-        from compras.scripts.sync_protheus import (
             baixar_dados_totvs, processar_dados, processar_dados_operacionais,
             EXCEL_PATH, EXCEL_OPERACIONAL_PATH
         )
@@ -267,7 +259,7 @@ def atualizar_dados_dw(request):
         # Executa a extração e as DUAS transformações
         baixar_dados_totvs()
         processar_dados()
-        processar_dados_operacional()
+        processar_dados_operacionais()
 
         df_dw = pd.read_excel(EXCEL_PATH)
         registros_dw = []
@@ -360,7 +352,12 @@ def atualizar_dados_dw(request):
     except Exception as e:
         messages.error(request, f"Falha na sincronização: {str(e)}")
 
-    return redirect('dashboard_compras')
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+    else:
+        return redirect('dashboard_compras')
+
 
 
 @login_required(login_url='/login/')
