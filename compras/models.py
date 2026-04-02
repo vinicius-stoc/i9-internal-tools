@@ -61,6 +61,7 @@ class OperacaoCompras(models.Model):
 
     # Vínculos com Pedido e Fornecedor
     num_pedidos_vinculados = models.CharField(max_length=255, null=True, blank=True)
+    notas_fiscais = models.CharField(max_length=255, null=True, blank=True)
     nome_fornecedor = models.CharField(max_length=255, null=True, blank=True)
 
     # Status Dinâmico de Ação
