@@ -7,6 +7,8 @@
 {% csrf_token %}
 
 <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.2/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -107,6 +109,19 @@
                                 <option value="Fornecedor">Fornecedor</option>
                             </select>
                         </div>
+
+                        <div class="col-md-6 mt-3">
+                            <label class="form-label fw-bold small">Registrador</label>
+                            <select name="registrador_id" class="form-select shadow-sm">
+                                <option value="">Selecione o registrador real...</option>
+                                {% for user in usuarios %}
+                                    <option value="{{ user.id }}" {% if user.id == request.user.id %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                         <div class="col-md-4">
                             <label class="form-label fw-bold small">Categoria da Não Conformidade *</label>
                             <select name="categoria" class="form-select shadow-sm" required>
@@ -208,10 +223,21 @@
 
                         <div class="col-12">
                             <label class="form-label fw-bold small text-primary">Responsáveis pela RNC</label>
-                            <p class="text-muted" style="font-size: 0.75rem; margin-top: -5px; margin-bottom: 5px;">Segure a tecla CTRL para selecionar várias pessoas.</p>
-                            <select multiple id="edit_responsaveis" name="responsaveis" class="form-select shadow-sm" style="min-height: 120px;">
+                            <select multiple id="edit_responsaveis" name="responsaveis" class="form-control shadow-sm">
                                 {% for user in usuarios %}
                                     <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mt-3">
+                            <label class="form-label fw-bold small">Registrador</label>
+                            <select name="registrador_id" id="edit_registrador_id" class="form-select shadow-sm">
+                                <option value="">Selecione o registrador real...</option>
+                                {% for user in usuarios %}
+                                    <option value="{{ user.id }}" {% if user.id == request.user.id %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }}
+                                    </option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -245,6 +271,7 @@
         </div>
     </div>
 </div>
+
 <div class="modal fade" id="modalGaleriaImagens" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow">
@@ -266,6 +293,16 @@
 <script>
 // ABERTURA DO ESCOPO PRINCIPAL DO JAVASCRIPT
 document.addEventListener('DOMContentLoaded', function() {
+
+    // SELECT DROPDOWN EDITAR RNC - RESPONSAVEIS
+    window.choicesResp = new Choices('#edit_responsaveis', {
+        removeItemButton: true,
+        searchEnable: true,
+        placeholderValue: 'Selecione os responsáveis...',
+        searchPlaceholderValue: 'Pesquisar...',
+        itemSelectText: '',
+        noResultsText: 'Nenhum usuário encontrado',
+    })
 
     // FORMATAÇÃO E INICIALIZAÇÃO DA TABELA
     var formatarDataBR = function(cell){
@@ -469,8 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
         table.download("xlsx", "Controle_RNCs_I9TMG.xlsx", {sheetName:"RNCs"});
     });
 
-
-    // SUBMIT: CRIAR NOVA RNC (MODAL 1)
+    // SUBMIT: CRIAR NOVA RNC
     document.getElementById("formNovaRNC").addEventListener("submit", function(event){
         event.preventDefault();
 
@@ -518,6 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.abrirModalEdicao = function(dados) {
         document.getElementById('display_rnc_id').innerText = dados.id;
         document.getElementById('edit_rnc_id').value = dados.id;
+        document.getElementById('edit_registrador_id').value = dados.registrador_id || "";
 
         document.getElementById('edit_data_encerramento').value = dados.data_encerramento ? dados.data_encerramento.replaceAll('/', '-') : '';
         document.getElementById('edit_data_prevista').value = dados.data_prevista_conclusao ? dados.data_prevista_conclusao.replaceAll('/', '-') : '';
@@ -526,15 +563,16 @@ document.addEventListener('DOMContentLoaded', function() {
         let selectResp = document.getElementById('edit_responsaveis');
         let idsResponsaveis = dados.responsaveis_ids || [];
 
-        Array.from(selectResp.options).forEach(opt => {
-            opt.selected = idsResponsaveis.includes(parseInt(opt.value));
-        });
+        window.choicesResp.removeActiveItems();
+        if (idsResponsaveis.length > 0) {
+            window.choicesResp.setChoiceByValue(idsResponsaveis.map(String));
+        }
 
         var modalEditar = new bootstrap.Modal(document.getElementById('modalEditarRNC'));
         modalEditar.show();
     };
 
-    // SUBMIT: SALVAR EDIÇÃO AVANÇADA (MODAL 2)
+    // SUBMIT: SALVAR EDIÇÃO AVANÇADA
     document.getElementById("formEditarRNC").addEventListener("submit", function(event){
         event.preventDefault();
 

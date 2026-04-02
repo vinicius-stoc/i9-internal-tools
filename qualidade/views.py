@@ -47,6 +47,7 @@ def api_listar_rncs(request):
         data.append({
             'id': rnc.id,
             'registrador': rnc.registrador.get_full_name() or rnc.registrador.username,
+            'registrador_id': rnc.registrador.id if rnc.registrador else None,
             'data_abertura': rnc.data_abertura.strftime('%Y/%m/%d') if rnc.data_abertura else '',
             'projeto_cod': rnc.projeto_cod or '-',
             'elemento_rastreador': rnc.elemento_rastreador or '-',
@@ -108,6 +109,7 @@ def api_atualizar_rnc(request, rnc_id):
             'data_encerramento',
             'data_previsao_conclusao',
             'versao',
+            'registrador'
         ]
 
         # Se o utilizador tentar enviar um campo que não está na lista, bloqueamos com erro 403 (Forbidden)
@@ -144,8 +146,11 @@ def api_criar_rnc(request):
         mapa_detector = {'Cliente': 'CL', 'Interno': 'IN', 'Auditor Interno': 'AI', 'Auditor Externo': 'AE', 'Fornecedor': 'FO'}
         mapa_origem = {'Comercial': 'CO', 'Projeto_Engenharia': 'PE', 'Fabricação': 'FA', 'Montagem_comissionamento': 'MC', 'Suprimentos': 'SU', 'RH': 'RH', 'Fornecedor': 'FO', 'Processo_interno_SGQ': 'SG'}
 
+        registrador_id = dados.get('registrador_id')
+        registrador_obj = User.objects.get(id=registrador_id) if registrador_id else request.user
+
         nova_rnc = RNC.objects.create(
-            registrador=request.user,
+            registrador=registrador_obj,
             local=local,
             equipamento=equipamento,
             detector=mapa_detector.get(dados.get('detector')),
@@ -207,7 +212,11 @@ def api_editar_rnc_avancado(request, rnc_id):
         else:
             rnc.responsaveis.clear()
 
-        # Tratamento do PDF
+        registrador_id = request.POST.get('registrador_id')
+        if registrador_id:
+            rnc.registrador_id = registrador_id
+
+        # 5. Tratamento do PDF
         if 'eficacia_pdf' in request.FILES:
             rnc.eficacia_pdf = request.FILES['eficacia_pdf']
 
