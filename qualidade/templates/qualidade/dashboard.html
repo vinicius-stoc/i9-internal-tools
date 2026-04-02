@@ -7,6 +7,8 @@
 {% csrf_token %}
 
 <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.2/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -17,25 +19,24 @@
     .tabulator-row:nth-child(even) { background-color: #fcfcfc !important; }
     .tabulator-row:hover { background-color: #f1f3f5 !important; }
 
-    /* ========================================================== */
-    /* DESTAQUE PARA CABEÇALHOS EDITÁVEIS (INLINE)       */
-    /* ========================================================== */
+
+    /* DESTAQUE PARA CABEÇALHOS EDITÁVEIS (INLINE)*/
     .tabulator-header .tabulator-col[tabulator-field="status"],
     .tabulator-header .tabulator-col[tabulator-field="detector"],
     .tabulator-header .tabulator-col[tabulator-field="projeto_cod"],
     .tabulator-header .tabulator-col[tabulator-field="elemento_rastreador"],
-    .tabulator-header .tabulator-col[tabulator-field="classificacao"],
+    .tabulator-header .tabulator-col[tabulator-field="categoria"],
+    .tabulator-header .tabulator-col[tabulator-field="origem"],
     .tabulator-header .tabulator-col[tabulator-field="criticidade"],
-    .tabulator-header .tabulator-col[tabulator-field="justificativa_criticidade"],
     .tabulator-header .tabulator-col[tabulator-field="descricao"],
     .tabulator-header .tabulator-col[tabulator-field="correcao"],
     .tabulator-header .tabulator-col[tabulator-field="causas_principais"],
     .tabulator-header .tabulator-col[tabulator-field="acao_corretiva"],
     .tabulator-header .tabulator-col[tabulator-field="eficacia_texto"] {
-        background-color: #e0f2fe !important; /* Azul muito clarinho */
-        color: #0284c7 !important; /* Texto em azul destaque */
-        border-bottom: 3px solid #38bdf8 !important; /* Linha azul grossa embaixo */
-        cursor: text !important; /* Muda o mouse para indicar edição */
+        background-color: #e0f2fe !important;
+        color: #0284c7 !important;
+        border-bottom: 3px solid #38bdf8 !important;
+        cursor: text !important;
     }
 </style>
 
@@ -88,15 +89,6 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">Tipo de NC *</label>
-                            <select name="tipo_nc_id" class="form-select shadow-sm" required>
-                                <option value="">Selecione...</option>
-                                {% for tipo in tipos_nc %}
-                                    <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-4">
                             <label class="form-label fw-bold small">Equipamento (Opcional)</label>
                             <select name="equipamento_id" class="form-select shadow-sm">
                                 <option value="">Nenhum / Não se aplica</option>
@@ -117,13 +109,35 @@
                                 <option value="Fornecedor">Fornecedor</option>
                             </select>
                         </div>
+
+                        <div class="col-md-6 mt-3">
+                            <label class="form-label fw-bold small">Registrador</label>
+                            <select name="registrador_id" class="form-select shadow-sm">
+                                <option value="">Selecione o registrador real...</option>
+                                {% for user in usuarios %}
+                                    <option value="{{ user.id }}" {% if user.id == request.user.id %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small">Classificação *</label>
-                            <select name="classificacao" class="form-select shadow-sm" required>
+                            <label class="form-label fw-bold small">Categoria da Não Conformidade *</label>
+                            <select name="categoria" class="form-select shadow-sm" required>
                                 <option value="">Selecione...</option>
-                                <option value="Sistema">Sistema</option>
-                                <option value="Produto">Produto</option>
-                                <option value="Processo">Processo</option>
+                                <option value="Comercial">Comercial</option>
+                                <option value="Engenharia">Engenharia</option>
+                                <option value="PCP">PCP</option>
+                                <option value="Fabricação">Fabricação</option>
+                                <option value="Montagem">Montagem / Comissionamento</option>
+                                <option value="Suprimentos">Suprimentos</option>
+                                <option value="Fornecedor">Fornecedor externo</option>
+                                <option value="Expedição">Recebimento / Expedição </option>
+                                <option value="Qualidade">Qualidade</option>
+                                <option value="Recursos Humanos">RH (Competência / Treinamento)</option>
+                                <option value="Financeiro">Financeiro</option>
+                                <option value="SGQ">SGQ  (procedimentos, padronização, definição de fluxo)</option>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -133,6 +147,31 @@
                                 <option value="Alto">Alto</option>
                                 <option value="Médio">Médio</option>
                                 <option value="Baixo">Baixo</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Origem *</label>
+                            <select name="origem" class="form-select shadow-sm" required>
+                                <option value="">Selecione...</option>
+                                <option value="Comercial">Comercial</option>
+                                <option value="Projeto_Engenharia">Projeto/Engenharia</option>
+                                <option value="Fabricação">Fabricação</option>
+                                <option value="Montagem_comissionamento">Montagem/Comissionamento</option>
+                                <option value="Suprimentos">Suprimentos</option>
+                                <option value="RH">RH</option>
+                                <option value="Fornecedor">Fornecedor</option>
+                                <option value="SGQ">SGQ</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <label class="form-label fw-bold small">Responsáveis (Opcional)</label>
+                            <p class="text-muted" style="font-size: 0.75rem; margin-top: -5px; margin-bottom: 5px;">Segure a tecla CTRL para selecionar várias pessoas.</p>
+                            <select multiple name="responsaveis" class="form-select shadow-sm" style="min-height: 100px;">
+                                {% for user in usuarios %}
+                                    <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                                {% endfor %}
                             </select>
                         </div>
 
@@ -184,10 +223,21 @@
 
                         <div class="col-12">
                             <label class="form-label fw-bold small text-primary">Responsáveis pela RNC</label>
-                            <p class="text-muted" style="font-size: 0.75rem; margin-top: -5px; margin-bottom: 5px;">Segure a tecla CTRL para selecionar várias pessoas.</p>
-                            <select multiple id="edit_responsaveis" name="responsaveis" class="form-select shadow-sm" style="min-height: 120px;">
+                            <select multiple id="edit_responsaveis" name="responsaveis" class="form-control shadow-sm">
                                 {% for user in usuarios %}
                                     <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mt-3">
+                            <label class="form-label fw-bold small">Registrador</label>
+                            <select name="registrador_id" id="edit_registrador_id" class="form-select shadow-sm">
+                                <option value="">Selecione o registrador real...</option>
+                                {% for user in usuarios %}
+                                    <option value="{{ user.id }}" {% if user.id == request.user.id %}selected{% endif %}>
+                                        {{ user.get_full_name|default:user.username }}
+                                    </option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -200,7 +250,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-success"><i class="bi bi-images"></i> Anexar Imagens</label>
+                            <label class="form-label fw-bold small text-success"><i class="bi bi-images"></i> Anexar Imagens NC</label>
                             <input type="file" id="edit_imagens" name="imagens" class="form-control shadow-sm" accept="image/*" multiple>
                         </div>
 
@@ -221,6 +271,7 @@
         </div>
     </div>
 </div>
+
 <div class="modal fade" id="modalGaleriaImagens" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow">
@@ -242,6 +293,16 @@
 <script>
 // ABERTURA DO ESCOPO PRINCIPAL DO JAVASCRIPT
 document.addEventListener('DOMContentLoaded', function() {
+
+    // SELECT DROPDOWN EDITAR RNC - RESPONSAVEIS
+    window.choicesResp = new Choices('#edit_responsaveis', {
+        removeItemButton: true,
+        searchEnable: true,
+        placeholderValue: 'Selecione os responsáveis...',
+        searchPlaceholderValue: 'Pesquisar...',
+        itemSelectText: '',
+        noResultsText: 'Nenhum usuário encontrado',
+    })
 
     // FORMATAÇÃO E INICIALIZAÇÃO DA TABELA
     var formatarDataBR = function(cell){
@@ -290,10 +351,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }},
 
             {title: "ID", field: "id", width: 70, headerFilter: "input", headerFilterFunc: filtroMultiploExato, frozen: false},
-            {title: "Status", field: "status", width: 140,
+            {title: "STATUS", field: "status", width: 140,
              headerFilter: "list",
              headerFilterFunc: "in",
-             headerFilterParams: {valuesLookup:true, clearable:true, multiselect:true}, // <-- NOVO: multiselect:true
+             headerFilterParams: {valuesLookup:true, clearable:true, multiselect:true},
              editor: "list", editorParams: {values: ["Não iniciada", "Em andamento", "Concluído", "Fora dos trilhos", "Registro preliminar", "Cancelado"]},
              formatter: function(cell) {
                  let val = cell.getValue();
@@ -320,67 +381,33 @@ document.addEventListener('DOMContentLoaded', function() {
                  if (!headerValue) return true;
                  // Se a célula estiver vazia mas há filtro, esconde a linha
                  if (!rowValue) return false;
-
                  // Pega o que o utilizador digitou, separa por vírgula, e converte para minúsculas
                  let termos = headerValue.split(',').map(termo => termo.trim().toLowerCase()).filter(termo => termo !== "");
-
                  // Pega o valor da célula (banco de dados) e converte para minúsculas
                  let valorCelula = String(rowValue).toLowerCase();
-
                  // Retorna TRUE se a célula contiver ALGUM (some) dos termos digitados (Lógica OR)
                  return termos.some(termo => valorCelula.includes(termo));
              }
             },
-            {title: "Elemento Rastreador", field: "elemento_rastreador", width: 130, headerFilter: "input", editor: "input"},
-            {title: "Local", field: "local", width: 130, headerFilter: "input", headerFilterFunc: filtroMultiploTexto},
             {title: "Equipamento", field: "equipamento", width: 160, headerFilter: "input", headerFilterFunc: filtroMultiploTexto},
-            {title: "Classificação", field: "classificacao", width: 130,
+            {title: "Elemento Rastreador", field: "elemento_rastreador", width: 130, headerFilter: "input", editor: "input"},
+            {title: "Local Detecção", field: "local", width: 130, headerFilter: "input", headerFilterFunc: filtroMultiploTexto},
+            {title: "Origem", field: "origem", width: 130,
             headerFilter: "list",
             headerFilterFunc: "in",
             headerFilterParams: {valuesLookup:true, clearable:true, multiselect:true},
-            editor: "list", editorParams: {values: ["Sistema", "Produto", "Processo"]}},
+            editor: "list", editorParams: {values: ["Comercial", "Projeto_Engenharia", "Fabricação", "Montagem_comissionamento", "Suprimentos", "RH", "Fornecedor", "Processo_interno_SGQ"]}},
+            {title: "Categoria da Não Conformidade", field: "categoria", width: 130,
+            headerFilter: "list",
+            headerFilterFunc: "in",
+            headerFilterParams: {valuesLookup:true, clearable:true, multiselect:true},
+            editor: "list", editorParams: {values: ["Comercial", "Engenharia", "PCP", "Fabricação", "Montagem", "Suprimentos", "Fornecedor", "Expedição", "Qualidade", "Recursos Humanos", "Financeiro", "SGQ"]}},
             {title: "Criticidade", field: "criticidade", width: 110,
             headerFilter: "list",
             headerFilterFunc: "in",
             headerFilterParams: {valuesLookup:true, clearable:true, multiselect:true},
             editor: "list", editorParams: {values: ["Alto", "Médio", "Baixo"]}},
-            {title: "Justificativa Criticidade", field: "justificativa_criticidade", width: 250, formatter: "textarea", editor: "textarea"},
-            {title: "Tipo NC", field: "tipo_nc", width: 150, headerFilter: "input"},
-            {title: "Descrição da NC", field: "descricao", width: 300, formatter: "textarea", editor: "textarea"},
-            {title: "Correção Imediata", field: "correcao", width: 250, formatter: "textarea", editor: "textarea"},
-            {title: "Causas Principais", field: "causas_principais", width: 250, formatter: "textarea", editor: "textarea"},
-            {title: "Ação Corretiva", field: "acao_corretiva", width: 250, formatter: "textarea", editor: "textarea"},
-            {title: "Eficácia (Texto)", field: "eficacia_texto", width: 250, formatter: "textarea", editor: "textarea"},
-            {title: "Responsáveis", field: "responsaveis", width: 200, headerFilter: "input", headerFilterFunc: filtroMultiploTexto},
-            {title: "Data Previsão de Conclusão", field: "data_prevista_conclusao", width: 130, formatter: formatarDataBR, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
-            {title: "Data de Encerramento", field: "data_encerramento", width: 130, formatter: formatarDataBR, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
-
-            {title: "Ishikawa", field: "ishikawa_link", width: 100, formatter: function(cell){
-                let url = cell.getValue();
-                if(url) return `<a href="${url}" target="_blank" class="text-primary text-decoration-none">Acessar</a>`;
-                return "-";
-            }},
-            {title: "Eficácia PDF", field: "eficacia_pdf", width: 110, formatter: function(cell){
-                let url = cell.getValue();
-                if(url) return `<a href="${url}" target="_blank" class="btn btn-sm btn-outline-danger py-0" style="font-size: 0.75rem;"><i class="bi bi-file-pdf"></i> PDF</a>`;
-                return "-";
-            }},
-            {title: "Eficácia (Img)", field: "qtd_imagens_eficacia", width: 105, hozAlign: "center", formatter: function(cell){
-                let qtd = cell.getValue();
-                if(qtd > 0) {
-                    return `<button type="button" class="btn btn-sm btn-outline-success py-0" style="font-size: 0.75rem;">
-                                <i class="bi bi-shield-check"></i> (${qtd})
-                            </button>`;
-                }
-                return "-";
-            }, cellClick: function(e, cell){
-                let dados = cell.getRow().getData();
-                if(dados.qtd_imagens_eficacia > 0){
-                    abrirGaleriaImagens(dados, 'eficacia'); // <-- Passa 'eficacia'
-                }
-            }},
-
-            {title: "Imagens", field: "qtd_imagens", width: 90, hozAlign: "center", formatter: function(cell){
+            {title: "Imagem NC", field: "qtd_imagens", width: 90, hozAlign: "center", formatter: function(cell){
                 let qtd = cell.getValue();
                 if(qtd > 0) {
                     return `<button type="button" class="btn btn-sm btn-outline-primary py-0" style="font-size: 0.75rem;">
@@ -391,9 +418,43 @@ document.addEventListener('DOMContentLoaded', function() {
             }, cellClick: function(e, cell){
                 let dados = cell.getRow().getData();
                 if(dados.qtd_imagens > 0){
-                    abrirGaleriaImagens(dados, 'padrao'); // <-- Passa 'padrao'
+                    abrirGaleriaImagens(dados, 'padrao');
                 }
             }},
+            {title: "Descrição da não conformidade", field: "descricao", width: 300, formatter: "textarea", editor: "textarea"},
+            {title: "Correção Imediata", field: "correcao", width: 250, formatter: "textarea", editor: "textarea"},
+            {title: "Causas Principais", field: "causas_principais", width: 250, formatter: "textarea", editor: "textarea"},
+            {title: "Ação Corretiva", field: "acao_corretiva", width: 250, formatter: "textarea", editor: "textarea"},
+            {title: "Eficácia (Texto)", field: "eficacia_texto", width: 250, formatter: "textarea", editor: "textarea"},
+            {title: "Responsavel", field: "responsaveis", width: 200, headerFilter: "input", headerFilterFunc: filtroMultiploTexto},
+            {title: "Data Previsão Conclusão", field: "data_prevista_conclusao", width: 130, formatter: formatarDataBR, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
+            {title: "Data Encerramento", field: "data_encerramento", width: 130, formatter: formatarDataBR, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
+
+            {title: "Ishikawa", field: "ishikawa_link", width: 100, formatter: function(cell){
+                let url = cell.getValue();
+                if(url) return `<a href="${url}" target="_blank" class="text-primary text-decoration-none">Acessar</a>`;
+                return "-";
+            }},
+            {title: "Evidência Eficácia PDF", field: "eficacia_pdf", width: 110, formatter: function(cell){
+                let url = cell.getValue();
+                if(url) return `<a href="${url}" target="_blank" class="btn btn-sm btn-outline-danger py-0" style="font-size: 0.75rem;"><i class="bi bi-file-pdf"></i> PDF</a>`;
+                return "-";
+            }},
+            {title: "Evidência Eficácia (Img)", field: "qtd_imagens_eficacia", width: 105, hozAlign: "center", formatter: function(cell){
+                let qtd = cell.getValue();
+                if(qtd > 0) {
+                    return `<button type="button" class="btn btn-sm btn-outline-success py-0" style="font-size: 0.75rem;">
+                                <i class="bi bi-shield-check"></i> (${qtd})
+                            </button>`;
+                }
+                return "-";
+            }, cellClick: function(e, cell){
+                let dados = cell.getRow().getData();
+                if(dados.qtd_imagens_eficacia > 0){
+                    abrirGaleriaImagens(dados, 'eficacia');
+                }
+            }},
+
         ],
         locale: "pt-br",
         langs: {
@@ -445,13 +506,13 @@ document.addEventListener('DOMContentLoaded', function() {
         table.download("xlsx", "Controle_RNCs_I9TMG.xlsx", {sheetName:"RNCs"});
     });
 
-
-    // SUBMIT: CRIAR NOVA RNC (MODAL 1)
+    // SUBMIT: CRIAR NOVA RNC
     document.getElementById("formNovaRNC").addEventListener("submit", function(event){
         event.preventDefault();
 
         let formData = new FormData(this);
         let payload = Object.fromEntries(formData.entries());
+        payload['responsaveis'] = formData.getAll('responsaveis');
         let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
         let btnSalvar = document.getElementById("btnSalvarNovaRNC");
@@ -489,12 +550,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ==========================================
     // FUNÇÃO: ABRIR MODAL DE EDIÇÃO AVANÇADA
-    // ==========================================
     window.abrirModalEdicao = function(dados) {
         document.getElementById('display_rnc_id').innerText = dados.id;
         document.getElementById('edit_rnc_id').value = dados.id;
+        document.getElementById('edit_registrador_id').value = dados.registrador_id || "";
 
         document.getElementById('edit_data_encerramento').value = dados.data_encerramento ? dados.data_encerramento.replaceAll('/', '-') : '';
         document.getElementById('edit_data_prevista').value = dados.data_prevista_conclusao ? dados.data_prevista_conclusao.replaceAll('/', '-') : '';
@@ -503,17 +563,16 @@ document.addEventListener('DOMContentLoaded', function() {
         let selectResp = document.getElementById('edit_responsaveis');
         let idsResponsaveis = dados.responsaveis_ids || [];
 
-        Array.from(selectResp.options).forEach(opt => {
-            opt.selected = idsResponsaveis.includes(parseInt(opt.value));
-        });
+        window.choicesResp.removeActiveItems();
+        if (idsResponsaveis.length > 0) {
+            window.choicesResp.setChoiceByValue(idsResponsaveis.map(String));
+        }
 
         var modalEditar = new bootstrap.Modal(document.getElementById('modalEditarRNC'));
         modalEditar.show();
     };
 
-    // ==========================================
-    // SUBMIT: SALVAR EDIÇÃO AVANÇADA (MODAL 2)
-    // ==========================================
+    // SUBMIT: SALVAR EDIÇÃO AVANÇADA
     document.getElementById("formEditarRNC").addEventListener("submit", function(event){
         event.preventDefault();
 
@@ -555,17 +614,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ==========================================
     // FUNÇÃO: ABRIR GALERIA DE IMAGENS
-    // ==========================================
-    window.abrirGaleriaImagens = function(dados, tipo) { // <-- Parâmetro é 'tipo'
+    window.abrirGaleriaImagens = function(dados, tipo) {
         let containerGaleria = document.getElementById('galeria_content');
-        containerGaleria.innerHTML = ''; // Limpa a galeria anterior
+        containerGaleria.innerHTML = '';
 
         let urls = [];
-        let tituloModal = document.querySelector('#modalGaleriaImagens .modal-title'); // <-- Nome corrigido para tituloModal
+        let tituloModal = document.querySelector('#modalGaleriaImagens .modal-title');
 
-        if (tipo === 'eficacia') { // <-- Condição usando 'tipo'
+        if (tipo === 'eficacia') {
             urls = dados.eficacia_imagens_urls || [];
             tituloModal.innerHTML = '<i class="bi bi-shield-check me-2"></i>Evidências de Eficácia';
         } else {

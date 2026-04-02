@@ -1,11 +1,13 @@
 import json
 from datetime import datetime
+
+from cryptography.x509 import random_serial_number
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
-from .models import RNC, Local, Equipamento, TipoNC, RNCImagem, RNCEficaciaImagem
+from .models import RNC, Local, Equipamento, RNCImagem, RNCEficaciaImagem
 from .service import RNCService
 
 User = get_user_model()
@@ -14,14 +16,12 @@ User = get_user_model()
 def dashboard_qualidade(request):
     locais_ativos = Local.objects.filter(ativo= True)
     equipamento_ativos = Equipamento.objects.filter(ativo= True)
-    tipo_nc_ativos = TipoNC.objects.filter(ativo= True)
 
     usuarios_ativos = User.objects.filter(is_active=True).order_by('first_name')
 
     context = {
         'locais': locais_ativos,
         'equipamentos': equipamento_ativos,
-        'tipos_nc': tipo_nc_ativos,
         'usuarios': usuarios_ativos
     }
     return render(request, 'qualidade/dashboard.html', context)
@@ -33,7 +33,7 @@ def api_listar_rncs(request):
     Retorna a lista completa de RNCs em formato JSON, incluindo textos e mídias.
     """
     rncs = RNC.objects.select_related(
-        'registrador', 'equipamento', 'local', 'tipo_nc'
+        'registrador', 'equipamento', 'local'
     ).prefetch_related(
         'responsaveis', 'imagens', 'eficacia_imagens'
     ).all().order_by('-id')
@@ -47,21 +47,21 @@ def api_listar_rncs(request):
         data.append({
             'id': rnc.id,
             'registrador': rnc.registrador.get_full_name() or rnc.registrador.username,
+            'registrador_id': rnc.registrador.id if rnc.registrador else None,
             'data_abertura': rnc.data_abertura.strftime('%Y/%m/%d') if rnc.data_abertura else '',
             'projeto_cod': rnc.projeto_cod or '-',
             'elemento_rastreador': rnc.elemento_rastreador or '-',
             'detector': rnc.get_detector_display(),
-            'classificacao': rnc.get_classificacao_display(),
+            'categoria': rnc.get_categoria_display(),
+            'origem': rnc.get_origem_display(),
             'criticidade': rnc.get_criticidade_display(),
             'status': rnc.get_status_display(),
             'equipamento': rnc.equipamento.nome if rnc.equipamento else 'N/A',
             'local': rnc.local.nome if rnc.local else '-',
-            'tipo_nc': rnc.tipo_nc.nome if rnc.tipo_nc else '-',
             'responsaveis': nomes_responsaveis,
             'responsaveis_ids': [resp.id for resp in rnc.responsaveis.all()],
             'data_prevista_conclusao': rnc.data_prevista_conclusao.strftime('%Y/%m/%d') if rnc.data_prevista_conclusao else '',
             'data_encerramento': rnc.data_encerramento.strftime('%Y/%m/%d') if rnc.data_encerramento else '',
-            'justificativa_criticidade': rnc.justificativa_criticidade or '',
             'descricao': rnc.descricao or '',
             'correcao': rnc.correcao or '',
             'ishikawa_link': rnc.ishikawa_link or '',
@@ -92,13 +92,12 @@ def api_atualizar_rnc(request, rnc_id):
             'projeto_cod',
             'elemento_rastreador',
             'detector',
-            'classificacao',
+            'categoria',
+            'origem',
             'criticidade',
-            'justificativa_criticidade',
             'status',
             'equipamento',
             'local',
-            'tipo_nc',
             'descricao',
             'correcao',
             'ishikawa_link',
@@ -110,6 +109,7 @@ def api_atualizar_rnc(request, rnc_id):
             'data_encerramento',
             'data_previsao_conclusao',
             'versao',
+            'registrador'
         ]
 
         # Se o utilizador tentar enviar um campo que não está na lista, bloqueamos com erro 403 (Forbidden)
@@ -137,26 +137,35 @@ def api_criar_rnc(request):
         dados = json.loads(request.body)
 
         local = Local.objects.get(id=dados.get('local_id'))
-        tipo_nc = TipoNC.objects.get(id=dados.get('tipo_nc_id'))
 
         equipamento_id = dados.get('equipamento_id')
         equipamento = Equipamento.objects.get(id=equipamento_id) if equipamento_id else None
 
-        mapa_classificacao = {'Sistema': 'SI', 'Produto': 'PR', 'Processo': 'PO'}
+        mapa_categoria = {'Comercial': 'CO', 'Engenharia': 'EN', 'PCP': 'PC', 'Fabricação': 'FA', 'Montagem': 'MO', 'Suprimentos': 'SU', 'Fornecedor': 'FO', 'Expedição': 'EX', 'Qualidade': 'QU', 'Recursos Humanos': 'RH', 'Financeiro': 'FI', 'SGQ': 'SG'}
         mapa_criticidade = {'Alto': 'A', 'Médio': 'M', 'Baixo': 'B'}
         mapa_detector = {'Cliente': 'CL', 'Interno': 'IN', 'Auditor Interno': 'AI', 'Auditor Externo': 'AE', 'Fornecedor': 'FO'}
+        mapa_origem = {'Comercial': 'CO', 'Projeto_Engenharia': 'PE', 'Fabricação': 'FA', 'Montagem_comissionamento': 'MC', 'Suprimentos': 'SU', 'RH': 'RH', 'Fornecedor': 'FO', 'Processo_interno_SGQ': 'SG'}
+
+        registrador_id = dados.get('registrador_id')
+        registrador_obj = User.objects.get(id=registrador_id) if registrador_id else request.user
 
         nova_rnc = RNC.objects.create(
-            registrador=request.user,
+            registrador=registrador_obj,
             local=local,
-            tipo_nc=tipo_nc,
             equipamento=equipamento,
             detector=mapa_detector.get(dados.get('detector')),
-            classificacao=mapa_classificacao.get(dados.get('classificacao')),
+            categoria=mapa_categoria.get(dados.get('categoria')),
+            origem=mapa_origem.get(dados.get('origem')),
             criticidade=mapa_criticidade.get(dados.get('criticidade')),
             descricao=dados.get('descricao'),
             status = 'PR'
         )
+
+        responsaveis_ids = dados.get('responsaveis', [])
+
+        if responsaveis_ids:
+            nova_rnc.responsaveis.set(responsaveis_ids)
+            RNCService.notificar_nova_rnc(nova_rnc.id, responsaveis_ids)
 
         return JsonResponse({'status': 'sucesso', 'rnc_id': nova_rnc.id})
 
@@ -171,6 +180,7 @@ def api_editar_rnc_avancado(request, rnc_id):
         rnc = RNC.objects.get(id=rnc_id)
 
         data_antiga = rnc.data_encerramento
+        data_previsao = rnc.data_prevista_conclusao
 
         data_encerramento = request.POST.get('data_encerramento')
         if data_encerramento:
@@ -184,17 +194,27 @@ def api_editar_rnc_avancado(request, rnc_id):
         elif data_prevista == "":
             rnc.data_prevista_conclusao = None
 
-        # 3. Tratamento do Ishikawa
+        # Tratamento do Ishikawa
         ishikawa_link = request.POST.get('ishikawa_link')
         if ishikawa_link is not None:
             rnc.ishikawa_link = ishikawa_link
 
-        # 4. Tratamento dos Responsáveis
+
+        # Tratamento dos Responsáveis
         responsaveis_ids = request.POST.getlist('responsaveis')
         if responsaveis_ids:
+            ids_antigos = set(rnc.responsaveis.values_list('id', flat=True))
+            ids_novos = set(int(id) for id in responsaveis_ids)
+            ids_novatos = ids_novos - ids_antigos
             rnc.responsaveis.set(responsaveis_ids)
+            if ids_novatos:
+                RNCService.notificar_nova_rnc(rnc.id, ids_novatos)
         else:
             rnc.responsaveis.clear()
+
+        registrador_id = request.POST.get('registrador_id')
+        if registrador_id:
+            rnc.registrador_id = registrador_id
 
         # 5. Tratamento do PDF
         if 'eficacia_pdf' in request.FILES:
@@ -203,7 +223,7 @@ def api_editar_rnc_avancado(request, rnc_id):
         # Salva o registo principal
         rnc.save()
 
-        # 6. Tratamento das Imagens Adicionais
+        # Tratamento das Imagens Adicionais
         imagens = request.FILES.getlist('imagens')
         for img in imagens:
             RNCImagem.objects.create(rnc=rnc, imagem=img)
@@ -212,9 +232,12 @@ def api_editar_rnc_avancado(request, rnc_id):
         for img in imagens_eficacia:
             RNCEficaciaImagem.objects.create(rnc=rnc, imagens_eficacia=img)
 
-        # 7. Gatilho do E-mail (Só dispara se a data de encerramento mudou E não for vazia)
+        # Gatilho do E-mail
         if rnc.data_encerramento and rnc.data_encerramento != data_antiga:
             RNCService._notificar_data_encerramento(rnc.id)
+
+        if rnc.data_prevista_conclusao and rnc.data_prevista_conclusao != data_previsao:
+            RNCService._notificar_data_previsao(rnc.id)
 
         return JsonResponse({'status': 'sucesso'})
 

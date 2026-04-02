@@ -28,19 +28,6 @@ class Local(models.Model):
         return self.nome
 
 
-class TipoNC(models.Model):
-    nome = models.CharField('Tipo de Não Conformidade', max_length=100, unique=True)
-    ativo = models.BooleanField(default=True)
-
-    class Meta:
-        verbose_name = 'Tipo de NC'
-        verbose_name_plural = 'Tipos de NC'
-        ordering = ['nome']
-
-    def __str__(self):
-        return self.nome
-
-
 class RNC(models.Model):
     # Enums (Choices) para campos de regra de negócio imutável
     class DetectorChoices(models.TextChoices):
@@ -50,10 +37,19 @@ class RNC(models.Model):
         AUD_EXT = 'AE', 'Auditor Externo'
         FORNECEDOR = 'FO', 'Fornecedor'
 
-    class ClassificacaoChoices(models.TextChoices):
-        SISTEMA = 'SI', 'Sistema'
-        PRODUTO = 'PR', 'Produto'
-        PROCESSO = 'PO', 'Processo'
+    class CategoriaChoices(models.TextChoices):
+        COMERCIAL = 'CO', 'Comercial'
+        ENGENHARIA = 'EN', 'Engenharia'
+        PCP = 'PC', 'PCP'
+        FABRICACAO = 'FA', 'Fabricação'
+        MONTAGEM = 'MO', 'Montagem'
+        SUPRIMENTOS = 'SU', 'Suprimentos'
+        FORNECEDOR = 'FO', 'Fornecedor'
+        EXPEDICAO = 'EX', 'Expedição'
+        QUALIDADE = 'QU', 'Qualidade'
+        RH = 'RH', 'Recursos Humanos'
+        FINANCEIRO = 'FI', 'Financeiro'
+        SGQ = 'SG', 'SGQ'
 
     class CriticidadeChoices(models.TextChoices):
         ALTO = 'A', 'Alto'
@@ -68,6 +64,17 @@ class RNC(models.Model):
         PRELIMINAR = 'PR', 'Registro preliminar'
         CANCELADO = 'CA', 'Cancelado'
 
+    class Origem(models.TextChoices):
+        COMERCIAL = 'CO', 'Comercial'
+        PROJETO_ENGENHARIA  = 'PE', 'Projeto_Engenharia'
+        FABRICACAO = 'FA', 'Fabricação'
+        MONTAGEM_COMISSIONAMENTO = 'MC', 'Montagem_comissionamento'
+        SUPRIMENTOS = 'SU', 'Suprimentos'
+        RH = 'RH', 'RH'
+        FORNECEDOR = 'FO', 'Fornecedor'
+        SGQ = 'SG', 'Processo_interno_SGQ'
+
+
     # --- Identificação e Origem ---
     registrador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='rncs_registradas', verbose_name='Registrado por')
     data_abertura = models.DateField('Data de Abertura', auto_now_add=True)
@@ -76,15 +83,14 @@ class RNC(models.Model):
 
     # --- Classificações Base (Choices) ---
     detector = models.CharField('Detector', max_length=2, choices=DetectorChoices.choices)
-    classificacao = models.CharField('Classificação da NC', max_length=2, choices=ClassificacaoChoices.choices)
+    categoria = models.CharField('Categoria da NC', max_length=2, choices=CategoriaChoices.choices, default=CategoriaChoices.COMERCIAL)
     criticidade = models.CharField('Nível de Criticidade', max_length=1, choices=CriticidadeChoices.choices)
-    justificativa_criticidade = models.TextField('Justificativa da Criticidade', blank=True, null=True)
     status = models.CharField('Status', max_length=2, choices=StatusChoices.choices, default=StatusChoices.PRELIMINAR)
+    origem = models.CharField('Origem', max_length=2, choices=Origem.choices, default=Origem.COMERCIAL)
 
     # --- Relacionamentos de Domínio (ForeignKeys) ---
     equipamento = models.ForeignKey(Equipamento, on_delete=models.PROTECT, verbose_name='Equipamento', blank=True, null=True)
     local = models.ForeignKey(Local, on_delete=models.PROTECT, verbose_name='Local')
-    tipo_nc = models.ForeignKey(TipoNC, on_delete=models.PROTECT, verbose_name='Tipo de NC')
 
     # --- Textos Analíticos e Ações ---
     descricao = models.TextField('Descrição da Não Conformidade')

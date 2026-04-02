@@ -1,8 +1,8 @@
 from django.contrib import admin
-from .models import Equipamento, Local, TipoNC, RNC, RNCImagem
+from .models import Equipamento, Local, RNC, RNCImagem
 
 
-# --- Configuração das Tabelas de Domínio ---
+# Configuração das Tabelas de Domínio
 @admin.register(Equipamento)
 class EquipamentoAdmin(admin.ModelAdmin):
     list_display = ('nome', 'ativo')
@@ -17,14 +17,9 @@ class LocalAdmin(admin.ModelAdmin):
     search_fields = ('nome',)
 
 
-@admin.register(TipoNC)
-class TipoNCAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'ativo')
-    list_filter = ('ativo',)
-    search_fields = ('nome',)
 
 
-# --- Configuração da Imagem em Linha (1:N) ---
+# Configuração da Imagem em Linha (1:N)
 class RNCImagemInline(admin.TabularInline):
     model = RNCImagem
     extra = 1
@@ -32,11 +27,11 @@ class RNCImagemInline(admin.TabularInline):
     readonly_fields = ('enviado_em',)
 
 
-# --- Configuração da Entidade Principal (RNC) ---
+# Configuração da Entidade Principal (RNC)
 @admin.register(RNC)
 class RNCAdmin(admin.ModelAdmin):
-    list_display = ('id', 'projeto_cod', 'detector', 'classificacao', 'criticidade', 'status', 'data_abertura')
-    list_filter = ('status', 'criticidade', 'classificacao', 'detector', 'data_abertura', 'local')
+    list_display = ('id', 'projeto_cod', 'detector', 'categoria', 'criticidade', 'status', 'data_abertura')
+    list_filter = ('status', 'criticidade', 'categoria', 'detector', 'data_abertura', 'local')
     search_fields = ('id', 'projeto_cod', 'elemento_rastreador', 'descricao')
 
     # Interface otimizada para campos ManyToMany (Responsáveis)
@@ -53,10 +48,10 @@ class RNCAdmin(admin.ModelAdmin):
             'fields': ('registrador', 'projeto_cod', 'elemento_rastreador', 'data_abertura')
         }),
         ('Classificação', {
-            'fields': ('detector', 'classificacao', 'criticidade', 'justificativa_criticidade', 'status')
+            'fields': ('detector', 'categoria', 'criticidade', 'justificativa_criticidade', 'status')
         }),
         ('Domínios', {
-            'fields': ('equipamento', 'local', 'tipo_nc')
+            'fields': ('equipamento', 'local',)
         }),
         ('Análise e Ação', {
             'fields': ('descricao', 'correcao', 'ishikawa_link', 'causas_principais', 'acao_corretiva')
