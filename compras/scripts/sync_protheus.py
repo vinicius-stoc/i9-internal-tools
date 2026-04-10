@@ -4,16 +4,18 @@ import pandas as pd
 import numpy as np
 import sqlite3
 import requests
+from dotenv import load_dotenv
 
+load_dotenv()
 
-SFTP_HOST = 'prafindustrial171165.protheus.cloudtotvs.com.br'
-SFTP_PORT = 1401
-SFTP_USER = 'ftp_C97AI8_production'
-SFTP_PASS = 'CpI6j5cm'
-SFTP_REMOTE_DIR = '/ftp_C97AI8_production/dev/spool'
+SFTP_HOST = os.getenv('SFTP_HOST')
+SFTP_PORT = os.getenv('SFTP_PORT', 1401)
+SFTP_USER = os.getenv('SFTP_USER')
+SFTP_PASS = os.getenv('SFTP_PASS')
+SFTP_REMOTE_DIR = os.getenv('SFTP_REMOTE_DIR')
 
-API_URL = 'https://inovetmg.pythonanywhere.com/compras/api/upload-dw/'
-API_TOKEN = 'l_^e1#ye7@wro)4@gti24vxcmrr$01(@sxdp@=qg40(^vkvwzr'
+API_URL = os.getenv('API_URL')
+API_TOKEN = os.getenv('API_TOKEN')
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -155,22 +157,6 @@ def processar_dados():
     df_final.to_excel(EXCEL_PATH, index=False, engine='openpyxl')
 
 
-def enviar_para_nuvem():
-    print("[4/4] Enviando dados para o PythonAnywhere...")
-    try:
-        with open(EXCEL_PATH, 'rb') as f:
-            files = {'arquivo': ('report.xlsx', f, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
-            headers = {'X-Api-Key': API_TOKEN}
-            resposta = requests.post(API_URL, headers=headers, files=files)
-
-        if resposta.status_code == 200:
-            print(f"[OK] Nuvem atualizada: {resposta.json().get('mensagem')}")
-        else:
-            print(f"[ERRO] Falha na API ({resposta.status_code}): {resposta.text}")
-    except Exception as e:
-        print(f"[ERRO CRÍTICO] Falha de conexão: {e}")
-
-
 def processar_dados_operacionais():
     print('[ETL OPERACIONAL] Processando base bottom-up...')
 
@@ -291,5 +277,4 @@ if __name__ == "__main__":
     print("=== INICIANDO PIPELINE DE COMPRAS ===")
     baixar_dados_totvs()
     processar_dados()
-    enviar_para_nuvem()
     print("=== PIPELINE FINALIZADO ===")
