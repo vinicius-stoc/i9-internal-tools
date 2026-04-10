@@ -137,18 +137,18 @@
                             <label class="form-label fw-bold small">Categoria da Não Conformidade *</label>
                             <select name="categoria" class="form-select shadow-sm" required>
                                 <option value="">Selecione...</option>
-                                <option value="Comercial">Comercial</option>
-                                <option value="Engenharia">Engenharia</option>
-                                <option value="PCP">PCP</option>
-                                <option value="Fabricação">Fabricação</option>
-                                <option value="Montagem">Montagem / Comissionamento</option>
-                                <option value="Suprimentos">Suprimentos</option>
-                                <option value="Fornecedor">Fornecedor externo</option>
-                                <option value="Expedição">Recebimento / Expedição </option>
-                                <option value="Qualidade">Qualidade</option>
-                                <option value="Recursos Humanos">RH (Competência / Treinamento)</option>
-                                <option value="Financeiro">Financeiro</option>
-                                <option value="SGQ">SGQ  (procedimentos, padronização, definição de fluxo)</option>
+                                <option value="CO">Comercial</option>
+                                <option value="EN">Engenharia</option>
+                                <option value="PC">PCP</option>
+                                <option value="FA">Fabricação</option>
+                                <option value="MO">Montagem / Comissionamento</option>
+                                <option value="SU">Suprimentos</option>
+                                <option value="FO">Fornecedor externo</option>
+                                <option value="EX">Recebimento / Expedição</option>
+                                <option value="QU">Qualidade</option>
+                                <option value="RH">Recursos Humanos</option>
+                                <option value="FI">Financeiro</option>
+                                <option value="SG">SGQ</option>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -165,14 +165,14 @@
                             <label class="form-label fw-bold small">Origem *</label>
                             <select name="origem" class="form-select shadow-sm" required>
                                 <option value="">Selecione...</option>
-                                <option value="Comercial">Comercial</option>
-                                <option value="Projeto_Engenharia">Projeto/Engenharia</option>
-                                <option value="Fabricação">Fabricação</option>
-                                <option value="Montagem_comissionamento">Montagem/Comissionamento</option>
-                                <option value="Suprimentos">Suprimentos</option>
+                                <option value="CO">Comercial</option>
+                                <option value="PE">Projeto/Engenharia</option>
+                                <option value="FA">Fabricação</option>
+                                <option value="MC">Montagem/Comissionamento</option>
+                                <option value="SU">Suprimentos</option>
                                 <option value="RH">RH</option>
-                                <option value="Fornecedor">Fornecedor</option>
-                                <option value="SGQ">SGQ</option>
+                                <option value="FO">Fornecedor</option>
+                                <option value="SG">SGQ</option>
                             </select>
                         </div>
 
@@ -318,11 +318,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // FORMATAÇÃO E INICIALIZAÇÃO DA TABELA
     var formatarDataBR = function(cell){
         let val = cell.getValue();
-        if(val && val.includes('-')){
+        if (!val) return "-";
+        val = String(val).replace(/\//g, '-');
+
+        if(val.includes('-')){
             let parts = val.split('-');
-            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            if(parts[0].length === 4){
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
         }
-        return val || "-";
+        return val;
     };
 
     var filtroMultiploTexto = function(headerValue, rowValue, rowData, filterParams) {
@@ -378,7 +383,11 @@ document.addEventListener('DOMContentLoaded', function() {
              }
             },
 
-            {title: "Registrador", field: "registrador", headerFilter: "input", headerFilterFunc: filtroMultiploTexto},
+            {title: "Registrador", field: "registrador",
+                headerFilter: "list",
+                headerFilterFunc: 'in',
+                headerFilterParams: {valuesLookup: true, clearable: true, multiselect: true}
+            },
             {title: "Detector", field: "detector",
              headerFilter: "list",
              headerFilterFunc: "in",
@@ -400,19 +409,40 @@ document.addEventListener('DOMContentLoaded', function() {
                  return termos.some(termo => valorCelula.includes(termo));
              }
             },
-            {title: "Equipamento", field: "equipamento", headerFilter: "input", headerFilterFunc: filtroMultiploTexto},
+            {title: "Equipamento", field: "equipamento",
+                headerFilter: "input",
+                headerFilterFunc: 'in',
+                headerFilterParams: {valuesLookup: true, clearable: true, multiselect: true}
+            },
             {title: "Elemento Rastreador", field: "elemento_rastreador", headerFilter: "input", editor: "input"},
-            {title: "Local Detecção", field: "local", headerFilter: "input", headerFilterFunc: filtroMultiploTexto},
+            {title: "Local Detecção", field: "local",
+
+                headerFilter: "list",
+                headerFilterFunc: "in",
+                headerFilterParams: {valuesLookup: true, clearable: true, multiselect: true}
+            },
             {title: "Origem", field: "origem",
-            headerFilter: "list",
-            headerFilterFunc: "in",
-            headerFilterParams: {valuesLookup:true, clearable:true, multiselect:true},
-            editor: "list", editorParams: {values: ["Comercial", "Projeto_Engenharia", "Fabricação", "Montagem_comissionamento", "Suprimentos", "RH", "Fornecedor", "Processo_interno_SGQ"]}},
-            {title: "Categoria da Não Conformidade", field: "categoria",
-            headerFilter: "list",
-            headerFilterFunc: "in",
-            headerFilterParams: {valuesLookup:true, clearable:true, multiselect:true},
-            editor: "list", editorParams: {values: ["Comercial", "Engenharia", "PCP", "Fabricação", "Montagem", "Suprimentos", "Fornecedor", "Expedição", "Qualidade", "Recursos Humanos", "Financeiro", "SGQ"]}},
+                headerFilter: 'list',
+                headerFilterFunc: 'in',
+                headerFilterParams: {valuesLookup: true, clearable: true, multiselect: true},
+                formatter: "lookup", formatterParams: {
+                    "CO": "Comercial", "PE": "Projeto/Eng.", "FA": "Fabricação", "MC": "Montagem/Comis.", "SU": "Suprimentos", "RH": "RH", "FO": "Fornecedor", "SG": "SGQ"
+                },
+                editor: "list", editorParams: {
+                    values: { "CO": "Comercial", "PE": "Projeto/Eng.", "FA": "Fabricação", "MC": "Montagem/Comis.", "SU": "Suprimentos", "RH": "RH", "FO": "Fornecedor", "SG": "SGQ" }
+                }
+            },
+            {title: "Categoria", field: "categoria",
+                headerFilter: 'list',
+                headerFilterFunc: 'in',
+                headerFilterParams: {valuesLookup: true, clearable: true, multiselect: true},
+                formatter: "lookup", formatterParams: {
+                    "CO": "Comercial", "EN": "Engenharia", "PC": "PCP", "FA": "Fabricação", "MO": "Montagem/Comis.", "SU": "Suprimentos", "FO": "Fornecedor", "EX": "Expedição", "QU": "Qualidade", "RH": "RH", "FI": "Financeiro", "SG": "SGQ"
+                },
+                editor: "list", editorParams: {
+                    values: { "CO": "Comercial", "EN": "Engenharia", "PC": "PCP", "FA": "Fabricação", "MO": "Montagem/Comis.", "SU": "Suprimentos", "FO": "Fornecedor", "EX": "Expedição", "QU": "Qualidade", "RH": "RH", "FI": "Financeiro", "SG": "SGQ" }
+                }
+            },
             {title: "Criticidade", field: "criticidade",
             headerFilter: "list",
             headerFilterFunc: "in",
@@ -437,7 +467,13 @@ document.addEventListener('DOMContentLoaded', function() {
             {title: "Causas Principais", field: "causas_principais", formatter: "textarea", editor: "textarea"},
             {title: "Ação Corretiva", field: "acao_corretiva", formatter: "textarea", editor: "textarea"},
             {title: "Eficácia (Texto)", field: "eficacia_texto", formatter: "textarea", editor: "textarea"},
-            {title: "Responsavel", field: "responsaveis", headerFilter: "input", headerFilterFunc: filtroMultiploTexto},
+
+            {title: "Responsavel", field: "responsaveis",
+                headerFilter: "list",
+                headerFilterFunc: 'in',
+                headerFilterParams: {valuesLookup: true, clearable: true, multiselect: true}
+            },
+
             {title: "Data Previsão Conclusão", field: "data_prevista_conclusao", formatter: formatarDataBR, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
             {title: "Data Encerramento", field: "data_encerramento", formatter: formatarDataBR, editor: "date", editorParams:{ format:"yyyy-MM-dd" }},
 
