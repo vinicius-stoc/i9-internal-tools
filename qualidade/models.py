@@ -39,17 +39,23 @@ class RNC(models.Model):
 
     class CategoriaChoices(models.TextChoices):
         COMERCIAL = 'CO', 'Comercial'
-        ENGENHARIA = 'EN', 'Engenharia'
+        PROJETO_ENGENHRAIA = 'PE', 'Projeto / Engenharia'
         PCP = 'PC', 'PCP'
         FABRICACAO = 'FA', 'Fabricação'
-        MONTAGEM = 'MO', 'Montagem'
+        OBRA_MONTAGEM = 'MO', 'Obra / Montagem'
+        MONTAGEM_COMISSIONAMENTO = 'MC', 'Montagem / Comissionamento'
         SUPRIMENTOS = 'SU', 'Suprimentos'
-        FORNECEDOR = 'FO', 'Fornecedor'
-        EXPEDICAO = 'EX', 'Expedição'
+        FORNECEDOR_EXTERNO = 'FO', 'Fornecedor Externo'
+        RECEBIMENTO_EXPEDICAO = 'EX', 'Recebimento / Expedição'
         QUALIDADE = 'QU', 'Qualidade'
         RH = 'RH', 'Recursos Humanos'
         FINANCEIRO = 'FI', 'Financeiro'
         SGQ = 'SG', 'SGQ'
+        PLANEJAMENTO_CRONOGRAMA = 'PJ', 'Planejamento / Cronograma'
+        PROCESSO = 'PR', 'Processo'
+        REQUISITOS_CONTRATUAIS = 'RC', 'Requisitos contratuais'
+        REQUISITOS_NORMAS = 'RN', 'Requisitos normas'
+        SISTEMA = 'SI', 'Sistema'
 
     class CriticidadeChoices(models.TextChoices):
         ALTO = 'A', 'Alto'
@@ -60,19 +66,19 @@ class RNC(models.Model):
         NAO_INICIADA = 'NI', 'Não iniciada'
         EM_ANDAMENTO = 'EA', 'Em andamento'
         CONCLUIDO = 'CO', 'Concluído'
-        FORA_TRILHOS = 'FT', 'Fora dos trilhos'
         PRELIMINAR = 'PR', 'Registro preliminar'
         CANCELADO = 'CA', 'Cancelado'
 
     class Origem(models.TextChoices):
         COMERCIAL = 'CO', 'Comercial'
-        PROJETO_ENGENHARIA  = 'PE', 'Projeto_Engenharia'
+        PROJETO_ENGENHARIA  = 'PE', 'Projeto / Engenharia'
         FABRICACAO = 'FA', 'Fabricação'
-        MONTAGEM_COMISSIONAMENTO = 'MC', 'Montagem_comissionamento'
+        MONTAGEM_COMISSIONAMENTO = 'MC', 'Montagem / Comissionamento'
         SUPRIMENTOS = 'SU', 'Suprimentos'
         RH = 'RH', 'RH'
         FORNECEDOR = 'FO', 'Fornecedor'
         SGQ = 'SG', 'Processo_interno_SGQ'
+        GERAL = 'GR', 'Geral'
 
 
     # --- Identificação e Origem ---
@@ -95,7 +101,7 @@ class RNC(models.Model):
     # --- Textos Analíticos e Ações ---
     descricao = models.TextField('Descrição da Não Conformidade')
     correcao = models.TextField('Correção Imediata', blank=True, null=True)
-    ishikawa_link = models.URLField('Diagrama Ishikawa (Link)', blank=True, null=True)
+    ishikawa_link = models.URLField('Diagrama Ishikawa (Link)', max_length=2000, blank=True, null=True)
     causas_principais = models.TextField('Principais Causas', blank=True, null=True)
     acao_corretiva = models.TextField('Ação Corretiva', blank=True, null=True)
 
@@ -122,7 +128,6 @@ class RNC(models.Model):
     def __str__(self):
         return f"RNC #{self.id} - {self.get_status_display()}"
 
-
 class RNCImagem(models.Model):
     rnc = models.ForeignKey(RNC, on_delete=models.CASCADE, related_name='imagens')
     imagem = models.ImageField('Anexo de Imagem', upload_to='qualidade/rnc/imagens/')
@@ -131,6 +136,7 @@ class RNCImagem(models.Model):
     class Meta:
         verbose_name = 'Imagem da RNC'
         verbose_name_plural = 'Imagens da RNC'
+
 
 class RNCEficaciaImagem(models.Model):
     rnc = models.ForeignKey(RNC, on_delete=models.CASCADE, related_name='eficacia_imagens')
@@ -142,4 +148,4 @@ class RNCEficaciaImagem(models.Model):
         verbose_name_plural = 'Imagens da Eficacia das RNCs'
 
     def __str__(self):
-        return f"Anexo da RNC #{self.rnc.id}"
+        return f'Anexo da RNC #{self.rnc.id}'

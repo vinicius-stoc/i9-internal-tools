@@ -5,6 +5,7 @@ import numpy as np
 import sqlite3
 import requests
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
