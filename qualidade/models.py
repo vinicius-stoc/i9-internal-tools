@@ -95,7 +95,7 @@ class RNC(models.Model):
     # --- Textos Analíticos e Ações ---
     descricao = models.TextField('Descrição da Não Conformidade')
     correcao = models.TextField('Correção Imediata', blank=True, null=True)
-    ishikawa_link = models.URLField('Diagrama Ishikawa (Link)', blank=True, null=True)
+    ishikawa_link = models.URLField('Diagrama Ishikawa (Link)', max_length=2000, blank=True, null=True)
     causas_principais = models.TextField('Principais Causas', blank=True, null=True)
     acao_corretiva = models.TextField('Ação Corretiva', blank=True, null=True)
 
