@@ -1,5 +1,4 @@
 import csv
-from django.db import models
 from django.db.models import Count, Case, When, Value, IntegerField
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -9,6 +8,7 @@ from django.utils import timezone
 from .models import Vaga, Candidatura, SolicitacaoVaga, PesquisaDemissional
 from .forms import (CandidaturaForm, VagaForm, SolicitacaoVagaForm,
                     PesquisaDemissionalGeracaoForm, PesquisaDemissionalRespostaForm)
+from core.decorators import exige_permissao
 
 
 
@@ -37,6 +37,7 @@ def aplicar_vaga(request, pk):
 
 
 @login_required(login_url='/admin/login')
+@exige_permissao(['is_rh', 'is_diretoria'])
 def painel_rh(request):
     """
     Prepara a lista de candidatos e os contadores para a tela inicial do RH
@@ -76,6 +77,7 @@ def painel_rh(request):
 
 
 @login_required(login_url='/admin/login')
+@exige_permissao(['is_rh', 'is_diretoria'])
 def detalhe_candidato(request, pk):
     """
     Exibe o currículo de um candidato e permite o usuario mudar de fase (aprovar ou reprovar)
@@ -107,6 +109,7 @@ def detalhe_candidato(request, pk):
 
 
 @login_required(login_url='/admin/login')
+@exige_permissao(['is_rh', 'is_diretoria'])
 def gestao_vagas(request):
     """
     Painel para o RH gerenciar as vagas abertas e fechadas. Usamos o annotate(count()) para o banco ja trazer a contagem
@@ -177,6 +180,7 @@ def solicitar_abertura_vaga(request):
 
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_rh', 'is_diretoria'])
 def listar_solicitacoes(request):
     """
     O QUE FAZ: Painel do RH para ver todos os pedidos de vagas dos gestores.
@@ -208,6 +212,7 @@ def listar_solicitacoes(request):
 
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_rh', 'is_diretoria'])
 def detalhe_solicitacao(request, pk):
     """
     Abre o pedido detalhado do gestor para o RH ler e dar o parecer (Aprovar/Reprovar).
@@ -236,6 +241,7 @@ def detalhe_solicitacao(request, pk):
 
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_rh', 'is_diretoria'])
 def listar_pesquisas(request):
     pesquisas = PesquisaDemissional.objects.all().order_by('-data_geracao')
 
@@ -277,6 +283,7 @@ def listar_pesquisas(request):
 
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_rh', 'is_diretoria'])
 def gerar_pesquisa(request):
     if not (request.user.is_superuser or getattr(request.user, 'is_rh', False)):
         messages.error(request, "Acesso restrito ao RH.")

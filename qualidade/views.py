@@ -9,10 +9,12 @@ from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from .models import RNC, Local, Equipamento, RNCImagem, RNCEficaciaImagem
 from .service import RNCService
+from core.decorators import exige_permissao
 
 User = get_user_model()
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_qualidade', 'is_diretoria'])
 def dashboard_qualidade(request):
     locais_ativos = Local.objects.filter(ativo= True)
     equipamento_ativos = Equipamento.objects.filter(ativo= True)
