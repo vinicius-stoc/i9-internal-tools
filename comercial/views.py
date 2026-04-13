@@ -6,9 +6,11 @@ from django.contrib.auth.decorators import login_required
 from datetime import date
 from .forms import STOForm, VersaoFormularioSTOForm
 from .models import STO, STOImagem, STORevisao, VersaoFormularioSTO
+from core.decorators import exige_permissao
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
+@exige_permissao(['is_comercial', 'is_diretoria'])
 def criar_sto(request):
     if not request.user.pode_acessar_modulo('comercial'):
         messages.error(request, "Acesso negado.")
@@ -36,7 +38,8 @@ def criar_sto(request):
     return render(request, 'comercial/sto_form.html', {'form': form})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
+@exige_permissao(['is_comercial', 'is_diretoria'])
 def listar_stos(request):
     if not request.user.pode_acessar_modulo('comercial'):
         messages.error(request, "Acesso negado.")
@@ -46,7 +49,8 @@ def listar_stos(request):
     return render(request, 'comercial/sto_lista.html', {'stos': stos})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='login/')
+@exige_permissao(['is_comercial', 'is_diretoria'])
 def exportar_stos_csv(request):
     if not request.user.pode_acessar_modulo('comercial'):
         return HttpResponse("Acesso negado", status=403)
@@ -78,7 +82,8 @@ def exportar_stos_csv(request):
     return response
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
+@exige_permissao(['is_comercial', 'is_diretoria'])
 def ver_sto(request, pk):
     if not request.user.pode_acessar_modulo('comercial'):
         messages.error(request, "Acesso negado.")
@@ -88,7 +93,8 @@ def ver_sto(request, pk):
     return render(request, 'comercial/sto_detalhe.html', {'sto': sto})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
+@exige_permissao(['is_comercial', 'is_diretoria'])
 def editar_sto(request, pk):
     if not request.user.pode_acessar_modulo('comercial'):
         messages.error(request, "Acesso negado.")
@@ -125,7 +131,8 @@ def editar_sto(request, pk):
     return render(request, 'comercial/sto_form.html', {'form': form, 'sto': sto})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
+@exige_permissao(['is_comercial', 'is_diretoria'])
 def historico_versoes_iso(request):
     if not request.user.pode_acessar_modulo('comercial'):
         messages.error(request, "Acesso negado.")

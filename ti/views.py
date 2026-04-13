@@ -10,6 +10,7 @@ from django.db.models.functions import TruncDay
 from django.utils import timezone
 from .forms import AtendimentoChamadoForm, ChamadoForm, UsuarioForm
 from .models import Chamado, ChamadoImagem
+from core.decorators import exige_permissao
 
 
 
@@ -37,6 +38,7 @@ def novo_chamado(request):
 
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_ti', 'is_diretoria'])
 def ti_admin(request):
     if not (request.user.is_superuser or getattr(request.user, 'is_ti', False) or getattr(request.user.is_diretoria, False)):
         messages.error(request, "Acesso restrito à equipe de Tecnologia.")
@@ -57,6 +59,7 @@ def ti_admin(request):
 
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_ti', 'is_diretoria'])
 def dashboard_ti(request):
     if not (request.user.is_superuser or getattr(request.user, 'is_ti', False)):
         messages.error(request, "Acesso restrito à equipe de Tecnologia.")
@@ -125,6 +128,7 @@ def dashboard_ti(request):
 
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_ti', 'is_diretoria'])
 def atender_chamado(request, pk):
     if not (request.user.is_superuser or getattr(request.user, 'is_ti', False)):
         messages.error(request, "Acesso restrito à equipe de Tecnologia.")
@@ -190,6 +194,7 @@ def detalhe_meu_chamado(request, pk):
 User = get_user_model()
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_ti', 'is_diretoria'])
 def gestao_usuarios(request):
     """ Lista todos os usuários do ERP. Apenas TI e Diretoria acessam. """
     if not (request.user.is_superuser or getattr(request.user, 'is_ti', False) or getattr(request.user, 'is_diretoria', False)):
@@ -201,6 +206,7 @@ def gestao_usuarios(request):
 
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_ti', 'is_diretoria'])
 def form_usuario(request, pk=None):
     if not (request.user.is_superuser or getattr(request.user, 'is_ti', False)):
         messages.error(request, "Acesso restrito à TI.")

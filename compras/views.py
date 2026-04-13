@@ -12,21 +12,15 @@ from django.db import transaction
 from django.db.models import Avg, Count, Q, Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
-from django.views.decorators.csrf import csrf_exempt
+from core.decorators import exige_permissao
 
 from .models import DataWarehouseCompras, OperacaoCompras
 
 load_dotenv()
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_compras', 'is_diretoria'])
 def dashboard_compras(request):
-    # Controle de Acesso
-    if not (request.user.is_superuser or getattr(request.user, 'is_compras', False) or getattr(request.user,
-                                                                                               'is_diretoria',
-                                                                                               False) or getattr(
-            request.user, 'is_ti', False)):
-        messages.error(request, "Acesso restrito à Diretoria e equipe de Compras.")
-        return redirect('home')
 
     # Captura de Filtros do GET
     data_inicio = request.GET.get('data_inicio')
@@ -170,15 +164,12 @@ def dashboard_compras(request):
 
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_compras', 'is_diretoria'])
 def atualizar_dados_dw(request):
     """
     View acionada pelo botão do Dashboard.
     Executa os scripts de ETL e salva nos DOIS bancos de dados (Diretoria e Operação).
     """
-    if not (request.user.is_superuser or getattr(request.user, 'is_compras', False) or getattr(request.user, 'is_ti',
-                                                                                               False)):
-        messages.error(request, "Você não tem permissão para atualizar a base de dados.")
-        return redirect('dashboard_compras')
 
     try:
         # Importa os robôs e os caminhos
@@ -292,13 +283,9 @@ def atualizar_dados_dw(request):
 
 
 @login_required(login_url='/login/')
+@exige_permissao(['is_compras', 'is_diretoria'])
 def dashboard_operacional(request):
     """Dashboard focado na operação compras"""
-
-    if not (request.user.is_superuser or getattr(request.user, 'is_compras', False) or getattr(request.user, 'is_ti', False)):
-        messages.error(request, "Acesso restrito à equipe de Compras.")
-        return redirect('home')
-
     # Busca todos os dados operacionais
     operacoes = OperacaoCompras.objects.all()
 
