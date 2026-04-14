@@ -1,5 +1,5 @@
 import csv
-from django.db.models import Count, Case, When, Value, IntegerField
+from django.db.models import Count, Case, When, Value, IntegerField, Q
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
@@ -34,13 +34,11 @@ def aplicar_vaga(request, pk):
     return render(request, 'rh/aplicar_vaga.html', {'form': form, 'vaga': vaga})
 
 
-@login_required(login_url='/admin/login')
+@login_required(login_url='/login/')
 @exige_permissao(['rh'])
 def triagem_rh(request):
     """
     Prepara a lista de candidatos e os contadores para a tela inicial do RH
-    Sempre que o usuario clica em um link ou acessa uma URL, o navegador empacoda dados(quem é o usuario, qual o IP, get ou post?
-    e manda para o Django. O Django transforma isso no objeto 'request'
     """
     vaga_id = request.GET.get('vaga')
 
@@ -53,20 +51,22 @@ def triagem_rh(request):
         candidaturas = Candidatura.objects.all().order_by('-data_aplicacao')
         vaga_selecionada = None
 
-    total_novos = Candidatura.objects.filter(status='NOVO').count()
-    total_analise = Candidatura.objects.filter(status='EM_ANALISE').count()
-    total_entrevistas = Candidatura.objects.filter(status='ENTREVISTA').count()
+    contagens = Candidatura.objects.aggregate(
+        total_novos=Count('id', filter=Q(status=Candidatura.STATUS.NOVO)),
+        total_analise=Count('id', filter=Q(status=Candidatura.STATUS.EM_ANALISE)),
+        total_entrevistas=Count('id', filter=Q(status=Candidatura.STATUS.ENTREVISTA))
+    )
 
     context = {
         'vagas': vagas,
         'candidaturas': candidaturas,
         'vaga_selecionada': vaga_selecionada,
-        'total_novos': total_novos,
-        'total_analise': total_analise,
-        'total_entrevistas': total_entrevistas
+        'total_novos': contagens['total_novos'],
+        'total_analise': contagens['total_analise'],
+        'total_entrevistas': contagens['total_entrevistas']
     }
 
-    return  render(request, 'rh/triagem_rh.html', context)
+    return render(request, 'rh/triagem_rh.html', context)
 
 
 @login_required(login_url='/admin/login')
