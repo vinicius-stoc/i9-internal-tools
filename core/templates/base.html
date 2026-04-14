@@ -139,7 +139,6 @@
             </li>
 
                 <!--MODULO COMERCIAL-->
-                {% if user.acesso_comercial %}
                 <li class="nav-item mt-1">
                     <a class="nav-link {% if 'comercial' not in request.path %}collapsed{% endif %} d-flex justify-content-between align-items-center"
                        data-bs-toggle="collapse" href="#menuComercial" role="button"
@@ -158,11 +157,9 @@
                         </ul>
                     </div>
                 </li>
-                {% endif %}
 
 
                 <!--MODULO RH-->
-                {% if user.acesso_rh %}
                 <li class="nav-item mt-1">
                     <a class="nav-link {% if 'rh' not in request.path %}collapsed{% endif %} d-flex justify-content-between align-items-center"
                        data-bs-toggle="collapse" href="#menuRH" role="button"
@@ -184,7 +181,6 @@
                                 </a>
                             </li>
 
-                            {% if user.acesso_rh %}
                             <li class="nav-item">
                                 <a href="{% url 'gestao_vagas' %}" class="nav-link submenu-link {% if 'gestao' in request.path %}active-sub{% endif %}">
                                     <i class="bi bi-briefcase me-2"></i> Gestão de Vagas
@@ -195,7 +191,6 @@
                                     <i class="bi bi-funnel me-2"></i> Triagem (CVs)
                                 </a>
                             </li>
-                            {% endif %}
 
                             <li class="nav-item mt-3 mb-1 px-3 text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px; color: var(--laranja-principal); font-weight: bold;">
                                 Requisições
@@ -207,15 +202,12 @@
                                 </a>
                             </li>
 
-                            {% if user.acesso_rh %}
                             <li class="nav-item">
                                 <a href="{% url 'listar_solicitacoes' %}" class="nav-link submenu-link {% if 'solicitacoes' in request.path %}active-sub{% endif %}">
                                     <i class="bi bi-inboxes me-2"></i> Aprovações
                                 </a>
                             </li>
-                            {% endif %}
 
-                            {% if user.acesso_rh %}
                             <li class="nav-item mt-3 mb-1 px-3 text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px; color: var(--laranja-principal); font-weight: bold;">
                                 Retenção
                             </li>
@@ -225,16 +217,11 @@
                                     <i class="bi bi-clipboard-data me-2"></i> Pesquisa Demissional
                                 </a>
                             </li>
-                            {% endif %}
-
                         </ul>
                     </div>
                 </li>
-                {% endif %}
-
 
                 <!--MODULO TI-->
-                {% if user.acesso_ti %}
                 <li class="nav-item mt-1">
                     <a class="nav-link {% if 'ti' not in request.path %}collapsed{% endif %} d-flex justify-content-between align-items-center"
                        data-bs-toggle="collapse" href="#menuTI" role="button"
@@ -256,7 +243,6 @@
                                 </a>
                             </li>
 
-                            {% if user.acesso_ti %}
                             <li class="nav-item">
                                 <a href="{% url 'ti_admin' %}" class="nav-link submenu-link {% if 'mesa-de-trabalho' in request.path %}active-sub{% endif %}">
                                     <i class="bi bi-list-task me-2"></i> Helpdesk Administrador
@@ -275,15 +261,12 @@
                                     <i class="bi bi-people-fill me-2"></i> Gestão de Usuários
                                 </a>
                             </li>
-                            {% endif %}
                         </ul>
                     </div>
                 </li>
-                {% endif %}
 
 
                 <!--MODULO COMPRAS-->
-                {% if user.acesso_compras %}
                 <li class="nav-item mt-1">
                     <a class="nav-link {% if 'compras' not in request.path %}collapsed{% endif %} d-flex justify-content-between align-items-center"
                        data-bs-toggle="collapse" href="#menuCompras" role="button"
@@ -310,12 +293,10 @@
                         </ul>
                     </div>
                 </li>
-                {% endif %}
 
 
                 <!--MODULO FINANCEIRO-->
-                <!--{% if user.acesso.financeiro %}
-                <li class="nav-item mt-1">
+                <!--<li class="nav-item mt-1">
                     <a class="nav-link {% if 'financeiro' not in request.path %}collapsed{% endif %} d-flex justify-content-between align-items-center"
                        data-bs-toggle="collapse" href="#menuFinanceiro" role="button"
                        aria-expanded="{% if 'financeiro' in request.path %}true{% else %}false{% endif %}"
@@ -333,9 +314,7 @@
                         </ul>
                     </div>
                 </li>
-                {% endif %}
 
-                {% if user.is_engenharia or user.is_diretoria or user.is_superuser or user.is_ti %}
                 <li class="nav-item mt-1">
                     <a class="nav-link {% if 'engenharia' not in request.path %}collapsed{% endif %} d-flex justify-content-between align-items-center"
                        data-bs-toggle="collapse" href="#menuEngenharia" role="button"
@@ -354,9 +333,7 @@
                         </ul>
                     </div>
                 </li>
-                {% endif %}
 
-                {% if user.is_pcp or user.is_diretoria or user.is_superuser or user.is_ti %}
                 <li class="nav-item mt-1">
                     <a class="nav-link {% if 'pcp' not in request.path %}collapsed{% endif %} d-flex justify-content-between align-items-center"
                        data-bs-toggle="collapse" href="#menuPCP" role="button"
@@ -374,12 +351,9 @@
                             </li>
                         </ul>
                     </div>
-                </li>
-                {% endif %}-->
-
+                </li>-->
 
                 <!--MODULO QUALIDADE/SGQ-->
-                {% if user.acesso_qualidade %}
                 <li class="nav-item mt-1">
                     <a class="nav-link {% if 'qualidade' not in request.path %}collapsed{% endif %} d-flex justify-content-between align-items-center"
                        data-bs-toggle="collapse" href="#menuQualidade" role="button"
@@ -398,7 +372,6 @@
                         </ul>
                     </div>
                 </li>
-                {% endif %}
         </ul>
     </div>
 
