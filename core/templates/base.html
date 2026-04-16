@@ -176,6 +176,12 @@
                             </li>
 
                             <li class="nav-item">
+                                <a href="{% url 'dashboard_rh' %}" class="nav-link submenu-link {% if 'dashboard' in request.path %}active-sub{% endif %}">
+                                    <i class="bi bi-bar-chart me-2"></i> Dashboard RH
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
                                 <a href="{% url 'portal_vagas' %}" target="_blank" class="nav-link submenu-link {% if 'vagas' in request.path %}active-sub{% endif %}" title="Abre em nova guia">
                                     <i class="bi bi-globe me-2"></i> Portal de Vagas
                                 </a>

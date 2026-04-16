@@ -18,6 +18,7 @@ def validar_curriculo(value):
     if extensao not in extensoes:
         raise ValidationError('Por questões de segurança, envie apenas currículos em PDF ou Word.')
 
+
 class Vaga(models.Model):
 
     class SETORES(models.TextChoices):
@@ -171,3 +172,38 @@ class PesquisaDemissional(models.Model):
     def get_link_externo(self):
         from django.urls import reverse
         return reverse('responder_pesquisa', kwargs={'uuid_pesquisa': self.id_pesquisa})
+
+
+class Funcionario(models.Model):
+    class SITUACAO(models.TextChoices):
+        ATIVO = 'AT', 'Trabalhando'
+        DESLIGADO = 'DE', 'Desligado'
+        AFASTADO = 'AF', 'Afastado'
+
+    usuario = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='perfil_funcionario',
+    )
+
+    nome_completo = models.CharField(max_length=150)
+    cpf = models.CharField(max_length=14, unique=True, verbose_name="CPF")
+    data_nascimento = models.DateField(null=True, blank=True)
+
+    data_admissao = models.DateField()
+    data_demissao = models.DateField(null=True, blank=True)
+    cargo = models.CharField(max_length=100)
+    salario = models.DecimalField(max_digits=10, decimal_places=2)
+    situacao = models.CharField(max_length=2, choices=SITUACAO.choices, default=SITUACAO.ATIVO)
+
+    setor = models.CharField(max_length=2, choices=Vaga.SETORES.choices)
+
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_atualizacao = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        status = "Ativo" if self.situacao == "AT" else "Desligado"
+        return f'{self.nome_completo} - {self.get_setor_display()} - ({status})'
+

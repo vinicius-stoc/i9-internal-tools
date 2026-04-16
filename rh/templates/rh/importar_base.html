@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Importar Base de RH{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-5 text-center">
+                    <h3 class="fw-bold mb-3" style="color: var(--azul-principal);">
+                        <i class="bi bi-file-earmark-excel me-2 text-success"></i>Atualizar Base de Colaboradores
+                    </h3>
+                    <p class="text-muted mb-4">Faça o upload da planilha atualizada do sistema de folha de pagamento (.xls ou .xlsx). O sistema irá identificar automaticamente contratações e demissões.</p>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <input class="form-control form-control-lg" type="file" name="arquivo_excel" accept=".xls,.xlsx" required>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" style="background-color: var(--laranja-principal); border: none;">
+                                Iniciar Processamento
+                            </button>
+                            <a href="{% url 'dashboard_rh' %}" class="btn btn-light">Voltar para o Dashboard</a>
+                        </div>
+                    </form>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

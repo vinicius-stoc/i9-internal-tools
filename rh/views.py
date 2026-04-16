@@ -5,10 +5,13 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from .models import Vaga, Candidatura, SolicitacaoVaga, PesquisaDemissional
+from .models import Vaga, Candidatura, SolicitacaoVaga, PesquisaDemissional, Funcionario
 from .forms import (CandidaturaForm, VagaForm, SolicitacaoVagaForm,
                     PesquisaDemissionalGeracaoForm, PesquisaDemissionalRespostaForm)
 from core.decorators import exige_permissao
+import pandas as pd
+from django.contrib import messages
+from django.shortcuts import render, redirect
 
 def portal_vagas(request):
     vagas = Vaga.objects.filter(ativa=True).order_by('-data_criacao')
@@ -291,3 +294,125 @@ def responder_pesquisa(request, uuid_pesquisa):
     else:
         form = PesquisaDemissionalRespostaForm()
     return render(request, 'rh/responder_pesquisa.html', {'form': form, 'pesquisa': pesquisa})
+
+
+@login_required(login_url='/login/')
+@exige_permissao(['rh'])
+def dashboard_rh(request):
+    ano_atual = timezone.now().year
+    data_inicio_ano = f"{ano_atual}-01-01"
+
+    # ROTATIVIDADE (TURNOVER)
+    total_distinto = Funcionario.objects.filter(
+        data_demissao__isnull=True
+    ).values('nome_completo').distinct().count()
+
+    admissoes_ano = Funcionario.objects.filter(
+        data_admissao__year = ano_atual
+    ).count()
+
+    desligamentos_ano = Funcionario.objects.filter(
+        data_demissao__year = ano_atual
+    ).count()
+
+    colaboradores_inicio = Funcionario.objects.filter(
+        Q(data_demissao__isnull=True) | Q(data_demissao__gte=data_inicio_ano),
+        data_admissao__lt=data_inicio_ano
+    ).count()
+
+    colaboradores_fim = colaboradores_inicio + admissoes_ano - desligamentos_ano
+
+    media_colab = (colaboradores_inicio + colaboradores_fim) / 2
+    turnover_geral = 0.0
+    if media_colab > 0:
+        turnover_geral = ((admissoes_ano + desligamentos_ano) / 2) / media_colab
+
+    funcionario_gestor = Funcionario.objects.filter(
+        Q(setor__exact='TI') | Q(setor__exact='Comercial')
+    )
+
+    context = {
+        'ano': ano_atual,
+        'total_funcionarios': total_distinto,
+        'admissoes': admissoes_ano,
+        'desligamentos': desligamentos_ano,
+        'colaboradores_inicio': colaboradores_inicio,
+        'turnover_geral': round(turnover_geral * 100, 2),
+    }
+
+    return render(request, 'rh/dashboard.html', context)
+
+
+@login_required(login_url='/login/')
+@exige_permissao(['rh'])
+def importar_base_rh(request):
+    if request.method == 'POST':
+        arquivo = request.FILES.get('arquivo_excel')
+
+        if not arquivo:
+            messages.error(request, 'Por favor, selecione um arquivo.')
+            return redirect('importar_base_rh')
+
+        if not arquivo.name.endswith(('.xls', '.xlsx')):
+            messages.error(request, 'Formato inválido. Envie um arquivo Excel (.xls ou .xlsx).')
+            return redirect('importar_base_rh')
+
+        try:
+            df = pd.read_excel(arquivo)
+            df = df.replace({pd.NA: None, float('nan'): None, 'NaT': None})
+
+            df['Descrição Dpto'] = df['Descrição Dpto'].str.replace(' ', '_', regex=False).str.replace('-', '', regex=False)
+            df['Admissão'] = pd.to_datetime(df['Admissão'], format='%d/%m/%Y', errors='coerce')
+            df['Data Demissão'] = pd.to_datetime(df['Data Demissão'], format='%d/%m/%Y', errors='coerce')
+            df['Admissão'] = df['Admissão'].dt.strftime('%Y-%m-%d')
+            df['Data Demissão'] = df['Data Demissão'].dt.strftime('%Y-%m-%d')
+            df = df.replace({pd.NA: None, float('nan'): None, 'NaT': None})
+
+            mapa_setor = {
+                'ADMINISTRATIVO': 'AD', 'COMERCIAL': 'CO', 'COMPRAS': 'CM',
+                'DIRETORIA': 'DI', 'FINANCEIRO': 'FI', 'OBRAS': 'OB',
+                'OBRA_MOSAIC': 'OM', 'OBRA_TIMAC': 'OT', 'PLANEJAMENTO_PROCESSO_E_QUALIDADE': 'PP',
+                'PRAF_INDUSTRIAL_LTDA': 'PR', 'PRODUÇÃO': 'PD', 'PROJETOS': 'PJ',
+                'RECURSOS_HUMANOS': 'RH', 'Sede_ADM': 'SA', 'TECNOLOGIA_DA_INFORMAÇAO': 'TI',
+            }
+            mapa_situacao = {'Trabalhando': 'AT'} #adicionar as demais situação quando a base estiver completa
+
+            sucesso = 0
+
+            for index, row in df.iterrows():
+                cpf_excel = str(row['CPF']).strip()
+                nome_excel = row['Nome']
+                salario_excel = row['Salário']
+                situacao_excel = row['Situação']
+                data_demissao_excel = row['Data Demissão']
+                grau_instrucao_excel = row['Grau instrução']
+                sexo_excel = row['Sexo']
+                dpto_excel = row['Descrição Dpto']
+                desc_cargo_excel = row['Descrição cargo']
+                admissao = row['Admissão']
+                sigla_setor = mapa_setor.get(row['Descrição Dpto'], 'CA')
+                sigla_situacao = mapa_situacao.get(row['Situação'], 'AT')
+
+                Funcionario.objects.update_or_create(
+                    cpf=cpf_excel,
+                    defaults={
+                        'nome_completo': nome_excel,
+                        'situacao': sigla_situacao,
+                        'setor': sigla_setor,
+                        'data_admissao': admissao,
+                        'data_demissao': data_demissao_excel if pd.notnull(data_demissao_excel) else None,
+                        'cargo': desc_cargo_excel,
+                        'salario': salario_excel,
+                    }
+                )
+
+                sucesso += 1
+
+            messages.success(request, f'Base atualizada com sucesso! {sucesso} registros processados.')
+            return redirect('dashboard_rh')
+
+        except Exception as e:
+            messages.error(request, f'Erro ao processar o arquivo: {str(e)}')
+            return redirect('importar_base_rh')
+
+    return render(request, 'rh/importar_base.html')
