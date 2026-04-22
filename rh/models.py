@@ -177,8 +177,7 @@ class PesquisaDemissional(models.Model):
 class Funcionario(models.Model):
     class SITUACAO(models.TextChoices):
         ATIVO = 'AT', 'Trabalhando'
-        DESLIGADO = 'DE', 'Desligado'
-        AFASTADO = 'AF', 'Afastado'
+        DEMITIDO = 'DM', 'Demitido'
 
     usuario = models.OneToOneField(
         settings.AUTH_USER_MODEL,

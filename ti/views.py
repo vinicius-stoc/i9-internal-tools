@@ -138,7 +138,7 @@ def atender_chamado(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, "Chamado atualizado com sucesso!")
-            return redirect('atender_chamado', pk=chamado.id)
+            return redirect('ti_admin')
         else:
             for field, errors in form.errors.items():
                 for error in errors:

@@ -375,7 +375,7 @@ def importar_base_rh(request):
                 'PRAF_INDUSTRIAL_LTDA': 'PR', 'PRODUÇÃO': 'PD', 'PROJETOS': 'PJ',
                 'RECURSOS_HUMANOS': 'RH', 'Sede_ADM': 'SA', 'TECNOLOGIA_DA_INFORMAÇAO': 'TI',
             }
-            mapa_situacao = {'Trabalhando': 'AT'} #adicionar as demais situação quando a base estiver completa
+            mapa_situacao = {'Trabalhando': 'AT', 'Demitido': 'DM'}
 
             sucesso = 0
 
