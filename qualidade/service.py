@@ -1,9 +1,10 @@
 from datetime import datetime
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import RNC
+from .models import RNC, Equipamento, Local
 from django.db import transaction
 from django.contrib.auth import get_user_model
+
 
 User = get_user_model()
 
@@ -11,47 +12,60 @@ class RNCService:
     @staticmethod
     def atualizar_rnc(rnc_id, campo, valor):
         with transaction.atomic():
-            # Busca a instancia e guarda o estado anterior
             rnc = RNC.objects.get(id=rnc_id)
             valor_antigo = getattr(rnc, campo)
 
-            # tratamento especial para datas, se o campo for data, converte para string do JS
             if 'data' in campo and isinstance(valor, str) and valor != '':
                 try:
                     valor = datetime.strptime(valor, '%Y-%m-%d').date()
                 except ValueError:
                     pass
 
-            # tratamento especial para status
-            mapa_status = {
-                'Não iniciada': 'NI', 'Em andamento': 'EA', 'Concluído': 'CO', 'Fora dos trilhos': 'FT', 'Registro preliminar': 'PR', 'Cancelado': 'CA'
-            }
-            if campo =='status' and valor in mapa_status:
+            mapa_status = {'Não iniciada': 'NI', 'Em andamento': 'EA', 'Concluído': 'CO', 'Fora dos trilhos': 'FT',
+                           'Registro preliminar': 'PR', 'Cancelado': 'CA'}
+            if campo == 'status' and valor in mapa_status:
                 valor = mapa_status[valor]
 
-            mapa_detector = {
-                'Cliente': 'CL', 'Interno': 'IN', 'Auditor Interno': 'AI', 'Auditor Externo': 'AE', 'Fornecedor': 'FO'
-            }
-            if campo =='detector' and valor in mapa_detector:
+            mapa_detector = {'Cliente': 'CL', 'Interno': 'IN', 'Auditor Interno': 'AI', 'Auditor Externo': 'AE',
+                             'Fornecedor': 'FO'}
+            if campo == 'detector' and valor in mapa_detector:
                 valor = mapa_detector[valor]
 
-            mapa_categoria = {'Comercial': 'CO', 'Engenharia': 'EN', 'PCP': 'PC', 'Fabricação': 'FA', 'Montagem': 'MO', 'Suprimentos': 'SU', 'Fornecedor': 'FO', 'Expedição': 'EX', 'Qualidade': 'QU', 'Recursos Humanos': 'RH', 'Financeiro': 'FI', 'SGQ': 'SG'}
-            if campo =='categoria' and valor in mapa_categoria:
+            mapa_categoria = {'Comercial': 'CO', 'Engenharia': 'EN', 'PCP': 'PC', 'Fabricação': 'FA', 'Montagem': 'MO',
+                              'Suprimentos': 'SU', 'Fornecedor': 'FO', 'Expedição': 'EX', 'Qualidade': 'QU',
+                              'Recursos Humanos': 'RH', 'Financeiro': 'FI', 'SGQ': 'SG'}
+            if campo == 'categoria' and valor in mapa_categoria:
                 valor = mapa_categoria[valor]
 
             mapa_criticidade = {'Alto': 'A', 'Médio': 'M', 'Baixo': 'B'}
             if campo == 'criticidade' and valor in mapa_criticidade:
                 valor = mapa_criticidade[valor]
 
-            mapa_origem = {'Comercial': 'CO', 'Projeto_Engenharia': 'PE', 'Fabricação': 'FA', 'Montagem_comissionamento': 'MC', 'Suprimentos': 'SU', 'RH': 'RH', 'Fornecedor': 'FO', 'Processo_interno_SGQ': 'SG'}
-            if campo =='origem' and valor in mapa_origem:
+            mapa_origem = {'Comercial': 'CO', 'Projeto_Engenharia': 'PE', 'Fabricação': 'FA',
+                           'Montagem_comissionamento': 'MC', 'Suprimentos': 'SU', 'RH': 'RH', 'Fornecedor': 'FO',
+                           'Processo_interno_SGQ': 'SG'}
+            if campo == 'origem' and valor in mapa_origem:
                 valor = mapa_origem[valor]
+
+            if campo == 'local' and isinstance(valor, str):
+                try:
+                    valor = Local.objects.get(nome__iexact=valor.strip())
+                except Local.DoesNotExist:
+                    raise ValueError(f"O local '{valor}' não foi encontrado no sistema.")
+
+            if campo == 'equipamento':
+                if valor in [None, '', 'N/A', 'Nenhum / Não se aplica']:
+                    valor = None
+                elif isinstance(valor, str):
+                    try:
+                        valor = Equipamento.objects.get(nome__iexact=valor.strip())
+                    except Equipamento.DoesNotExist:
+                        raise ValueError(f"O equipamento '{valor}' não existe.")
 
             setattr(rnc, campo, valor)
             rnc.versao += 1
             rnc.save(update_fields=[campo, 'versao', 'atualizado_em'])
 
-            # gatilho de email apenas se o valor foi alterado
             if campo == 'data_encerramento' and valor != valor_antigo:
                 transaction.on_commit(lambda: RNCService._notificar_data_encerramento(rnc.id))
 
