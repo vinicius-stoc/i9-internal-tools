@@ -7,7 +7,6 @@ const RNCDashboard = (function() {
     let choicesResp = null;
     const CONFIG = window.RNC_CONFIG;
 
-
     // FUNÇÕES UTILITÁRIAS
     const util = {
         formatarDataBR: function(cell){
@@ -44,7 +43,6 @@ const RNCDashboard = (function() {
         }
     };
 
-
     // MÉTODOS DE INICIALIZAÇÃO
     const initChoices = function() {
         if(document.getElementById('edit_responsaveis')){
@@ -58,7 +56,6 @@ const RNCDashboard = (function() {
             });
         }
     };
-
 
     // TABULATOR
     const initTabulator = function() {
@@ -74,7 +71,7 @@ const RNCDashboard = (function() {
 
             columns: [
                 {
-                    title: "Ações", field: "acoes", visible: CONFIG.isSGQ, download: false, hozAlign: "center",
+                    title: "Ações", field: "acoes", visible: true, download: false, hozAlign: "center",
                     formatter: function(cell){
                         return `<button type="button" class="btn btn-sm btn-primary py-0 btn-editar-rnc" title="Editar RNC completo">
                                     <i class="bi bi-pencil-square"></i> Editar
@@ -117,9 +114,13 @@ const RNCDashboard = (function() {
                      return termos.some(termo => valorCelula.includes(termo));
                  }
                 },
-                {title: "Equipamento", field: "equipamento", headerFilter: "input", headerFilterFunc: 'in', headerFilterParams: {valuesLookup: true, clearable: true, multiselect: true} },
+                {title: "Equipamento", field: "equipamento", headerFilter: "input", headerFilterFunc: 'in', headerFilterParams: {valuesLookup: true, clearable: true, multiselect: true},
+                 editor: "list", editable: function(cell){ return CONFIG.isSGQ; }, editorParams: {valuesLookup: true, clearable: true} // 🟢 Edição Inline Liberada
+                },
                 {title: "Elemento Rastreador", field: "elemento_rastreador", headerFilter: "input", editor: "input", editable: function(cell){ return CONFIG.isSGQ; }},
-                {title: "Local Detecção", field: "local", headerFilter: "list", headerFilterFunc: "in", headerFilterParams: {valuesLookup: true, clearable: true, multiselect: true} },
+                {title: "Local Detecção", field: "local", headerFilter: "list", headerFilterFunc: "in", headerFilterParams: {valuesLookup: true, clearable: true, multiselect: true},
+                 editor: "list", editable: function(cell){ return CONFIG.isSGQ; }, editorParams: {valuesLookup: true, clearable: true} // 🟢 Edição Inline Liberada
+                },
                 {title: "Origem", field: "origem",
                     headerFilter: 'list', headerFilterFunc: 'in', headerFilterParams: {valuesLookup: true, clearable: true, multiselect: true},
                     formatter: "lookup", formatterParams: {
@@ -156,11 +157,11 @@ const RNCDashboard = (function() {
                     let dados = cell.getRow().getData();
                     if(dados.qtd_imagens > 0){ ui.abrirGaleriaImagens(dados, 'padrao'); }
                 }},
-                {title: "Descrição da não conformidade", field: "descricao", formatter: "textarea", editor: "textarea", headerFilter: "input", editable: true},
+                {title: "Descrição da não conformidade", field: "descricao", formatter: "textarea", editor: "textarea", headerFilter: "input", editable: function(cell){ return CONFIG.isSGQ; }},
                 {title: "Correção Imediata", field: "correcao", formatter: "textarea", editor: "textarea", headerFilter: "input", editable: true},
                 {title: "Causas Principais", field: "causas_principais", formatter: "textarea", editor: "textarea", headerFilter: "input", editable: true},
                 {title: "Ação Corretiva", field: "acao_corretiva", formatter: "textarea", editor: "textarea", headerFilter: "input", editable: true},
-                {title: "Eficácia (Texto)", field: "eficacia_texto", formatter: "textarea", editor: "textarea", headerFilter: "input", editable: true},
+                {title: "Eficácia (Texto)", field: "eficacia_texto", formatter: "textarea", editor: "textarea", headerFilter: "input", editable: function(cell){ return CONFIG.isSGQ; }},
                 {title: "Responsavel", field: "responsaveis",
                 headerFilter: "list",
                     headerFilterFunc: function(headerValue, rowValue, rowData, filterParams) {
@@ -195,19 +196,7 @@ const RNCDashboard = (function() {
                         `;
                     }
                     return "-";
-                }},
-                {title: "Evidência Eficácia (Img)", download: false, field: "qtd_imagens_eficacia", hozAlign: "center", formatter: function(cell){
-                    let qtd = cell.getValue();
-                    if(qtd > 0) {
-                        return `<button type="button" class="btn btn-sm btn-outline-success py-0" style="font-size: 0.75rem;">
-                                    <i class="bi bi-shield-check"></i> (${qtd})
-                                </button>`;
-                    }
-                    return "-";
-                }, cellClick: function(e, cell){
-                    let dados = cell.getRow().getData();
-                    if(dados.qtd_imagens_eficacia > 0){ ui.abrirGaleriaImagens(dados, 'eficacia'); }
-                }},
+                }}
             ],
             locale: "pt-br",
             langs: {
@@ -218,31 +207,74 @@ const RNCDashboard = (function() {
         table.on("cellEdited", api.atualizarInline);
     };
 
-
-    //CAMADA DE API (FETCH)
+    // CAMADA DE API (FETCH)
     const api = {
+        // CONFIRMAÇÃO DE SALVAMENTO INCORPORADA COM SWEETALERT
         atualizarInline: function (cell) {
             let id_rnc = cell.getRow().getData().id;
             let campo_editado = cell.getField();
             let novo_valor = cell.getValue();
+            let valor_antigo = cell.getOldValue();
 
-            fetch(`${CONFIG.urls.atualizarInlineBase}${id_rnc}/atualizar/`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', 'X-CSRFToken': CONFIG.tokens.csrf},
-                body: JSON.stringify({campo: campo_editado, valor: novo_valor})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'sucesso') cell.getElement().style.backgroundColor = "#d1e7dd";
-                else {
-                    alert("O SERVIDOR RECUSOU: " + data.mensagem);
+            // Evita requisição desnecessária se nada mudou
+            if (novo_valor === valor_antigo) return;
+
+            // Função interna para efetuar o fetch
+            const dispararFetch = () => {
+                fetch(`${CONFIG.urls.atualizarInlineBase}${id_rnc}/atualizar/`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CONFIG.tokens.csrf},
+                    body: JSON.stringify({campo: campo_editado, valor: novo_valor})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'sucesso') {
+                        // Efeito visual de sucesso ("pisca verde e apaga")
+                        cell.getElement().style.transition = "background-color 0.5s ease";
+                        cell.getElement().style.backgroundColor = "#d1e7dd";
+                        setTimeout(() => { cell.getElement().style.backgroundColor = ""; }, 1500);
+                    } else {
+                        Swal.fire("Acesso Negado!", data.mensagem, "error");
+                        cell.restoreOldValue();
+                    }
+                })
+                .catch(error => {
+                    Swal.fire("Erro de Rede", "Não foi possível conectar ao servidor.", "error");
                     cell.restoreOldValue();
-                }
-            })
-            .catch(error => {
-                console.log("ERRO DE REDE.");
-                cell.restoreOldValue();
-            });
+                });
+            };
+
+            // Detecta se o usuário apagou o campo (ex: clicou fora sem selecionar nada)
+            if (novo_valor === "" || novo_valor === null || novo_valor === undefined) {
+                Swal.fire({
+                    title: 'Atenção!',
+                    text: 'Você apagou o valor desta célula. Tem certeza que deseja salvar como vazio?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sim, deixar vazio',
+                    cancelButtonText: 'Restaurar Anterior'
+                }).then((result) => {
+                    if (result.isConfirmed) dispararFetch();
+                    else cell.restoreOldValue();
+                });
+            } else {
+                // Confirmação padrão para alterações normais
+                Swal.fire({
+                    title: 'Salvar Alteração?',
+                    text: `Deseja realmente atualizar este campo?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#0d6efd',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Salvar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) dispararFetch();
+                    else cell.restoreOldValue(); // Restaura caso o usuário cancele
+                });
+            }
         },
 
         criarRNC: function (payload, btnSalvar, textoOriginalModal, formElement) {
@@ -258,42 +290,30 @@ const RNCDashboard = (function() {
                     formElement.reset();
                     table.setData();
                 } else {
-                    alert("O BACKEND RECUSOU A CRIAÇÃO:\n" + JSON.stringify(data.mensagem));
+                    Swal.fire('Erro!', JSON.stringify(data.mensagem), 'error');
                 }
             })
-            .catch(error => {
-                alert("Erro de conexão com o servidor. Veja o Console (F12).");
-            })
+            .catch(error => { Swal.fire('Erro!', 'Erro de conexão.', 'error'); })
             .finally(() => {
                 btnSalvar.innerHTML = textoOriginalModal;
                 btnSalvar.disabled = false;
             });
-        }, // <--- A VÍRGULA QUE FALTAVA
+        },
 
         editarRNCAvancado: function (formData, rncId, btnSalvar, textoOriginal, formElement) {
             let url = CONFIG.urls.editarAvancadoBase + rncId + '/editar-avancado/';
 
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': CONFIG.tokens.csrf
-                },
-                body: formData
-            })
+            fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CONFIG.tokens.csrf }, body: formData })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'sucesso') {
                     bootstrap.Modal.getInstance(document.getElementById('modalEditarRNC')).hide();
                     formElement.reset();
                     table.setData();
-                } else {
-                    alert("ERRO: \n" + JSON.stringify(data.mensagem));
-                }
+                    Swal.fire('Atualizado!', 'As alterações foram salvas com sucesso.', 'success');
+                } else { Swal.fire("ERRO", JSON.stringify(data.mensagem), "error"); }
             })
-            .catch(error => {
-                console.error("Erro:", error);
-                alert("Erro de conexão com o servidor.");
-            })
+            .catch(error => { Swal.fire("Erro de conexão", "", "error"); })
             .finally(() => {
                 btnSalvar.innerHTML = textoOriginal;
                 btnSalvar.disabled = false;
@@ -301,24 +321,21 @@ const RNCDashboard = (function() {
         },
 
         deletarMidia: function(tipo, midiaId, rncId, btnElement) {
-            // 🟢 A Mágica do SweetAlert2
             Swal.fire({
                 title: 'Excluir Evidência?',
                 text: "Essa ação apagará o arquivo do servidor e não poderá ser desfeita!",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#dc3545', // Vermelho Bootstrap
-                cancelButtonColor: '#6c757d', // Cinza Bootstrap
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
                 confirmButtonText: '<i class="bi bi-trash"></i> Sim, excluir',
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-
                     btnElement.disabled = true;
                     let conteudoOriginal = btnElement.innerHTML;
                     btnElement.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
-                    // O Fetch dispara
                     fetch(`/qualidade/api/rncs/midia/${tipo}/${midiaId}/deletar/`, {
                         method: 'POST',
                         headers: { 'X-CSRFToken': CONFIG.tokens.csrf }
@@ -328,10 +345,7 @@ const RNCDashboard = (function() {
                         if(data.status === 'sucesso') {
                             let modalGaleria = bootstrap.Modal.getInstance(document.getElementById('modalGaleriaImagens'));
                             if(modalGaleria && tipo !== 'pdf') modalGaleria.hide();
-
                             table.setData();
-
-
                             Swal.fire('Excluído!', 'O arquivo foi removido com sucesso.', 'success');
                         } else {
                             Swal.fire('Erro!', data.mensagem, 'error');
@@ -348,7 +362,6 @@ const RNCDashboard = (function() {
         }
     };
 
-
     // INTERFACE DE USUÁRIO (Modais)
     const ui = {
         abrirModalEdicao: function(dados) {
@@ -356,17 +369,18 @@ const RNCDashboard = (function() {
             document.getElementById('edit_rnc_id').value = dados.id;
             document.getElementById('edit_registrador_id').value = dados.registrador_id || "";
 
-            if(document.getElementById('edit_status')) document.getElementById('edit_status').value = dados.status_code || '';
-            if(document.getElementById('edit_categoria')) document.getElementById('edit_categoria').value = dados.categoria_code || '';
-            if(document.getElementById('edit_origem')) document.getElementById('edit_origem').value = dados.origem_code || '';
-            if(document.getElementById('edit_criticidade')) document.getElementById('edit_criticidade').value = dados.criticidade_code || '';
-            if(document.getElementById('edit_detector')) document.getElementById('edit_detector').value = dados.detector_code || '';
-            if(document.getElementById('edit_local_id')) document.getElementById('edit_local_id').value = dados.local_id || '';
-            if(document.getElementById('edit_equipamento_id')) document.getElementById('edit_equipamento_id').value = dados.equipamento_id || '';
+            let ehBloqueado = !CONFIG.isSGQ;
+            if(document.getElementById('edit_status')) { document.getElementById('edit_status').value = dados.status_code || ''; document.getElementById('edit_status').disabled = ehBloqueado; }
+            if(document.getElementById('edit_categoria')) { document.getElementById('edit_categoria').value = dados.categoria_code || ''; document.getElementById('edit_categoria').disabled = ehBloqueado; }
+            if(document.getElementById('edit_origem')) { document.getElementById('edit_origem').value = dados.origem_code || ''; document.getElementById('edit_origem').disabled = ehBloqueado; }
+            if(document.getElementById('edit_criticidade')) { document.getElementById('edit_criticidade').value = dados.criticidade_code || ''; document.getElementById('edit_criticidade').disabled = ehBloqueado; }
+            if(document.getElementById('edit_detector')) { document.getElementById('edit_detector').value = dados.detector_code || ''; document.getElementById('edit_detector').disabled = ehBloqueado; }
+            if(document.getElementById('edit_local_id')) { document.getElementById('edit_local_id').value = dados.local_id || ''; document.getElementById('edit_local_id').disabled = ehBloqueado; }
+            if(document.getElementById('edit_equipamento_id')) { document.getElementById('edit_equipamento_id').value = dados.equipamento_id || ''; document.getElementById('edit_equipamento_id').disabled = ehBloqueado; }
 
-            document.getElementById('edit_data_encerramento').value = dados.data_encerramento ? dados.data_encerramento.replaceAll('/', '-') : '';
-            document.getElementById('edit_data_prevista').value = dados.data_prevista_conclusao ? dados.data_prevista_conclusao.replaceAll('/', '-') : '';
-            document.getElementById('edit_ishikawa_link').value = dados.ishikawa_link || '';
+            if(document.getElementById('edit_data_encerramento')) { document.getElementById('edit_data_encerramento').value = dados.data_encerramento ? dados.data_encerramento.replaceAll('/', '-') : ''; document.getElementById('edit_data_encerramento').readOnly = ehBloqueado; }
+            if(document.getElementById('edit_data_prevista')) { document.getElementById('edit_data_prevista').value = dados.data_prevista_conclusao ? dados.data_prevista_conclusao.replaceAll('/', '-') : ''; document.getElementById('edit_data_prevista').readOnly = ehBloqueado; }
+            if(document.getElementById('edit_ishikawa_link')) document.getElementById('edit_ishikawa_link').value = dados.ishikawa_link || '';
 
             let idsResponsaveis = dados.responsaveis_ids || [];
             if (choicesResp) {
@@ -375,26 +389,6 @@ const RNCDashboard = (function() {
             }
 
             new bootstrap.Modal(document.getElementById('modalEditarRNC')).show();
-        },
-
-        abrirGaleriaImagens: function(dados, tipo) {
-            let containerGaleria = document.getElementById('galeria_content');
-            containerGaleria.innerHTML = '';
-            let urls = tipo === 'eficacia' ? (dados.eficacia_imagens_urls || []) : (dados.imagens_urls || []);
-            let tituloModal = document.querySelector('#modalGaleriaImagens .modal-title');
-
-            if (tipo === 'eficacia') { tituloModal.innerHTML = '<i class="bi bi-shield-check me-2"></i>Evidências de Eficácia'; }
-            else { tituloModal.innerHTML = '<i class="bi bi-images me-2"></i>Evidências Fotográficas da Falha'; }
-
-            urls.forEach(url => {
-                containerGaleria.innerHTML += `
-                    <div class="col-md-4">
-                        <a href="${url}" target="_blank">
-                            <img src="${url}" class="img-fluid img-thumbnail shadow-sm rounded-2" style="max-height: 200px; width: 100%; object-fit: cover;">
-                        </a>
-                    </div>`;
-            });
-            new bootstrap.Modal(document.getElementById('modalGaleriaImagens')).show();
         },
 
         abrirGaleriaImagens: function(dados, tipo) {
@@ -429,7 +423,6 @@ const RNCDashboard = (function() {
         }
     };
 
-
     // INICIALIZADOR PÚBLICO
     return {
         init: function() {
@@ -443,7 +436,6 @@ const RNCDashboard = (function() {
             let btnExportar = document.getElementById("download-xlsx");
             if(btnExportar) btnExportar.addEventListener("click", () => table.download("xlsx", "Controle_RNCs.xlsx", {sheetName:"RNCs"}));
 
-            // Evento: Nova RNC
             let formNovaRNC = document.getElementById("formNovaRNC");
             if (formNovaRNC) {
                 formNovaRNC.addEventListener("submit", function(event) {
@@ -476,9 +468,8 @@ const RNCDashboard = (function() {
                     api.editarRNCAvancado(formData, rncId, btnSalvar, textoOriginal, this);
                 });
             }
-
         },
-        api:api
+        api: api
     };
 })();
 
