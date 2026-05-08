@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Avaliação de Fornecedores - I9TMG{% endblock %}
+
+{% block content %}
+<style>
+    .filter-card { background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    .table-container { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+</style>
+
+<div class="container-fluid">
+    <h3 class="fw-bold mb-4" style="color: var(--azul-principal);">
+        <i class="bi bi-star-half me-2"></i> Avaliação de Fornecedores
+    </h3>
+
+    <div class="filter-card">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Número do Pedido</label>
+                <input type="text" name="num_pedido" class="form-control form-control-sm" value="{{ filtros.num_pedido|default_if_none:'' }}" placeholder="Ex: PC001">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Fornecedor</label>
+                <select name="nome_fornecedor" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todos os Fornecedores</option>
+                    {% for forn in lista_fornecedores %}
+                        <option value="{{ forn }}" {% if filtros.nome_fornecedor == forn %}selected{% endif %}>{{ forn }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Tipo de Produto</label>
+                <select name="tipo_produto" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todos os Tipos</option>
+                    {% for tipo in lista_tipos %}
+                        <option value="{{ tipo }}" {% if filtros.tipo_produto == tipo %}selected{% endif %}>{{ tipo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-auto ms-auto d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary px-3">
+                    <i class="bi bi-funnel me-1"></i> Filtrar
+                </button>
+                <a href="{% url 'listar_pedidos_avaliacao' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-eraser me-1"></i> Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data Pedido</th>
+                        <th>Pedido(s)</th>
+                        <th>Fornecedor</th>
+                        <th>Projeto</th>
+                        <th>Tipo Produto</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-end">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ped in pedidos %}
+                    <tr>
+                        <td>{{ ped.emissao_ultimo_pedido|date:"d/m/Y" }}</td>
+                        <td class="fw-bold text-primary">{{ ped.num_pedidos_vinculados }}</td>
+                        <td>{{ ped.nome_fornecedor }}</td>
+                        <td>{{ ped.projeto_cod }}</td>
+                        <td>{{ ped.tipo_produto|default:"-" }}</td>
+
+                        <td class="text-center">
+                            {% if ped.is_avaliado %}
+                                <span class="badge bg-success">Avaliado</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Pendente</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-end">
+                            <a href="{% url 'nova_avaliacao_fornecedor' ped.num_pedidos_vinculados %}"
+                               class="btn btn-sm btn-outline-primary {% if ped.is_avaliado %}disabled{% endif %}">
+                                <i class="bi bi-pencil-square"></i> Avaliar
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            Nenhum pedido encontrado com os filtros atuais.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <span class="text-muted small">
+                Mostrando {{ pedidos.start_index }} a {{ pedidos.end_index }} de {{ pedidos.paginator.count }} registros.
+            </span>
+
+            <nav aria-label="Navegação de páginas">
+                <ul class="pagination pagination-sm m-0">
+                    {% if pedidos.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1&{{ url_filtros }}">&laquo; Primeira</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ pedidos.previous_page_number }}&{{ url_filtros }}">Anterior</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item active" aria-current="page">
+                        <span class="page-link">Página {{ pedidos.number }} de {{ pedidos.paginator.num_pages }}</span>
+                    </li>
+
+                    {% if pedidos.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ pedidos.next_page_number }}&{{ url_filtros }}">Próxima</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ pedidos.paginator.num_pages }}&{{ url_filtros }}">Última &raquo;</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock %}

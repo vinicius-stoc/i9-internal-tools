@@ -1,24 +1,22 @@
-import os
-import csv
 import json
-from datetime import datetime
 from dotenv import load_dotenv
 from django.core.cache import cache
 from celery.result import AsyncResult
-
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q, Sum
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import redirect, render
-from core.decorators import exige_permissao
-
-from .models import DataWarehouseCompras, OperacaoCompras
+from django.http import JsonResponse
+from .models import DataWarehouseCompras
 from django.views.decorators.http import require_POST
-
 from .services import gerar_csv_operacoes_compras, gerar_csv_gerencial_compras
 from .task import task_sincronizar_protheus
+
+
+from django.db.models import Exists, OuterRef
+from django.core.paginator import Paginator
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from core.decorators import exige_permissao
+from .models import OperacaoCompras, AvaliacaoFornecedor, PerguntaAvaliacao, RespostaAvaliacao
 
 load_dotenv()
 
@@ -243,3 +241,101 @@ def checar_status_sync(request, task_id):
         "status": task_result.status,
         "result": task_result.result if task_result.ready() else None
     })
+
+
+
+@login_required(login_url='/login/')
+@exige_permissao(['compras'])
+def listar_pedidos_avaliacao(request):
+    """
+    Tela 2: Listagem de pedidos disponíveis para avaliação de fornecedores.
+    """
+    # 1. Subquery: Checa se já existe avaliação
+    avaliacao_subquery = AvaliacaoFornecedor.objects.filter(
+        num_pedido=OuterRef('num_pedidos_vinculados')
+    )
+
+    # 2. Query Base (O "Paciente")
+    pedidos = OperacaoCompras.objects.exclude(num_pedidos_vinculados='').annotate(
+        is_avaliado=Exists(avaliacao_subquery)
+    ).order_by('-emissao_ultimo_pedido')
+
+    # 3. Captura dos Parâmetros GET
+    fornecedor = request.GET.get('nome_fornecedor')
+    numero_pedido = request.GET.get('num_pedido')
+    tipo_produto = request.GET.get('tipo_produto')
+
+    # 4. Aplicação dos Filtros na Query Base
+    if fornecedor:
+        pedidos = pedidos.filter(nome_fornecedor__icontains=fornecedor)
+    if numero_pedido:
+        pedidos = pedidos.filter(num_pedidos_vinculados__icontains=numero_pedido)
+    if tipo_produto:
+        pedidos = pedidos.filter(tipo_produto=tipo_produto)
+
+    # 5. Listas para popular os <select> do HTML
+    lista_fornecedores = OperacaoCompras.objects.exclude(nome_fornecedor='').values_list('nome_fornecedor',
+                                                                                         flat=True).distinct().order_by(
+        'nome_fornecedor')
+    lista_tipos = OperacaoCompras.objects.exclude(tipo_produto='').values_list('tipo_produto',
+                                                                               flat=True).distinct().order_by(
+        'tipo_produto')
+
+    # 6. Paginação Padrão
+    paginator = Paginator(pedidos, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # 7. Preservando a URL para a paginação
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
+    url_filtros = query_params.urlencode()
+
+    context = {
+        'pedidos': page_obj,
+        'lista_fornecedores': lista_fornecedores,
+        'lista_tipos': lista_tipos,
+        'url_filtros': url_filtros,
+        'filtros': {
+            'nome_fornecedor': fornecedor,
+            'num_pedido': numero_pedido,
+            'tipo_produto': tipo_produto,
+        }
+    }
+
+    return render(request, 'compras/avaliacoes/listar_pedidos.html', context)
+
+
+@login_required(login_url='/login/')
+@exige_permissao(['compras'])
+def nova_avaliacao_fornecedor(request, numero_pedido):
+    """
+    Tela 1 (Esqueleto): Formulário de avaliação.
+    (A lógica transacional de salvamento será construída na próxima etapa).
+    """
+    # 1. Busca os dados brutos da Operação Base para pré-preencher a tela
+    operacao_base = OperacaoCompras.objects.filter(num_pedidos_vinculados=numero_pedido).first()
+
+    if not operacao_base:
+        messages.error(request, "Pedido não encontrado.")
+        return redirect('listar_pedidos_avaliacao')
+
+    # 2. Segurança: Checa se esse bloco de pedidos já foi avaliado
+    ja_avaliado = AvaliacaoFornecedor.objects.filter(num_pedido=numero_pedido).exists()
+
+    if ja_avaliado:
+        messages.warning(request, "Este pedido já foi avaliado.")
+        return redirect('listar_pedidos_avaliacao')
+
+    # Busca as perguntas ativas para renderizar no HTML
+    perguntas = PerguntaAvaliacao.objects.filter(ativa=True)
+
+    # 4. Contexto do GET (Renderiza o formulário vazio)
+    context = {
+        'operacao': operacao_base,
+        'perguntas': perguntas,
+    }
+
+    # Renderizamos um template temporário simples só para não quebrar a navegação hoje
+    return render(request, 'compras/avaliacoes/form_avaliacao.html', context)
