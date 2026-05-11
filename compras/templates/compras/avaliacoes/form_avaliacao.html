@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Avaliar Fornecedor</h2>
+    <p>Pedido: {{ operacao.num_pedidos_vinculados }}</p>
+    <p>Fornecedor: {{ operacao.nome_fornecedor }} ({{ operacao.cnpj }})</p>
+    
+    <div class="alert alert-info">
+        Tela de formulário em construção
+    </div>
+    
+    <a href="{% url 'listar_pedidos_avaliacao' %}" class="btn btn-secondary">Voltar</a>
+</div>
+{% endblock %}

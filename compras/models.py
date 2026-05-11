@@ -1,4 +1,6 @@
+from django.contrib.postgres.aggregates import statistics
 from django.db import models
+from django.conf import settings
 
 
 class DataWarehouseCompras(models.Model):
@@ -80,9 +82,59 @@ class OperacaoCompras(models.Model):
     saldo_a_comprar = models.FloatField(default=0)
     residuo = models.FloatField(default=0)
 
+    cnpj = models.CharField('CNPJ', max_length=18, null=True, blank=True)
+    tipo_produto = models.CharField('Tipo de Produto', max_length=50, null=True, blank=True)
+
     class Meta:
         verbose_name = "Operação de Compras"
         verbose_name_plural = "Operações de Compras"
 
     def __str__(self):
         return f"SC: {self.num_sc} | Status: {self.status_operacional}"
+
+
+class PerguntaAvaliacao(models.Model):
+    texto = models.CharField('Pergunta', max_length=255)
+    ativa = models.BooleanField(default=True)
+    ordem = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['ordem']
+
+    def __str__(self):
+        return self.texto
+
+
+class AvaliacaoFornecedor(models.Model):
+    num_pedido = models.CharField(max_length=50)
+    cod_fornecedor = models.CharField(max_length=50)
+    nome_fornecedor = models.CharField(max_length=255)
+    cnpj = models.CharField(max_length=18)
+    projeto = models.CharField(max_length=20)
+    tipo_produto = models.CharField(max_length=50)
+
+    avaliador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    data_avaliacao = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def mediana_notas(self):
+        """Calcula a media das respostas atreladas a esta avaliação especifica"""
+        notas = self.respostas.values_list('nota', flat=True)
+        if not notas:
+            return 0
+        return statistics.median(notas)
+
+    def __str__(self):
+        return f"Avaliação - Pedido: {self.num_pedido} - {self.nome_fornecedor}"
+
+
+class RespostaAvaliacao(models.Model):
+    class NotaChoices(models.IntegerChoices):
+        ZERO = 0, '0 - Não Atendeu'
+        DEZ = 10, '10 - Atendeu Totalmente'
+
+    avaliacao = models.ForeignKey(AvaliacaoFornecedor, on_delete=models.CASCADE, related_name='respostas')
+    pergunta = models.ForeignKey(PerguntaAvaliacao, on_delete=models.PROTECT)
+
+    nota = models.IntegerField(choices=NotaChoices.choices, default=NotaChoices.ZERO)
+    justificativa = models.TextField(null=True, blank=True)

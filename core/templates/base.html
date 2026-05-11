@@ -296,10 +296,15 @@
                                 </a>
                             </li>
 
+                            <li class="nav-item">
+                                <a href="{% url 'listar_pedidos_avaliacao' %}" class="nav-link submenu-link {% if 'avaliacoes' in request.path %}active-sub{% endif %}">
+                                    <i class="bi bi-star-half me-2"></i> Avaliar Fornecedores
+                                </a>
+                            </li>
+
                         </ul>
                     </div>
                 </li>
-
 
                 <!--MODULO FINANCEIRO-->
                 <!--<li class="nav-item mt-1">
