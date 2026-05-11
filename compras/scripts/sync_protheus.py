@@ -12,7 +12,7 @@ ARQUIVOS_COMPRAS = [
     'sc101011.sdb', 'sc701011.sdb',
     'sa20101.sdb', 'sd10101.sdb', 'afg0101.sdb',
     'sb10101.sdb', 'sx50101.sdb'
-]
+
 
 def extrair_dados_compras():
     dowload_files_sftp(arquivos_alvo=ARQUIVOS_COMPRAS, diretorio_destino=DATA_DIR)
@@ -39,8 +39,9 @@ def carregar_dados_brutos():
     """Lê do disco apenas UMA VEZ e devolve os dados crus na RAM"""
     print("[ETL] Lendo arquivos SDB para a memória...")
     return {
-        'sc1': ler_tabela_sqlite('sc101011.sdb'),
-        'sc7': ler_tabela_sqlite('sc701011.sdb'),
+
+        'sc1': ler_tabela_sqlite('sc10101.sdb'),
+        'sc7': ler_tabela_sqlite('sc70101.sdb'),
         'sa2': ler_tabela_sqlite('sa20101.sdb'),
         'sd1': ler_tabela_sqlite('sd10101.sdb'),
         'afg': ler_tabela_sqlite('afg0101.sdb'),
