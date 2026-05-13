@@ -55,9 +55,20 @@ class Chamado(models.Model):
     ]
 
     # --- CAMPOS ORIGINAIS (MANTIDOS) ---
-    solicitante = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='chamados_abertos')
-    tecnico = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-                                related_name='chamados_atendidos')
+    solicitante = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='chamados_abertos',
+        verbose_name='Solicitante',
+    )
+    tecnico = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='chamados_atendidos',
+        null=True,
+        blank=True,
+        verbose_name='Técnico Responsável'
+    )
 
     titulo = models.CharField(max_length=100)
     descricao = models.TextField(verbose_name='Descrição do Problema')
