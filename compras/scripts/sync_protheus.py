@@ -13,7 +13,7 @@ DATA_DIR = os.path.join(BASE_DIR, 'data')
 
 # Arquivos Corrigidos
 ARQUIVOS_COMPRAS = [
-    'sc101011.sdb', 'sc701011.sdb',
+    'sc10101.sdb', 'sc70101.sdb',
     'sa20101.sdb', 'sd10101.sdb', 'afg0101.sdb',
     'sb10101.sdb', 'sx50101.sdb'
 ]
