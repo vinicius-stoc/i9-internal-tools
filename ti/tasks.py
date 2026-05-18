@@ -1,68 +1,44 @@
-import requests
 import json
 import logging
+
+import requests
 from celery import shared_task
-from django.conf import settings
 from django.apps import apps
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=180)
 def task_notificar_chamado(self, chamado_id, tipo):
-    """
-    Task centralizada para notificações.
-    Gerencia Webhooks do Teams (TI) e Power Automate (Usuário).
-    """
     Chamado = apps.get_model('ti', 'Chamado')
 
     try:
-        # Busca o chamado com select_related para performance
         chamado = Chamado.objects.select_related('solicitante', 'tecnico').get(id=chamado_id)
-
-        # 1. NOTIFICAÇÃO PARA O USUÁRIO (Power Automate)
         enviar_notificacao_usuario(chamado, tipo)
 
-        # 2. NOTIFICAÇÃO PARA A EQUIPE DE TI (Teams) - Apenas na abertura
         if tipo == 'ABERTURA':
             enviar_teams_ti(chamado)
 
-        return f"Sucesso: Notificações enviadas para chamado #{chamado.id} (Tipo: {tipo})"
-
+        return f"Notificacoes processadas para chamado #{chamado.id} ({tipo})"
     except Exception as exc:
-        logger.error(f"Erro ao processar notificações do chamado {chamado_id}: {exc}")
-        # Tenta novamente em caso de erro de rede/timeout
+        logger.error("Erro ao processar notificacoes do chamado %s: %s", chamado_id, exc, exc_info=True)
         raise self.retry(exc=exc)
 
 
 def enviar_notificacao_usuario(chamado, tipo):
-    """Encapsula a lógica de mensagem para o solicitante"""
-    webhook_user_url = "https://default367afcf4ee4944dfb034fc7437ee90.47.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/16a5c86eb81f49389610d053e5fa42c6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=p1ycoRGzyZY5w_RGL-sGsuYAiLatbUw1Nb2KnCae0jo"
+    webhook_user_url = getattr(settings, 'POWER_AUTOMATE_USER_WEBHOOK_URL', '')
+    if not webhook_user_url:
+        logger.error("POWER_AUTOMATE_USER_WEBHOOK_URL nao configurado.")
+        return
 
-    texto_msg = ""
-    titulo_card = ""
-
-    # Mapeamento de mensagens baseado no tipo (mantendo sua lógica original)
-    if tipo == 'ABERTURA':
-        sla = chamado.calcular_sla()
-        titulo_card = "Chamado Aberto"
-        texto_msg = f"Prioridade: {chamado.get_prioridade_display()} | Prazo: {sla}"
-    elif tipo == 'RESOLVIDO':
-        titulo_card = "Chamado Resolvido (Aguardando Você)"
-        texto_msg = f"A TI aplicou a seguinte solução:\n{chamado.solucao}\n\nPor favor, valide no sistema."
-    elif tipo == 'CONCLUSAO':
-        titulo_card = "Chamado Concluído"
-        texto_msg = f"Atendimento validado e encerrado.\nSolução: {chamado.solucao}"
-    else:
-        titulo_card = "Atualização no Chamado"
-        texto_msg = f"O status do seu chamado mudou para: {chamado.get_status_display()}"
-
+    texto_msg, titulo_card = _mensagem_usuario(chamado, tipo)
     payload = {
         "Id": chamado.id,
         "solicitante": chamado.solicitante.get_full_name() or chamado.solicitante.username,
         "email": chamado.solicitante.email,
         "mensagem": texto_msg,
-        "titulo": titulo_card
+        "titulo": titulo_card,
     }
 
     response = requests.post(webhook_user_url, json=payload, timeout=15)
@@ -70,16 +46,13 @@ def enviar_notificacao_usuario(chamado, tipo):
 
 
 def enviar_teams_ti(chamado):
-    """Encapsula o envio do MessageCard para o canal da TI"""
-    # Usando a URL do settings por segurança
-    webhook_url = settings.TEAMS_WEBHOOK_URL
+    webhook_url = getattr(settings, 'TEAMS_TI_WEBHOOK_URL', '')
     if not webhook_url:
-        logger.warning("TEAMS_WEBHOOK_URL não configurada no .env")
+        logger.warning("TEAMS_TI_WEBHOOK_URL nao configurada.")
         return
 
     nome_solicitante = chamado.solicitante.get_full_name() or chamado.solicitante.username
-    # Fallback caso o campo teams_username não exista no CustomUser
-    usuario_teams = getattr(chamado.solicitante, 'teams_username', 'Não cadastrado')
+    usuario_teams = getattr(chamado.solicitante, 'teams_username', None) or 'Nao cadastrado'
 
     card_data = {
         "@type": "MessageCard",
@@ -87,7 +60,7 @@ def enviar_teams_ti(chamado):
         "themeColor": "0076D7",
         "summary": f"Novo Chamado: {chamado.titulo}",
         "sections": [{
-            "activityTitle": "🚨 Novo Chamado Aberto",
+            "activityTitle": "Novo Chamado Aberto",
             "activitySubtitle": f"Solicitante: {nome_solicitante}",
             "activityText": f"User Teams: {usuario_teams}",
             "facts": [
@@ -95,16 +68,59 @@ def enviar_teams_ti(chamado):
                 {"name": "Setor:", "value": chamado.get_setor_display()},
                 {"name": "Categoria:", "value": chamado.get_categoria_display()},
                 {"name": "Prioridade:", "value": chamado.get_prioridade_display()},
-                {"name": "Título:", "value": chamado.titulo}
+                {"name": "Titulo:", "value": chamado.titulo},
             ],
-            "markdown": True
-        }]
+            "markdown": True,
+        }],
     }
 
     response = requests.post(
         webhook_url,
         data=json.dumps(card_data),
         headers={'Content-Type': 'application/json'},
-        timeout=15
+        timeout=15,
     )
     response.raise_for_status()
+
+
+def _mensagem_usuario(chamado, tipo):
+    mensagens = {
+        'ATRIBUIDO': (
+            "Chamado Atribuido",
+            f"Seu chamado foi encaminhado para analise por "
+            f"{chamado.tecnico.get_full_name() if chamado.tecnico else 'um tecnico'}.",
+        ),
+        'EM_ANALISE': (
+            "Em Analise Tecnica",
+            "A equipe de TI esta analisando o seu problema neste momento.",
+        ),
+        'EM_ATENDIMENTO': (
+            "Em Atendimento",
+            "O tecnico iniciou a execucao/atendimento do seu chamado.",
+        ),
+        'AGUARDANDO_TERCEIRO': (
+            "Aguardando Fornecedor/Peca",
+            "O atendimento esta pausado aguardando uma peca ou suporte externo.",
+        ),
+        'AGUARDANDO_USUARIO': (
+            "Aguardando Sua Resposta",
+            "O tecnico precisa de mais informacoes para seguir. Verifique seu chamado.",
+        ),
+        'AGUARDANDO_APROVACAO': (
+            "Aguardando Aprovacao",
+            "O chamado depende da aprovacao do gestor ou area responsavel.",
+        ),
+        'CANCELADO': ("Chamado Cancelado", "A solicitacao foi cancelada."),
+    }
+
+    if tipo == 'ABERTURA':
+        return "Chamado Aberto", f"Prioridade: {chamado.get_prioridade_display()} | Prazo: {chamado.calcular_sla()}"
+    if tipo == 'RESOLVIDO':
+        return (
+            "Chamado Resolvido (Aguardando Voce)",
+            f"A TI aplicou a seguinte solucao:\n{chamado.solucao}\n\nPor favor, valide no sistema.",
+        )
+    if tipo == 'CONCLUSAO':
+        return "Chamado Concluido", f"Atendimento validado e encerrado.\nSolucao: {chamado.solucao}"
+
+    return mensagens.get(tipo, ("Atualizacao no Chamado", f"O status do seu chamado mudou para: {chamado.get_status_display()}"))

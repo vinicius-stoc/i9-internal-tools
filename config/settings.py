@@ -186,8 +186,8 @@ else:
     CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
     # Configurações de SSL para Upstash (Corrigido)
-    CELERY_BROKER_USE_SSL = {'ssl_cert_reqs': ssl.CERT_NONE}
-    CELERY_REDIS_BACKEND_USE_SSL = {'ssl_cert_reqs': ssl.CERT_NONE}
+    CELERY_BROKER_USE_SSL = {'ssl_cert_reqs': ssl.CERT_REQUIRED}
+    CELERY_REDIS_BACKEND_USE_SSL = {'ssl_cert_reqs': ssl.CERT_REQUIRED}
 
     # Otimização de Conexão para PythonAnywhere
     CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
@@ -205,5 +205,17 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/Sao_Paulo'
 
-# --- CONFIGURAÇÕES DE INTEGRAÇÃO ---
-TEAMS_WEBHOOK_URL = os.getenv('TEAMS_WEBHOOK_URL')
+
+# --- Integracoes externas ---
+POWER_AUTOMATE_USER_WEBHOOK_URL = os.getenv('TEAMS_WEBHOOK_URL')
+TEAMS_TI_WEBHOOK_URL = os.getenv('TEAMS_TI_WEBHOOK_URL')
+
+
+# --- Politica de anexos do modulo TI ---
+TI_MAX_UPLOAD_FILES = int(os.getenv('TI_MAX_UPLOAD_FILES', '5'))
+TI_MAX_UPLOAD_SIZE = int(os.getenv('TI_MAX_UPLOAD_SIZE', str(5 * 1024 * 1024)))
+TI_ALLOWED_UPLOAD_CONTENT_TYPES = {
+    item.strip()
+    for item in os.getenv('TI_ALLOWED_UPLOAD_CONTENT_TYPES', 'image/jpeg,image/png,image/webp').split(',')
+    if item.strip()
+}
