@@ -51,7 +51,7 @@ def ti_admin(request):
         'chamados': chamados,
         'total_abertos': chamados_query.count(),
         'meus_atendimentos': chamados_query.filter(tecnico=request.user).count(),
-        'aguardando_validacao': Chamado.objects.filter(status='RESOLVIDO').count(),
+        'aguardando_validacao': Chamado.objects.filter(status='RESOLVIDO', data_fechamento__isnull=True).count()
     }
     return render(request, 'ti/ti_admin.html', context)
 
