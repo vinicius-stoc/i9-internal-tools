@@ -209,7 +209,7 @@ const RNCDashboard = (function() {
                     }
                     return "-";
                 }},
-                {title: "Imagem NC", field: "qtd_imagens", hozAlign: "center", formatter: function(cell){
+                {title: "Imagem da Eficácia NC", field: "qtd_imagens", hozAlign: "center", formatter: function(cell){
                     let qtd = cell.getValue();
                     if(qtd > 0) {
                         return `<button type="button" class="btn btn-sm btn-outline-primary py-0" style="font-size: 0.75rem;">
