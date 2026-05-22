@@ -209,7 +209,7 @@ const RNCDashboard = (function() {
                     }
                     return "-";
                 }},
-                {title: "Imagem da Eficácia NC", field: "qtd_imagens", hozAlign: "center", formatter: function(cell){
+                {title: "Imagem da Eficácia NC", field: "qtd_imagens_eficacia", hozAlign: "center", formatter: function(cell){
                     let qtd = cell.getValue();
                     if(qtd > 0) {
                         return `<button type="button" class="btn btn-sm btn-outline-primary py-0" style="font-size: 0.75rem;">
@@ -219,7 +219,7 @@ const RNCDashboard = (function() {
                     return "-";
                 }, cellClick: function(e, cell){
                     let dados = cell.getRow().getData();
-                    if(dados.qtd_imagens > 0){ ui.abrirGaleriaImagens(dados, TIPO_GALERIA.NC); }
+                    if(dados.qtd_imagens_eficacia > 0){ ui.abrirGaleriaImagens(dados, TIPO_GALERIA.EFICACIA); }
                 }},
             ],
             locale: "pt-br",
