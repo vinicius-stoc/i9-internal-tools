@@ -424,7 +424,6 @@ def nova_avaliacao_fornecedor(request, numero_pedido):
     return render(request, 'compras/avaliacoes/form_avaliacao.html', context)
 
 
-
 @login_required(login_url='/login/')
 @exige_permissao(['compras'])
 def exportar_ranking_csv(request):
@@ -463,15 +462,3 @@ def exportar_ranking_csv(request):
 
 def gerar_csv_ranking_fornecedores(ranking):
     pass
-
-
-@login_required(login_url='/login/')
-def checar_status_sync(request, task_id):
-    """
-    Rota chamada via AJAX pelo frontend para checar se o Celery terminou.
-    """
-    task_result = AsyncResult(task_id)
-    return JsonResponse({
-        "status": task_result.status,
-        "result": task_result.result if task_result.ready() else None
-    })
