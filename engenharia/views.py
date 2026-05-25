@@ -83,15 +83,3 @@ def atualizar_banco_estrutura(request):
         "task_id": task.id,
         "message": "Sincronização iniciada em segundo plano."
     })
-
-
-@login_required(login_url='/login/')
-def checar_status_sync(request, task_id):
-    """
-    Rota chamada via AJAX pelo frontend para checar se o Celery terminou.
-    """
-    task_result = AsyncResult(task_id)
-    return JsonResponse({
-        "status": task_result.status,
-        "result": task_result.result if task_result.ready() else None
-    })

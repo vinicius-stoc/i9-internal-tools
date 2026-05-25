@@ -23,7 +23,7 @@
                 <button type="button" class="btn btn-primary px-4 py-2 btn-sync-global shadow-sm"
                     style="background-color: var(--azul-principal); border: none;"
                     data-url="{% url 'atualizar_banco_estrutura' %}"
-                    data-check-url="{% url 'checar_status_sync' task_id='TASK_ID_PLACEHOLDER' %}"
+                    data-check-url="{% url 'checar_status_task_global' task_id='TASK_ID_PLACEHOLDER' %}"
                     data-csrf="{{ csrf_token }}">
                     <i class="bi bi-arrow-repeat me-2"></i> Atualizar Base de Dados
                 </button>
