@@ -405,7 +405,35 @@
                         </ul>
                     </div>
                 </li>
-                            <!--MODULO RESERVA SALA-->
+                {% if user.acesso_ti %}
+            
+            <!--MODULO RDO-->
+            <li class="nav-item mt-1">
+                <a class="nav-link {% if 'rdo' not in request.path %}collapsed{% endif %} d-flex justify-content-between align-items-center"
+                   data-bs-toggle="collapse" href="#menuRDO" role="button"
+                   aria-expanded="{% if 'rdo' in request.path %}true{% else %}false{% endif %}"
+                   aria-controls="menuRDO">
+                    <span><i class="bi bi-journal-text me-2"></i> RDO</span>
+                    <i class="bi bi-chevron-down transition-icon"></i>
+                </a>
+                <div class="collapse {% if 'rdo' in request.path %}show{% endif %}" id="menuRDO" data-bs-parent="#sidebarMenu">
+                    <ul class="nav flex-column ms-3 ps-2 border-start border-secondary mb-2 mt-1">
+                        <li class="nav-item">
+                            <a href="{% url 'rdo_list' %}" class="nav-link submenu-link {% if request.path == '/rdo/' %}active-sub{% endif %}">
+                                <i class="bi bi-list-ul me-2"></i> Relatorios
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'rdo_obras' %}" class="nav-link submenu-link {% if 'obras' in request.path %}active-sub{% endif %}">
+                                <i class="bi bi-buildings me-2"></i> Obras
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+                {% endif %}
+
+            <!--MODULO RESERVA SALA-->
             <li class="nav-item mt-1">
                     <a class="nav-link {% if name != 'reservas_sala_dashboard' and name != 'reserva_sala_nova' %}collapsed{% endif %} d-flex justify-content-between align-items-center"
                    data-bs-toggle="collapse" href="#menuReservaSala" role="button"
