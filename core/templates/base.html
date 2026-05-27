@@ -406,7 +406,8 @@
                     </div>
                 </li>
                 {% if user.acesso_ti %}
-                            <!--MODULO RDO-->
+            
+            <!--MODULO RDO-->
             <li class="nav-item mt-1">
                 <a class="nav-link {% if 'rdo' not in request.path %}collapsed{% endif %} d-flex justify-content-between align-items-center"
                    data-bs-toggle="collapse" href="#menuRDO" role="button"
@@ -432,6 +433,7 @@
             </li>
                 {% endif %}
 
+            <!--MODULO RESERVA SALA-->
             <li class="nav-item mt-1">
                     <a class="nav-link {% if name != 'reservas_sala_dashboard' and name != 'reserva_sala_nova' %}collapsed{% endif %} d-flex justify-content-between align-items-center"
                    data-bs-toggle="collapse" href="#menuReservaSala" role="button"
