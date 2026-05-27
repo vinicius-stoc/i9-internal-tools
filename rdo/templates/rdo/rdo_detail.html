@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}RDO {{ rdo.numero }} | I9TMG{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-0" style="color: var(--azul-principal);">RDO #{{ rdo.numero }}</h3>
+            <p class="text-muted mb-0">{{ rdo.obra.nome }} - {{ rdo.data|date:"d/m/Y" }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'rdo_editar' rdo.id %}" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i> Editar</a>
+            <a href="{% url 'rdo_fotos' rdo.id %}" class="btn btn-outline-primary"><i class="bi bi-images me-1"></i> Fotos</a>
+            <a href="{% url 'rdo_pdf_preview' rdo.id %}" target="_blank" class="btn btn-outline-danger"><i class="bi bi-eye me-1"></i> Pre-visualizar PDF</a>
+            <a href="{% url 'rdo_pdf' rdo.id %}" class="btn btn-danger"><i class="bi bi-download me-1"></i> Baixar PDF</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-4 h-100"><div class="card-body">
+                <h5 class="fw-bold">Obra</h5>
+                <p class="mb-1"><strong>Cliente:</strong> {{ rdo.obra.cliente }}</p>
+                <p class="mb-1"><strong>Local:</strong> {{ rdo.obra.local }}</p>
+                <p class="mb-1"><strong>Contrato:</strong> {{ rdo.obra.contrato|default:"-" }}</p>
+                <p class="mb-1"><strong>Previsao de fim:</strong> {{ rdo.obra.data_previsao_fim|date:"d/m/Y"|default:"-" }}</p>
+                <p class="mb-1"><strong>Responsavel I9:</strong> {{ rdo.obra.responsavel_i9|default:"-" }}</p>
+                <p class="mb-0"><strong>Responsavel cliente:</strong> {{ rdo.obra.responsavel_cliente|default:"-" }}</p>
+            </div></div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-4 h-100"><div class="card-body">
+                <h5 class="fw-bold">Dados gerais</h5>
+                <p class="mb-1"><strong>Responsavel:</strong> {{ rdo.responsavel }}</p>
+                <p class="mb-1"><strong>Manha:</strong> {{ rdo.get_condicao_manha_display|default:"-" }}</p>
+                <p class="mb-1"><strong>Tarde:</strong> {{ rdo.get_condicao_tarde_display|default:"-" }}</p>
+                <p class="mb-1"><strong>Noite:</strong> {{ rdo.get_condicao_noite_display|default:"-" }}</p>
+                <p class="mb-0"><strong>Status:</strong> {{ rdo.get_status_display }}</p>
+            </div></div>
+        </div>
+    </div>
+
+    {% include 'rdo/partials/detail_table.html' with titulo='Efetivo' itens=rdo.efetivos.all headers='Funcao,Qtd,Horas,Observacoes' tipo='efetivo' total_efetivo=total_efetivo %}
+    {% include 'rdo/partials/detail_table.html' with titulo='Equipamentos' itens=rdo.equipamentos.all headers='Equipamento,Qtd,Horas,Status,Observacoes' tipo='equipamento' %}
+    {% include 'rdo/partials/detail_table.html' with titulo='Atividades' itens=rdo.atividades.all headers='Descricao,Local,Avanco,Observacoes' tipo='atividade' %}
+    {% include 'rdo/partials/detail_table.html' with titulo='Ocorrencias' itens=rdo.ocorrencias.all headers='Tipo,Descricao,Impacto,Providencia' tipo='ocorrencia' %}
+
+    <div class="card shadow-sm border-0 rounded-4 mb-3">
+        <div class="card-body">
+            <h5 class="fw-bold">Fotos</h5>
+            <div class="row g-3">
+                {% for foto in rdo.fotos.all %}
+                <div class="col-md-3">
+                    <img src="{{ foto.imagem.url }}" class="img-fluid rounded border" alt="{{ foto.legenda }}">
+                    <div class="small text-muted mt-1">{{ foto.legenda|default:"Sem legenda" }}</div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-muted">Nenhuma foto anexada.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4"><div class="card-body">
+        <h5 class="fw-bold">Observacoes finais</h5>
+        <p class="mb-0">{{ rdo.observacoes_gerais|linebreaksbr|default:"-" }}</p>
+    </div></div>
+</div>
+{% endblock %}

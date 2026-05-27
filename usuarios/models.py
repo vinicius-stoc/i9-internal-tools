@@ -24,6 +24,7 @@ class CustomUser(AbstractUser):
 
         permissoes = {
             'comercial': self.is_comercial,
+            'ti': self.is_ti,
             'financeiro': self.is_financeiro,
             'rh': self.is_rh,
             'engenharia': self.is_engenharia,

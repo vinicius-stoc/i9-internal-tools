@@ -1,0 +1,58 @@
+{% load widget_tweaks %}
+
+{{ formset.management_form }}
+<div class="border rounded-3 p-3 mb-4 bg-light" data-formset="{{ prefix }}">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0">{{ titulo }}</h5>
+        <button type="button" class="btn btn-sm btn-outline-primary" data-add-formset="{{ prefix }}">
+            <i class="bi bi-plus-lg me-1"></i>{{ botao }}
+        </button>
+    </div>
+
+    <div data-formset-forms="{{ prefix }}">
+        {% for item_form in formset %}
+        <div class="bg-white border rounded-3 p-3 mb-3" data-formset-form>
+            {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="row g-3">
+                {% for field in item_form.visible_fields %}
+                    <div class="{% if field.name == 'DELETE' %}col-md-2{% elif field.is_hidden %}d-none{% else %}col-md-4{% endif %}">
+                        {% if field.name == 'DELETE' %}
+                            <label class="form-label fw-semibold">Excluir</label>
+                            <div class="form-check">{% render_field field class+="form-check-input" %}</div>
+                        {% elif field.is_hidden %}
+                            {{ field }}
+                        {% else %}
+                            <label class="form-label fw-semibold">{{ field.label }}</label>
+                            {% render_field field class+="form-control" %}
+                        {% endif %}
+                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <template data-empty-form="{{ prefix }}">
+        <div class="bg-white border rounded-3 p-3 mb-3" data-formset-form>
+            {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="row g-3">
+                {% for field in formset.empty_form.visible_fields %}
+                    <div class="{% if field.name == 'DELETE' %}col-md-2{% elif field.is_hidden %}d-none{% else %}col-md-4{% endif %}">
+                        {% if field.name == 'DELETE' %}
+                            <label class="form-label fw-semibold">Excluir</label>
+                            <div class="form-check">{% render_field field class+="form-check-input" %}</div>
+                        {% elif field.is_hidden %}
+                            {{ field }}
+                        {% else %}
+                            <label class="form-label fw-semibold">{{ field.label }}</label>
+                            {% render_field field class+="form-control" %}
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </template>
+
+    {% for error in formset.non_form_errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+</div>

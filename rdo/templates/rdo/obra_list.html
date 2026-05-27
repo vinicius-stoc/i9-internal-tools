@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Obras | RDO{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-0" style="color: var(--azul-principal);">
+                <i class="bi bi-buildings me-2"></i>Obras
+            </h3>
+            <p class="text-muted mb-0">Cadastro de obras vinculadas aos relatorios diarios.</p>
+        </div>
+        <a href="{% url 'rdo_obra_nova' %}" class="btn text-white fw-bold" style="background-color: var(--laranja-principal);">
+            <i class="bi bi-plus-lg me-1"></i> Nova Obra
+        </a>
+    </div>
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-10">
+            <input type="search" name="busca" class="form-control" value="{{ busca }}" placeholder="Buscar por obra, cliente, local ou contrato">
+        </div>
+        <div class="col-md-2 d-grid">
+            <button class="btn btn-outline-secondary"><i class="bi bi-search me-1"></i> Buscar</button>
+        </div>
+    </form>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="px-4 py-3">Obra</th>
+                        <th>Cliente</th>
+                        <th>Local</th>
+                        <th>Previsao fim</th>
+                        <th>Status</th>
+                        <th class="text-end px-4">Acoes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for obra in obras %}
+                    <tr>
+                        <td class="px-4 fw-semibold">{{ obra.nome }}</td>
+                        <td>{{ obra.cliente }}</td>
+                        <td>{{ obra.local }}</td>
+                        <td>{{ obra.data_previsao_fim|date:"d/m/Y"|default:"-" }}</td>
+                        <td><span class="badge bg-secondary">{{ obra.get_status_display }}</span></td>
+                        <td class="text-end px-4">
+                            <a href="{% url 'rdo_novo' %}?obra={{ obra.id }}" class="btn btn-sm btn-outline-primary">Novo RDO</a>
+                            <a href="{% url 'rdo_obra_editar' obra.id %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center py-5 text-muted">Nenhuma obra cadastrada.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

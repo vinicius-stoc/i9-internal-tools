@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Fotos do RDO | I9TMG{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0" style="color: var(--azul-principal);">Fotos do RDO #{{ rdo.numero }}</h3>
+            <p class="text-muted mb-0">{{ rdo.obra.nome }}</p>
+        </div>
+        <a href="{% url 'rdo_detalhe' rdo.id %}" class="btn btn-outline-secondary">Voltar</a>
+    </div>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-4"><div class="card-body">
+                <h5 class="fw-bold">Nova foto</h5>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ field.label }}</label>
+                        {% render_field field class+="form-control" %}
+                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endfor %}
+                    <button class="btn text-white fw-bold w-100" style="background-color: var(--laranja-principal);">Anexar Foto</button>
+                </form>
+            </div></div>
+        </div>
+        <div class="col-md-8">
+            <div class="row g-3">
+                {% for foto in rdo.fotos.all %}
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-0 rounded-4 h-100">
+                        <img src="{{ foto.imagem.url }}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="{{ foto.legenda }}">
+                        <div class="card-body small text-muted">{{ foto.legenda|default:"Sem legenda" }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-muted">Nenhuma foto anexada.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-add-formset]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const prefix = button.dataset.addFormset;
+            const totalInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+            const container = document.querySelector('[data-formset-forms="' + prefix + '"]');
+            const template = document.querySelector('[data-empty-form="' + prefix + '"]');
+            if (!totalInput || !container || !template) return;
+
+            const index = parseInt(totalInput.value, 10);
+            const html = template.innerHTML.replaceAll('__prefix__', index);
+            container.insertAdjacentHTML('beforeend', html);
+            totalInput.value = index + 1;
+        });
+    });
+});
+</script>
