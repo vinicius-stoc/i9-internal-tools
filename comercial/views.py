@@ -3,14 +3,13 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from datetime import date
 from .forms import STOForm, VersaoFormularioSTOForm
 from .models import STO, STOImagem, STORevisao, VersaoFormularioSTO
-from core.decorators import exige_permissao
+from core.decorators import group_required
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['comercial'])
+@group_required(['Comercial'])
 def criar_sto(request):
     if request.method == 'POST':
         form = STOForm(request.POST, request.FILES)
@@ -35,14 +34,14 @@ def criar_sto(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['comercial'])
+@group_required(['Comercial'])
 def listar_stos(request):
     stos = STO.objects.all().order_by('-data', '-id')
     return render(request, 'comercial/sto_lista.html', {'stos': stos})
 
 
 @login_required(login_url='login/')
-@exige_permissao(['comercial'])
+@group_required(['Comercial'])
 def exportar_stos_csv(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="relatorio_stos_i9tmg.csv"'
@@ -72,14 +71,14 @@ def exportar_stos_csv(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['comercial'])
+@group_required(['Comercial'])
 def ver_sto(request, pk):
     sto = get_object_or_404(STO, pk=pk)
     return render(request, 'comercial/sto_detalhe.html', {'sto': sto})
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['comercial'])
+@group_required(['Comercial'])
 def editar_sto(request, pk):
     sto = get_object_or_404(STO, pk=pk)
 
@@ -113,7 +112,7 @@ def editar_sto(request, pk):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['comercial'])
+@group_required(['Comercial'])
 def historico_versoes_iso(request):
     if request.method == 'POST':
         form = VersaoFormularioSTOForm(request.POST)

@@ -53,3 +53,15 @@ def gerar_csv_gerencial_compras(queryset):
             obj.leadtime_compras, obj.leadtime_fornecedor, obj.dias_atraso_entrega
         ])
     return response
+
+def gerar_csv_ranking_fornecedores(queryset):
+    response = _configurar_response("base_completa_compras.csv")
+    writer = csv.writer(response, delimiter=';')
+
+    writer.writerow(['fornecedor', 'notas_aval'])
+
+    for obj in queryset:
+        writer.writerow([
+            obj.fornecedor, obj.notas_aval
+        ])
+    return response

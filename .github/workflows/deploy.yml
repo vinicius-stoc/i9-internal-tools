@@ -24,7 +24,8 @@ jobs:
             # Puxa o código novo do GitHub
             git pull origin main
             
-            source /home/${{ secrets.PA_USERNAME }}/.virtualenvs/venv/bin/activate
+            # Ativa o ambiente virtual no caminho correto
+            source /home/${{ secrets.PA_USERNAME }}/venv/bin/activate
             
             # Instala dependências, roda migrações e coleta estáticos de forma silenciosa
             pip install -r requirements.txt

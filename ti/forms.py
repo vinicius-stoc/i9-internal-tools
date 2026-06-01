@@ -72,10 +72,12 @@ class AtendimentoChamadoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # [RBAC] A query agora busca por membros do grupo 'TI' ou superusers.
         tecnicos = User.objects.filter(
             Q(is_active=True),
-            Q(is_ti=True) | Q(is_diretoria=True) | Q(is_superuser=True),
-        ).order_by('first_name', 'last_name', 'username')
+            Q(groups__name='TI') | Q(is_superuser=True)
+        ).order_by('first_name', 'last_name', 'username').distinct()
+
 
         if self.instance and self.instance.tecnico_id:
             tecnicos = User.objects.filter(
@@ -114,24 +116,12 @@ class UsuarioForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'teams_username',
-                  'is_active', 'is_comercial', 'is_rh', 'is_ti', 'is_financeiro',
-                  'is_engenharia', 'is_compras', 'is_pcp', 'is_diretoria', 'is_qualidade']
+        # [RBAC] Os campos de acesso foram removidos. A gestão agora é via Grupos no admin.
+        fields = ['username', 'first_name', 'last_name', 'email', 'teams_username', 'is_active']
 
     def __init__(self, *args, **kwargs):
-        # Captura o executor da requisição para blindar propriedades críticas do modelo
-        current_user = kwargs.pop('current_user', None)
+        self.current_user = kwargs.pop('current_user', None)
         super().__init__(*args, **kwargs)
-
-        # Se o executor não for superuser, os privilégios departamentais são travados (Impede Injeção de Parâmetros)
-        if current_user and not current_user.is_superuser:
-            campos_privilegio = [
-                'is_active', 'is_comercial', 'is_rh', 'is_ti', 'is_financeiro',
-                'is_engenharia', 'is_compras', 'is_pcp', 'is_diretoria', 'is_qualidade'
-            ]
-            for campo in campos_privilegio:
-                if campo in self.fields:
-                    self.fields[campo].disabled = True
 
     def save(self, commit=True):
         user = super().save(commit=False)

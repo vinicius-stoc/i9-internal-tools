@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from core.decorators import exige_permissao
+from core.decorators import group_required
 
 from .forms import (
     AtividadeFormSet,
@@ -39,7 +39,7 @@ def _rdo_com_relacionamentos():
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def obra_list(request):
     obras = Obra.objects.all()
     busca = request.GET.get('busca')
@@ -54,7 +54,7 @@ def obra_list(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def obra_form(request, pk=None):
     obra = get_object_or_404(Obra, pk=pk) if pk else None
     form = ObraForm(request.POST or None, request.FILES or None, instance=obra)
@@ -83,7 +83,7 @@ def obra_form(request, pk=None):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def rdo_list(request):
     rdos = _rdo_com_relacionamentos().all()
     busca = request.GET.get('busca')
@@ -100,14 +100,14 @@ def rdo_list(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def rdo_detail(request, pk):
     rdo = get_object_or_404(_rdo_com_relacionamentos(), pk=pk)
     return render(request, 'rdo/rdo_detail.html', {'rdo': rdo, 'total_efetivo': RDOService.total_efetivo(rdo)})
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def rdo_form(request, pk=None):
     rdo = get_object_or_404(RDO, pk=pk) if pk else None
     initial = {}
@@ -164,21 +164,21 @@ def _build_formsets(request, rdo):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def rdo_pdf(request, pk):
     rdo = get_object_or_404(_rdo_com_relacionamentos(), pk=pk)
     return RDOPDFService.gerar_response(rdo, inline=False)
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def rdo_pdf_preview(request, pk):
     rdo = get_object_or_404(_rdo_com_relacionamentos(), pk=pk)
     return RDOPDFService.gerar_response(rdo, inline=True)
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def rdo_fotos(request, pk):
     rdo = get_object_or_404(_rdo_com_relacionamentos(), pk=pk)
     form = FotoRDOForm(request.POST or None, request.FILES or None)
@@ -205,31 +205,31 @@ def _adicionar_item(request, pk, form_class, template_title):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def adicionar_efetivo(request, pk):
     return _adicionar_item(request, pk, EfetivoRDOForm, 'Efetivo')
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def adicionar_equipamento(request, pk):
     return _adicionar_item(request, pk, EquipamentoRDOForm, 'Equipamento')
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def adicionar_atividade(request, pk):
     return _adicionar_item(request, pk, AtividadeRDOForm, 'Atividade executada')
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def adicionar_ocorrencia(request, pk):
     return _adicionar_item(request, pk, OcorrenciaRDOForm, 'Ocorrencia')
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['RDO'])
 def obra_opcoes_rdo(request, pk):
     obra = get_object_or_404(Obra, pk=pk)
     return JsonResponse({
