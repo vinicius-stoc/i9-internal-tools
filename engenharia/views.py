@@ -7,12 +7,12 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from engenharia.services.producao_service import ProducaoQueryService
-from core.decorators import exige_permissao
+from core.decorators import group_required
 
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['engenharia'])
+@group_required(['Engenharia'])
 def extrai_estrutura_simples(request):
     """
     View Principal Refatorada:
@@ -44,7 +44,7 @@ def extrai_estrutura_simples(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['engenharia'])
+@group_required(['Engenharia'])
 def get_conjuntos_pai(request, codigo_vo: str):
     """
     API/Partial View: Retorna os 'pais' de um 'vo' específico.
@@ -65,7 +65,7 @@ def get_conjuntos_pai(request, codigo_vo: str):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['engenharia'])
+@group_required(['Engenharia'])
 def get_componentes_filho(request, codigo_vo: str, codigo_pai: str):
     """
     API/Partial View: Retorna os 'filhos' de um 'pai' e 'vo' específicos.
@@ -89,7 +89,7 @@ def get_componentes_filho(request, codigo_vo: str, codigo_pai: str):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['engenharia'])
+@group_required(['Engenharia'])
 def exportar_estrutura_excel(request):
     """View Magra: Intermedia a requisição HTTP e o retorno do Excel."""
 
@@ -116,7 +116,7 @@ def exportar_estrutura_excel(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['engenharia'])
+@group_required(['Engenharia'])
 @require_POST
 def atualizar_banco_estrutura(request):
     if cache.get('lock_sync_engenharia'):

@@ -2,12 +2,11 @@ import json
 import statistics
 from dotenv import load_dotenv
 from django.core.cache import cache
-from celery.result import AsyncResult
 from django.db.models import Avg, Count, Q, Sum
 from django.http import JsonResponse
 
 from compras.services.business import ComprasBusinessService
-from compras.services.csv_exporters import gerar_csv_operacoes_compras, gerar_csv_gerencial_compras
+from compras.services.csv_exporters import gerar_csv_operacoes_compras, gerar_csv_gerencial_compras, gerar_csv_ranking_fornecedores
 from .models import DataWarehouseCompras
 from django.views.decorators.http import require_POST
 from .task import task_sincronizar_protheus
@@ -17,13 +16,13 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from core.decorators import exige_permissao
+from core.decorators import group_required
 from .models import OperacaoCompras, AvaliacaoFornecedor, PerguntaAvaliacao, RespostaAvaliacao
 
 load_dotenv()
 
 @login_required(login_url='/login/')
-@exige_permissao(['compras'])
+@group_required(['Compras'])
 def dashboard_compras(request):
 
     # Captura de Filtros do GET
@@ -143,7 +142,7 @@ def dashboard_compras(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['compras'])
+@group_required(['Compras'])
 def dashboard_operacional(request):
     """
     Dashboard focado na operação (Compradores).
@@ -212,7 +211,7 @@ def dashboard_operacional(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['compras'])
+@group_required(['Compras'])
 def dashboard_avaliacoes(request):
     """
     Dashboard de Análise de Desempenho.
@@ -242,7 +241,7 @@ def dashboard_avaliacoes(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['compras'])
+@group_required(['Compras'])
 @require_POST
 def atualizar_dados_dw(request):
     if cache.get('lock_sync_compras'):
@@ -264,7 +263,7 @@ def atualizar_dados_dw(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['compras'])
+@group_required(['Compras'])
 def listar_pedidos_avaliacao(request):
     """
     Listagem de pedidos disponíveis para avaliação de fornecedores.
@@ -337,7 +336,7 @@ def listar_pedidos_avaliacao(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['compras'])
+@group_required(['Compras'])
 def nova_avaliacao_fornecedor(request, numero_pedido):
     """
     Formulário de avaliação e processamento do POST com transação segura.
@@ -425,7 +424,7 @@ def nova_avaliacao_fornecedor(request, numero_pedido):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['compras'])
+@group_required(['Compras'])
 def exportar_ranking_csv(request):
     """
     Prepara os dados do ranking e delega a geração do arquivo para o services.py
@@ -459,6 +458,3 @@ def exportar_ranking_csv(request):
     # View delegando o trabalho sujo para a camada de serviço:
     return gerar_csv_ranking_fornecedores(ranking)
 
-
-def gerar_csv_ranking_fornecedores(ranking):
-    pass

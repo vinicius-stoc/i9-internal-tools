@@ -3,7 +3,7 @@ import pandas as pd
 from django.utils import timezone
 from django.contrib import messages
 from django.http import HttpResponse
-from core.decorators import exige_permissao
+from core.decorators import group_required
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Count, Case, When, Value, IntegerField, Q, Sum
@@ -40,7 +40,7 @@ def job_apply(request, pk):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['rh'])
+@group_required(['RH'])
 def candidate_screening(request):
     """
     Prepara a lista de candidatos e os contadores para a tela inicial do RH
@@ -75,7 +75,7 @@ def candidate_screening(request):
 
 
 @login_required(login_url='/login')
-@exige_permissao(['rh'])
+@group_required(['RH'])
 def candidate_datail(request, pk):
     """
     Exibe o currículo de um candidato e permite o usuario mudar de fase (aprovar ou reprovar)
@@ -102,7 +102,7 @@ def candidate_datail(request, pk):
 
 
 @login_required(login_url='/login')
-@exige_permissao(['rh', 'ti'])
+@group_required(['RH'])
 def job_management(request):
     """
     Painel para o RH gerenciar as vagas abertas e fechadas. Usamos o annotate(count()) para o banco ja trazer a contagem
@@ -165,7 +165,7 @@ def solicitar_abertura_vaga(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['rh'])
+@group_required(['RH'])
 def listar_solicitacoes(request):
     """
     O QUE FAZ: Painel do RH para ver todos os pedidos de vagas dos gestores.
@@ -193,7 +193,7 @@ def listar_solicitacoes(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['rh'])
+@group_required(['RH'])
 def detalhe_solicitacao(request, pk):
     """
     Abre o pedido detalhado do gestor para o RH ler e dar o parecer (Aprovar/Reprovar).
@@ -218,7 +218,7 @@ def detalhe_solicitacao(request, pk):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['rh'])
+@group_required(['RH'])
 def listar_pesquisas(request):
     pesquisas = PesquisaDemissional.objects.all().order_by('-data_geracao')
 
@@ -260,7 +260,7 @@ def listar_pesquisas(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['rh'])
+@group_required(['RH'])
 def gerar_pesquisa(request):
 
     if request.method == 'POST':
@@ -299,7 +299,7 @@ def responder_pesquisa(request, uuid_pesquisa):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['rh'])
+@group_required(['RH'])
 def dashboard_rh(request):
     ano_atual_sistema = timezone.now().year
     try:
@@ -411,7 +411,7 @@ def dashboard_rh(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['rh'])
+@group_required(['RH'])
 def importar_base_rh(request):
     if request.method == 'POST':
         arquivo = request.FILES.get('arquivo_excel')
@@ -504,7 +504,7 @@ def importar_base_rh(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['rh'])
+@group_required(['RH'])
 def importar_ponto_rh(request):
 
     if request.method == 'POST':

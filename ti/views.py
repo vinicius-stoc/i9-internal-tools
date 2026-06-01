@@ -10,7 +10,7 @@ from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from core.decorators import exige_permissao
+from core.decorators import group_required
 from .forms import AtendimentoChamadoForm, ChamadoForm, UsuarioForm
 from .models import Chamado
 from .services import (
@@ -20,6 +20,8 @@ from .services import (
     recusar_resolucao,
     validar_resolucao,
 )
+
+User = get_user_model()
 
 
 @login_required(login_url='/login/')
@@ -38,7 +40,7 @@ def novo_chamado(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['TI'])
 def ti_admin(request):
     chamados_query = Chamado.objects.select_related('solicitante', 'tecnico').exclude(
         status__in=['CONCLUIDO', 'CANCELADO', 'RESOLVIDO']
@@ -57,7 +59,7 @@ def ti_admin(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['TI'])
 def dashboard_ti(request):
     metricas = Chamado.objects.aggregate(
         total=Count('id', filter=~Q(status='CANCELADO')),
@@ -132,7 +134,7 @@ def dashboard_ti(request):
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['TI'])
 def atender_chamado(request, pk):
     chamado = get_object_or_404(Chamado.objects.select_related('solicitante', 'tecnico'), pk=pk)
 
@@ -184,18 +186,15 @@ def detalhe_meu_chamado(request, pk):
     return render(request, 'ti/meu_chamado_detalhe.html', {'chamado': chamado})
 
 
-User = get_user_model()
-
-
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['TI'])
 def gestao_usuarios(request):
     usuarios = User.objects.all().order_by('-is_active', 'username')
     return render(request, 'ti/gestao_usuarios.html', {'usuarios': usuarios})
 
 
 @login_required(login_url='/login/')
-@exige_permissao(['ti'])
+@group_required(['TI'])
 def form_usuario(request, pk=None):
     if pk:
         usuario = get_object_or_404(User, pk=pk)

@@ -1,6 +1,4 @@
 import json
-from datetime import datetime
-
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
@@ -8,8 +6,6 @@ from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from .models import RNC, Local, Equipamento, RNCImagem, RNCEficaciaImagem, RNCEficaciaPDF
 from .service import RNCService
-from core.decorators import exige_permissao
-
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from . serializers import RNCSerializer
@@ -18,7 +14,7 @@ User = get_user_model()
 
 @login_required(login_url='/login/')
 def dashboard_qualidade(request):
-    usuario_sgq = request.user.pode_acessar_modulo('qualidade')
+    usuario_sgq = request.user.groups.filter(name='Qualidade').exists()
 
     locais_ativos = Local.objects.filter(ativo= True)
     equipamento_ativos = Equipamento.objects.filter(ativo= True)
@@ -104,7 +100,7 @@ def api_atualizar_rnc(request, rnc_id):
         campo = dados.get('campo')
         valor = dados.get('valor')
 
-        is_sgq = request.user.pode_acessar_modulo('qualidade')
+        is_sgq = request.user.groups.filter(name='Qualidade').exists()
 
         campos_sgq = [
             'projeto_cod', 'elemento_rastreador', 'detector', 'categoria',
@@ -157,7 +153,7 @@ def api_criar_rnc(request):
 @api_view(['POST'])
 def api_editar_rnc_avancado(request, rnc_id):
     rnc = get_object_or_404(RNC, id=rnc_id)
-    is_sgq = request.user.pode_acessar_modulo('qualidade')
+    is_sgq = request.user.groups.filter(name='Qualidade').exists()
 
     data_antiga = rnc.data_encerramento
     data_previsao = rnc.data_prevista_conclusao
