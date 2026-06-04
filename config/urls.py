@@ -51,6 +51,7 @@ urlpatterns = [
             path('compras/', include('compras.urls')),
             path('qualidade/', include('qualidade.urls')),
             path('engenharia/', include('engenharia.urls')),
+            path('pcp/', include('pcp.urls')),
             path('reserva_sala/', include('reserva_sala.urls')),
             path('core/', include('core.urls')),
             path('rdo/', include('rdo.urls')),

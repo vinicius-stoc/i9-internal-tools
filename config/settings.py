@@ -209,10 +209,25 @@ else:
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/Sao_Paulo'
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_ACKS_LATE = True
+CELERY_RESULT_EXPIRES = 3600
 CELERY_BEAT_SCHEDULE = {
     'ti-fechar-chamados-resolvidos-sem-feedback': {
         'task': 'ti.tasks.task_fechar_chamados_resolvidos_sem_feedback',
         'schedule': crontab(hour=1, minute=0),
+    },
+    'pcp-recalcular-preventivas': {
+        'task': 'pcp.recalcular_preventivas',
+        'schedule': crontab(hour=5, minute=0),
+    },
+    'pcp-enviar-alertas-preventivas': {
+        'task': 'pcp.enviar_alertas_preventivas',
+        'schedule': crontab(hour=7, minute=0),
+    },
+    'pcp-enviar-alertas-downtime-aberto': {
+        'task': 'pcp.enviar_alertas_downtime_aberto',
+        'schedule': crontab(minute=0),
     },
 }
 
@@ -220,6 +235,7 @@ CELERY_BEAT_SCHEDULE = {
 # --- Integracoes externas ---
 POWER_AUTOMATE_USER_WEBHOOK_URL = os.getenv('TEAMS_WEBHOOK_URL')
 TEAMS_TI_WEBHOOK_URL = os.getenv('TEAMS_TI_WEBHOOK_URL')
+POWER_BI_API_KEY = os.getenv('POWER_BI_API_KEY', '')
 
 
 # --- Politica de anexos do modulo TI ---
