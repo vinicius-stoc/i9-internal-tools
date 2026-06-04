@@ -1,0 +1,194 @@
+from __future__ import annotations
+
+from rest_framework import serializers
+
+from pcp.models import (
+    CriticidadeAtivo,
+    PcpAreaProducao,
+    PcpAtivo,
+    PcpDowntime,
+    PcpExecucaoManutencao,
+    PcpPlanoManutencao,
+    PcpProgramacaoManutencao,
+    StatusAtivo,
+    TipoDowntime,
+    TipoManutencao,
+)
+
+
+class AreaProducaoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PcpAreaProducao
+        fields = ["id", "codigo", "nome", "descricao", "ativo", "created_at", "updated_at"]
+        read_only_fields = ["id", "ativo", "created_at", "updated_at"]
+
+
+class AtivoSerializer(serializers.ModelSerializer):
+    area_nome = serializers.CharField(source="area.nome", read_only=True)
+
+    class Meta:
+        model = PcpAtivo
+        fields = [
+            "id",
+            "codigo",
+            "nome",
+            "descricao",
+            "fabricante",
+            "modelo",
+            "numero_serie",
+            "area",
+            "area_nome",
+            "status",
+            "criticidade",
+            "ativo",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "area_nome", "ativo", "created_at", "updated_at"]
+
+
+class AtivoCreateSerializer(serializers.Serializer):
+    codigo = serializers.CharField(max_length=50)
+    nome = serializers.CharField(max_length=150)
+    area = serializers.PrimaryKeyRelatedField(queryset=PcpAreaProducao.objects.all())
+    descricao = serializers.CharField(required=False, allow_blank=True)
+    fabricante = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    modelo = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    numero_serie = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    status = serializers.ChoiceField(choices=StatusAtivo.choices, required=False)
+    criticidade = serializers.ChoiceField(choices=CriticidadeAtivo.choices, required=False)
+
+
+class PlanoManutencaoSerializer(serializers.ModelSerializer):
+    ativo_codigo = serializers.CharField(source="ativo_pcp.codigo", read_only=True)
+
+    class Meta:
+        model = PcpPlanoManutencao
+        fields = [
+            "id",
+            "ativo_pcp",
+            "ativo_codigo",
+            "tipo",
+            "nome",
+            "descricao",
+            "intervalo_dias",
+            "ativo",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "ativo_codigo", "ativo", "created_at", "updated_at"]
+
+
+class PlanoManutencaoCreateSerializer(serializers.Serializer):
+    ativo_pcp = serializers.PrimaryKeyRelatedField(queryset=PcpAtivo.objects.all())
+    nome = serializers.CharField(max_length=150)
+    tipo = serializers.ChoiceField(choices=TipoManutencao.choices, required=False)
+    descricao = serializers.CharField(required=False, allow_blank=True)
+    intervalo_dias = serializers.IntegerField(min_value=1)
+
+
+class ProgramacaoManutencaoSerializer(serializers.ModelSerializer):
+    ativo_pcp = serializers.IntegerField(source="plano.ativo_pcp_id", read_only=True)
+    ativo_codigo = serializers.CharField(source="plano.ativo_pcp.codigo", read_only=True)
+    plano_nome = serializers.CharField(source="plano.nome", read_only=True)
+
+    class Meta:
+        model = PcpProgramacaoManutencao
+        fields = [
+            "id",
+            "plano",
+            "plano_nome",
+            "ativo_pcp",
+            "ativo_codigo",
+            "data_prevista",
+            "data_limite",
+            "status",
+            "origem",
+            "ativo",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class RecalcularPreventivasSerializer(serializers.Serializer):
+    referencia = serializers.DateField(required=False)
+
+
+class DowntimeSerializer(serializers.ModelSerializer):
+    ativo_codigo = serializers.CharField(source="ativo_pcp.codigo", read_only=True)
+    ativo_nome = serializers.CharField(source="ativo_pcp.nome", read_only=True)
+
+    class Meta:
+        model = PcpDowntime
+        fields = [
+            "id",
+            "ativo_pcp",
+            "ativo_codigo",
+            "ativo_nome",
+            "tipo",
+            "inicio",
+            "fim",
+            "duracao_minutos",
+            "motivo",
+            "observacao",
+            "origem",
+            "responsavel",
+            "ativo",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "ativo_codigo", "ativo_nome", "duracao_minutos", "responsavel", "ativo", "created_at", "updated_at"]
+
+
+class DowntimeOpenSerializer(serializers.Serializer):
+    ativo_pcp = serializers.PrimaryKeyRelatedField(queryset=PcpAtivo.objects.all())
+    motivo = serializers.CharField(max_length=255)
+    tipo = serializers.ChoiceField(choices=TipoDowntime.choices, required=False)
+    inicio = serializers.DateTimeField(required=False)
+    observacao = serializers.CharField(required=False, allow_blank=True)
+
+
+class DowntimeCloseSerializer(serializers.Serializer):
+    fim = serializers.DateTimeField(required=False)
+    observacao = serializers.CharField(required=False, allow_blank=True)
+
+
+class ExecucaoManutencaoSerializer(serializers.ModelSerializer):
+    ativo_codigo = serializers.CharField(source="ativo_pcp.codigo", read_only=True)
+    plano_nome = serializers.CharField(source="programacao.plano.nome", read_only=True)
+
+    class Meta:
+        model = PcpExecucaoManutencao
+        fields = [
+            "id",
+            "programacao",
+            "plano_nome",
+            "ativo_pcp",
+            "ativo_codigo",
+            "tipo",
+            "data_inicio",
+            "data_fim",
+            "observacao",
+            "responsavel",
+            "ativo",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class ExecucaoManutencaoStartSerializer(serializers.Serializer):
+    ativo_pcp = serializers.PrimaryKeyRelatedField(queryset=PcpAtivo.objects.all())
+    programacao = serializers.PrimaryKeyRelatedField(
+        queryset=PcpProgramacaoManutencao.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    tipo = serializers.ChoiceField(choices=TipoManutencao.choices)
+    data_inicio = serializers.DateTimeField(required=False)
+    observacao = serializers.CharField(required=False, allow_blank=True)
+
+
+class ExecucaoManutencaoCloseSerializer(serializers.Serializer):
+    data_fim = serializers.DateTimeField(required=False)

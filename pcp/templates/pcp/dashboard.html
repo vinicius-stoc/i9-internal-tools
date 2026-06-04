@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard PCP | I9TMG{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-0" style="color: var(--azul-principal);">
+                <i class="bi bi-clipboard2-pulse text-primary me-2"></i>Dashboard PCP
+            </h3>
+            <p class="text-muted mb-0">Gestao de ativos, downtimes e preventivas de producao.</p>
+        </div>
+        <div class="btn-group" role="group" aria-label="Periodo">
+            <a href="?periodo=7" class="btn btn-sm {% if dias == 7 %}btn-primary{% else %}btn-outline-primary{% endif %}">7 dias</a>
+            <a href="?periodo=30" class="btn btn-sm {% if dias == 30 %}btn-primary{% else %}btn-outline-primary{% endif %}">30 dias</a>
+            <a href="?periodo=90" class="btn btn-sm {% if dias == 90 %}btn-primary{% else %}btn-outline-primary{% endif %}">90 dias</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="text-muted small fw-bold text-uppercase">Ativos</span>
+                            <h2 class="fw-bold mb-0">{{ total_ativos }}</h2>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                            {{ ativos_operando }} operando
+                        </span>
+                    </div>
+                    <div class="small text-muted mt-3">{{ ativos_manutencao }} em manutencao</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-danger border-4">
+                <div class="card-body p-4">
+                    <span class="text-danger small fw-bold text-uppercase">Paradas abertas</span>
+                    <h2 class="fw-bold mb-0">{{ downtimes_abertos_count }}</h2>
+                    <div class="small text-muted mt-3">{{ ativos_parados }} ativos com status parado</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-warning border-4">
+                <div class="card-body p-4">
+                    <span class="text-warning small fw-bold text-uppercase">Preventivas atrasadas</span>
+                    <h2 class="fw-bold mb-0">{{ preventivas_atrasadas_count }}</h2>
+                    <div class="small text-muted mt-3">{{ preventivas_proximas_count }} vencem no periodo</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-success border-4">
+                <div class="card-body p-4">
+                    <span class="text-success small fw-bold text-uppercase">Disponibilidade estimada</span>
+                    <h2 class="fw-bold mb-0">{{ disponibilidade_estimativa }}%</h2>
+                    <div class="small text-muted mt-3">{{ horas_paradas }}h paradas em {{ dias }} dias</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 pt-3 pb-0">
+                    <h6 class="fw-bold text-secondary mb-0">Maquinas com maior downtime</h6>
+                </div>
+                <div class="card-body p-4">
+                    {% if top_downtime %}
+                        <canvas id="graficoDowntime" height="95"></canvas>
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-check-circle fs-2 d-block mb-2"></i>
+                            Sem downtime fechado no periodo selecionado.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 pt-3 pb-0">
+                    <h6 class="fw-bold text-secondary mb-0">Status dos ativos</h6>
+                </div>
+                <div class="card-body p-4 d-flex justify-content-center">
+                    <canvas id="graficoStatus" style="max-height: 260px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-3">
+                    <h6 class="fw-bold text-danger mb-0">
+                        <i class="bi bi-exclamation-octagon me-2"></i>Downtimes abertos
+                    </h6>
+                    <span class="badge bg-danger">{{ downtimes_abertos_count }}</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="px-4">Ativo</th>
+                                <th>Area</th>
+                                <th>Inicio</th>
+                                <th>Motivo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for downtime in downtimes_abertos %}
+                            <tr>
+                                <td class="px-4 fw-semibold">{{ downtime.ativo_pcp.codigo }}</td>
+                                <td>{{ downtime.ativo_pcp.area.nome }}</td>
+                                <td>{{ downtime.inicio|date:"d/m/Y H:i" }}</td>
+                                <td class="text-truncate" style="max-width: 220px;" title="{{ downtime.motivo }}">{{ downtime.motivo }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Nenhum downtime aberto.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-3">
+                    <h6 class="fw-bold text-warning mb-0">
+                        <i class="bi bi-calendar-x me-2"></i>Preventivas atrasadas
+                    </h6>
+                    <span class="badge bg-warning text-dark">{{ preventivas_atrasadas_count }}</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="px-4">Ativo</th>
+                                <th>Plano</th>
+                                <th>Prevista</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for preventiva in preventivas_atrasadas %}
+                            <tr>
+                                <td class="px-4 fw-semibold">{{ preventiva.plano.ativo_pcp.codigo }}</td>
+                                <td>{{ preventiva.plano.nome }}</td>
+                                <td>{{ preventiva.data_prevista|date:"d/m/Y" }}</td>
+                                <td><span class="badge bg-danger">{{ preventiva.get_status_display }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Nenhuma preventiva atrasada.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-3">
+                    <h6 class="fw-bold text-secondary mb-0">
+                        <i class="bi bi-calendar-check me-2"></i>Proximas preventivas
+                    </h6>
+                    <span class="badge bg-primary">{{ preventivas_proximas_count }}</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="px-4">Ativo</th>
+                                <th>Area</th>
+                                <th>Plano</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for preventiva in preventivas_proximas %}
+                            <tr>
+                                <td class="px-4 fw-semibold">{{ preventiva.plano.ativo_pcp.codigo }}</td>
+                                <td>{{ preventiva.plano.ativo_pcp.area.nome }}</td>
+                                <td>{{ preventiva.plano.nome }}</td>
+                                <td>{{ preventiva.data_prevista|date:"d/m/Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Sem preventivas no periodo.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 pt-3">
+                    <h6 class="fw-bold text-secondary mb-0">
+                        <i class="bi bi-lightning-charge me-2"></i>Ativos criticos
+                    </h6>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for ativo in ativos_criticos %}
+                    <div class="list-group-item px-4 py-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">{{ ativo.codigo }} - {{ ativo.nome }}</div>
+                            <div class="small text-muted">{{ ativo.area.nome }}</div>
+                        </div>
+                        {% if ativo.status == 'parado' %}
+                            <span class="badge bg-danger">Parado</span>
+                        {% elif ativo.status == 'manutencao' %}
+                            <span class="badge bg-warning text-dark">Manutencao</span>
+                        {% else %}
+                            <span class="badge bg-success">{{ ativo.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-4">Nenhum ativo critico cadastrado.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{{ status_labels|json_script:"pcp-status-labels" }}
+{{ status_data|json_script:"pcp-status-data" }}
+{{ top_downtime_labels|json_script:"pcp-downtime-labels" }}
+{{ top_downtime_data|json_script:"pcp-downtime-data" }}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const parseData = (id) => JSON.parse(document.getElementById(id).textContent);
+        const statusCanvas = document.getElementById("graficoStatus");
+        if (statusCanvas) {
+            new Chart(statusCanvas, {
+                type: "doughnut",
+                data: {
+                    labels: parseData("pcp-status-labels"),
+                    datasets: [{
+                        data: parseData("pcp-status-data"),
+                        backgroundColor: ["#198754", "#dc3545", "#ffc107"],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: "bottom" } }
+                }
+            });
+        }
+
+        const downtimeCanvas = document.getElementById("graficoDowntime");
+        if (downtimeCanvas) {
+            new Chart(downtimeCanvas, {
+                type: "bar",
+                data: {
+                    labels: parseData("pcp-downtime-labels"),
+                    datasets: [{
+                        label: "Minutos parados",
+                        data: parseData("pcp-downtime-data"),
+                        backgroundColor: "#0d6efd",
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
