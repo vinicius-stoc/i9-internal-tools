@@ -14,7 +14,7 @@ UF_CHOICES = [
 
 @lru_cache(maxsize=1)
 def get_municipios_brasileiros_choices():
-    caminho = Path(__file__).resolve().parent / 'data' / 'municipios_brasil.json'
+    caminho = Path(__file__).resolve().parent / 'data_cities' / 'municipios_brasil.json'
     with caminho.open(encoding='utf-8-sig') as arquivo:
         municipios = json.load(arquivo)
     return [(municipio['valor'], municipio['label']) for municipio in municipios]
