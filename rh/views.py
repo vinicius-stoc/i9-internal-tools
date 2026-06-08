@@ -6,13 +6,16 @@ from django.http import HttpResponse
 from core.decorators import group_required
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
+from django.db import transaction
 from django.db.models import Count, Case, When, Value, IntegerField, Q, Sum
 
 from core.utils.utils import convert_hours
 from .models import (Vaga, Candidatura, SolicitacaoVaga, PesquisaDemissional,
-                     Funcionario, RegistroAbsenteismo)
+                     FormularioAdmissional, Funcionario, RegistroAbsenteismo)
 from .forms import (CandidaturaForm, VagaForm, SolicitacaoVagaForm,
-                    PesquisaDemissionalGeracaoForm, PesquisaDemissionalRespostaForm)
+                    PesquisaDemissionalGeracaoForm, PesquisaDemissionalRespostaForm,
+                    FormularioAdmissionalGeracaoForm, FormularioAdmissionalRespostaForm,
+                    DependenteAdmissionalFormSet)
 
 
 def job_list(request):
@@ -296,6 +299,182 @@ def responder_pesquisa(request, uuid_pesquisa):
     else:
         form = PesquisaDemissionalRespostaForm()
     return render(request, 'rh/responder_pesquisa.html', {'form': form, 'pesquisa': pesquisa})
+
+
+def _dependentes_texto(formulario):
+    dependentes = []
+    for dependente in formulario.dependentes.all():
+        data_nascimento = dependente.data_nascimento.strftime('%d/%m/%Y') if dependente.data_nascimento else ''
+        dependentes.append(
+            f'Nome: {dependente.nome_completo} | Nascimento: {data_nascimento} | '
+            f'RG: {dependente.rg} | CPF: {dependente.cpf} | '
+            f'Cidade/Estado: {dependente.cidade_estado_nascimento}'
+        )
+    return ' || '.join(dependentes)
+
+
+@login_required(login_url='/login/')
+@group_required(['RH'])
+def listar_formularios_admissionais(request):
+    formularios = FormularioAdmissional.objects.select_related('gerado_por').prefetch_related('dependentes').order_by('-data_geracao')
+
+    if request.GET.get('export_csv') == '1':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="formularios_admissionais.csv"'
+        response.write(u'\ufeff'.encode('utf8'))
+
+        writer = csv.writer(response, delimiter=';')
+        writer.writerow([
+            'Nome Candidato Interno', 'Data Geracao', 'Gerado Por', 'Status', 'Data Resposta',
+            'Nome Completo', 'CPF', 'Cidade/Estado', 'Funcao Pretendida', 'PIS', 'Numero CTPS', 'Serie CTPS', 'UF CTPS',
+            'CEP', 'Endereco', 'Telefone Principal', 'Contato Recado', 'Email',
+            'Data Nascimento', 'Estado Nascimento', 'Naturalidade', 'Cor/Raca', 'Grau Instrucao',
+            'Nome Mae', 'Nome Pai', 'Numero RG', 'Orgao Expedidor', 'UF RG', 'Data Emissao RG',
+            'Titulo Eleitor', 'Zona Eleitoral', 'Secao Eleitoral', 'UF Titulo Eleitor', 'Reservista', 'CNH',
+            'Estado Civil', 'Possui Dependentes IR', 'Dependentes Texto',
+            'Botina', 'Camisa', 'Calca', 'Utiliza Vale Transporte', 'Trajeto Vale Transporte', 'LGPD Consentimento', 'Observacoes RH',
+        ])
+
+        for formulario in formularios:
+            writer.writerow([
+                formulario.candidato_nome_interno,
+                formulario.data_geracao.strftime('%d/%m/%Y %H:%M') if formulario.data_geracao else '',
+                formulario.gerado_por.get_username() if formulario.gerado_por else '',
+                'Respondido' if formulario.respondido else 'Pendente',
+                formulario.data_resposta.strftime('%d/%m/%Y %H:%M') if formulario.data_resposta else '',
+                formulario.nome_completo,
+                formulario.cpf,
+                formulario.cidade_estado,
+                formulario.funcao_pretendida,
+                formulario.pis,
+                formulario.numero_ctps,
+                formulario.serie_ctps,
+                formulario.uf_ctps,
+                formulario.cep,
+                formulario.endereco,
+                formulario.telefone_principal,
+                formulario.contato_recado,
+                formulario.email,
+                formulario.data_nascimento.strftime('%d/%m/%Y') if formulario.data_nascimento else '',
+                formulario.estado_nascimento,
+                formulario.naturalidade,
+                formulario.get_cor_raca_display() if formulario.cor_raca else '',
+                formulario.get_grau_instrucao_display() if formulario.grau_instrucao else '',
+                formulario.nome_mae,
+                formulario.nome_pai,
+                formulario.numero_rg,
+                formulario.orgao_expedidor,
+                formulario.uf_rg,
+                formulario.data_emissao_rg.strftime('%d/%m/%Y') if formulario.data_emissao_rg else '',
+                formulario.titulo_eleitor,
+                formulario.zona_eleitoral,
+                formulario.secao_eleitoral,
+                formulario.uf_titulo_eleitor,
+                formulario.reservista,
+                formulario.cnh,
+                formulario.get_estado_civil_display() if formulario.estado_civil else '',
+                formulario.get_possui_dependentes_ir_display() if formulario.possui_dependentes_ir else '',
+                _dependentes_texto(formulario),
+                formulario.botina,
+                formulario.camisa,
+                formulario.calca,
+                formulario.get_utiliza_vale_transporte_display() if formulario.utiliza_vale_transporte else '',
+                formulario.trajeto_vale_transporte,
+                'Sim' if formulario.lgpd_consentimento else 'Nao',
+                formulario.observacoes_rh,
+            ])
+        return response
+
+    total_gerados = formularios.count()
+    total_respondidos = formularios.filter(respondido=True).count()
+    total_pendentes = total_gerados - total_respondidos
+
+    context = {
+        'formularios': formularios,
+        'total_gerados': total_gerados,
+        'total_respondidos': total_respondidos,
+        'total_pendentes': total_pendentes,
+    }
+    return render(request, 'rh/listar_formularios_admissionais.html', context)
+
+
+@login_required(login_url='/login/')
+@group_required(['RH'])
+def gerar_formulario_admissional(request):
+    if request.method == 'POST':
+        form = FormularioAdmissionalGeracaoForm(request.POST)
+        if form.is_valid():
+            formulario = form.save(commit=False)
+            formulario.gerado_por = request.user
+            formulario.respondido = False
+            formulario.save()
+            messages.success(request, f'Link admissional gerado para {formulario.candidato_nome_interno}.')
+            return redirect('listar_formularios_admissionais')
+    else:
+        form = FormularioAdmissionalGeracaoForm()
+
+    return render(request, 'rh/gerar_formulario_admissional.html', {'form': form})
+
+
+@login_required(login_url='/login/')
+@group_required(['RH'])
+def detalhe_formulario_admissional(request, uuid_formulario):
+    formulario = get_object_or_404(
+        FormularioAdmissional.objects.select_related('gerado_por').prefetch_related('dependentes'),
+        id_formulario=uuid_formulario
+    )
+    return render(request, 'rh/detalhe_formulario_admissional.html', {'formulario': formulario})
+
+
+def responder_formulario_admissional(request, uuid_formulario):
+    """Rota externa de acesso via link publico protegido por UUID."""
+    formulario = get_object_or_404(FormularioAdmissional, id_formulario=uuid_formulario)
+
+    if formulario.respondido:
+        return render(request, 'rh/formulario_admissional_ja_respondido.html', {'formulario': formulario})
+
+    if request.method == 'POST':
+        form = FormularioAdmissionalRespostaForm(request.POST, instance=formulario)
+        formset = DependenteAdmissionalFormSet(request.POST, instance=formulario)
+
+        if form.is_valid() and formset.is_valid():
+            possui_dependentes = form.cleaned_data.get('possui_dependentes_ir') == 'SIM'
+            dependentes_validos = [
+                form_dependente for form_dependente in formset.forms
+                if form_dependente.cleaned_data
+                and not form_dependente.cleaned_data.get('DELETE')
+                and form_dependente.cleaned_data.get('nome_completo')
+            ]
+
+            if possui_dependentes and not dependentes_validos:
+                form.add_error('possui_dependentes_ir', 'Informe pelo menos 1 dependente completo.')
+            else:
+                with transaction.atomic():
+                    formulario_bloqueado = FormularioAdmissional.objects.select_for_update().get(id_formulario=uuid_formulario)
+                    if formulario_bloqueado.respondido:
+                        return render(request, 'rh/formulario_admissional_ja_respondido.html', {'formulario': formulario_bloqueado})
+
+                    formulario_salvo = form.save(commit=False)
+                    formulario_salvo.respondido = True
+                    formulario_salvo.data_resposta = timezone.now()
+                    formulario_salvo.save()
+
+                    if possui_dependentes:
+                        formset.instance = formulario_salvo
+                        formset.save()
+                    else:
+                        formulario_salvo.dependentes.all().delete()
+
+                return render(request, 'rh/formulario_admissional_sucesso.html')
+    else:
+        form = FormularioAdmissionalRespostaForm(instance=formulario)
+        formset = DependenteAdmissionalFormSet(instance=formulario)
+
+    return render(request, 'rh/responder_formulario_admissional.html', {
+        'form': form,
+        'formset': formset,
+        'formulario': formulario,
+    })
 
 
 @login_required(login_url='/login/')
