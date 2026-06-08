@@ -18,7 +18,6 @@
                 <h5 class="fw-bold border-bottom pb-2 mb-3">Dados Basicos</h5>
                 <p><strong>Nome completo:</strong> {{ formulario.nome_completo|default:"-" }}</p>
                 <p><strong>CPF:</strong> {{ formulario.cpf|default:"-" }}</p>
-                <p><strong>Cidade/Estado:</strong> {{ formulario.cidade_estado|default:"-" }}</p>
                 <p><strong>Função pretendida:</strong> {{ formulario.funcao_pretendida|default:"-" }}</p>
             </div></div>
         </div>
@@ -36,6 +35,8 @@
                 <h5 class="fw-bold border-bottom pb-2 mb-3">Endereco</h5>
                 <p><strong>CEP:</strong> {{ formulario.cep|default:"-" }}</p>
                 <p><strong>Endereco:</strong> {{ formulario.endereco|default:"-" }}</p>
+                <p><strong>Bairro:</strong> {{ formulario.bairro|default:"-" }}</p>
+                <p><strong>Cidade/Estado:</strong> {{ formulario.cidade_estado|default:"-" }}</p>
             </div></div>
         </div>
         <div class="col-lg-6">
@@ -70,7 +71,9 @@
                 <p><strong>Secao:</strong> {{ formulario.secao_eleitoral|default:"-" }}</p>
                 <p><strong>UF titulo:</strong> {{ formulario.uf_titulo_eleitor|default:"-" }}</p>
                 <p><strong>Reservista:</strong> {{ formulario.reservista|default:"-" }}</p>
-                <p><strong>CNH:</strong> {{ formulario.cnh|default:"-" }}</p>
+                <p><strong>Nº CNH:</strong> {{ formulario.numero_cnh|default:"-" }}</p>
+                <p><strong>Validade CNH:</strong> {{ formulario.validade_cnh|date:"d/m/Y"|default:"-" }}</p>
+                <p><strong>Estado CNH:</strong> {{ formulario.estado_cnh|default:"-" }}</p>
             </div></div>
         </div>
         <div class="col-lg-6">

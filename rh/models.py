@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from phonenumber_field.modelfields import PhoneNumberField
+from .constants import ORGAOS_EXPEDIDORES_RG, UF_CHOICES
 import uuid
 import os
 
@@ -174,14 +176,6 @@ class PesquisaDemissional(models.Model):
         return reverse('responder_pesquisa', kwargs={'uuid_pesquisa': self.id_pesquisa})
 
 
-UF_CHOICES = [
-    ('AC', 'AC'), ('AL', 'AL'), ('AP', 'AP'), ('AM', 'AM'), ('BA', 'BA'), ('CE', 'CE'),
-    ('DF', 'DF'), ('ES', 'ES'), ('GO', 'GO'), ('MA', 'MA'), ('MT', 'MT'), ('MS', 'MS'),
-    ('MG', 'MG'), ('PA', 'PA'), ('PB', 'PB'), ('PR', 'PR'), ('PE', 'PE'), ('PI', 'PI'),
-    ('RJ', 'RJ'), ('RN', 'RN'), ('RS', 'RS'), ('RO', 'RO'), ('RR', 'RR'), ('SC', 'SC'),
-    ('SP', 'SP'), ('SE', 'SE'), ('TO', 'TO'),
-]
-
 SIM_NAO_CHOICES = [
     ('SIM', 'Sim'),
     ('NAO', 'Nao'),
@@ -238,14 +232,15 @@ class FormularioAdmissional(models.Model):
 
     pis = models.CharField(max_length=30, blank=True, null=True)
     numero_ctps = models.CharField(max_length=30, blank=True, null=True)
-    serie_ctps = models.CharField(max_length=30, blank=True, null=True)
+    serie_ctps = models.CharField(max_length=4, blank=True, null=True)
     uf_ctps = models.CharField(max_length=2, choices=UF_CHOICES, blank=True, null=True)
 
     cep = models.CharField(max_length=10, blank=True, null=True, help_text="Ex.: 00000000")
-    endereco = models.CharField(max_length=255, blank=True, null=True, help_text="Rua, Numero, Bairro e Complemento")
+    endereco = models.CharField(max_length=255, blank=True, null=True, help_text="Rua e numero")
+    bairro = models.CharField(max_length=120, blank=True, null=True)
 
-    telefone_principal = models.CharField(max_length=20, blank=True, null=True, help_text="Ex.: DD 99999-9999")
-    contato_recado = models.CharField(max_length=20, blank=True, null=True, help_text="Ex.: DD 99999-9999")
+    telefone_principal = PhoneNumberField(region='BR', blank=True, null=True, help_text="Ex.: DD 99999-9999")
+    contato_recado = PhoneNumberField(region='BR', blank=True, null=True, help_text="Ex.: DD 99999-9999")
     email = models.EmailField(blank=True, null=True)
 
     data_nascimento = models.DateField(blank=True, null=True)
@@ -257,7 +252,7 @@ class FormularioAdmissional(models.Model):
     nome_pai = models.CharField(max_length=150, blank=True, null=True)
 
     numero_rg = models.CharField(max_length=30, blank=True, null=True)
-    orgao_expedidor = models.CharField(max_length=30, blank=True, null=True)
+    orgao_expedidor = models.CharField(max_length=30, choices=ORGAOS_EXPEDIDORES_RG, blank=True, null=True)
     uf_rg = models.CharField(max_length=2, choices=UF_CHOICES, blank=True, null=True)
     data_emissao_rg = models.DateField(blank=True, null=True)
     titulo_eleitor = models.CharField(max_length=30, blank=True, null=True)
@@ -266,6 +261,9 @@ class FormularioAdmissional(models.Model):
     uf_titulo_eleitor = models.CharField(max_length=2, choices=UF_CHOICES, blank=True, null=True)
     reservista = models.CharField(max_length=50, blank=True, null=True)
     cnh = models.CharField(max_length=100, blank=True, null=True, help_text="Informar numero, validade e estado")
+    numero_cnh = models.CharField(max_length=9, blank=True, null=True)
+    validade_cnh = models.DateField(blank=True, null=True)
+    estado_cnh = models.CharField(max_length=2, choices=UF_CHOICES, blank=True, null=True)
 
     estado_civil = models.CharField(max_length=20, choices=ESTADO_CIVIL_CHOICES, blank=True, null=True)
     possui_dependentes_ir = models.CharField(max_length=3, choices=SIM_NAO_CHOICES, blank=True, null=True)
@@ -292,6 +290,10 @@ class FormularioAdmissional(models.Model):
             self.cpf = re.sub(r'\D', '', self.cpf)
         if self.cep:
             self.cep = re.sub(r'\D', '', self.cep)
+        for campo in ['pis', 'numero_ctps', 'serie_ctps', 'numero_rg', 'titulo_eleitor', 'numero_cnh']:
+            valor = getattr(self, campo, None)
+            if valor:
+                setattr(self, campo, re.sub(r'\D', '', valor))
         super().save(*args, **kwargs)
 
 

@@ -39,8 +39,18 @@ class DependenteAdmissionalInline(admin.TabularInline):
 class FormularioAdmissionalAdmin(admin.ModelAdmin):
     list_display = ('candidato_nome_interno', 'respondido', 'data_geracao', 'data_resposta', 'gerado_por')
     list_filter = ('respondido', 'data_geracao')
-    search_fields = ('candidato_nome_interno', 'nome_completo', 'cpf')
+    search_fields = ('candidato_nome_interno', 'nome_completo', 'cpf', 'bairro', 'numero_cnh')
     readonly_fields = ('id_formulario', 'data_geracao', 'data_resposta')
+    fieldsets = (
+        ('Controle interno', {'fields': ('id_formulario', 'gerado_por', 'data_geracao', 'respondido', 'data_resposta', 'candidato_nome_interno', 'observacoes_rh')}),
+        ('Dados básicos', {'fields': ('nome_completo', 'cpf', 'funcao_pretendida')}),
+        ('CTPS', {'fields': ('pis', 'numero_ctps', 'serie_ctps', 'uf_ctps')}),
+        ('Endereço', {'fields': ('cep', 'endereco', 'bairro', 'cidade_estado')}),
+        ('Contatos', {'fields': ('telefone_principal', 'contato_recado', 'email')}),
+        ('Dados pessoais', {'fields': ('data_nascimento', 'estado_nascimento', 'naturalidade', 'cor_raca', 'grau_instrucao', 'nome_mae', 'nome_pai', 'estado_civil')}),
+        ('Documentos', {'fields': ('numero_rg', 'orgao_expedidor', 'uf_rg', 'data_emissao_rg', 'titulo_eleitor', 'zona_eleitoral', 'secao_eleitoral', 'uf_titulo_eleitor', 'reservista', 'numero_cnh', 'validade_cnh', 'estado_cnh')}),
+        ('Benefícios e LGPD', {'fields': ('possui_dependentes_ir', 'botina', 'camisa', 'calca', 'utiliza_vale_transporte', 'trajeto_vale_transporte', 'lgpd_consentimento')}),
+    )
     inlines = [DependenteAdmissionalInline]
 
 

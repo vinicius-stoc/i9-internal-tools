@@ -1,9 +1,9 @@
-import csv
+﻿import csv
 import pandas as pd
 from django.utils import timezone
 from django.contrib import messages
 from django.http import HttpResponse
-from core.decorators import group_required
+from core.decorators import group_required, exige_permissao
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db import transaction
@@ -34,7 +34,7 @@ def job_apply(request, pk):
             candidatura.vaga = vaga
             candidatura.save()
 
-            messages.success(request, 'Currículo enviado com sucesso!')
+            messages.success(request, 'CurrÃ­culo enviado com sucesso!')
             return redirect('job_list')
     else:
         form = CandidaturaForm()
@@ -81,7 +81,7 @@ def candidate_screening(request):
 @group_required(['RH'])
 def candidate_datail(request, pk):
     """
-    Exibe o currículo de um candidato e permite o usuario mudar de fase (aprovar ou reprovar)
+    Exibe o currÃ­culo de um candidato e permite o usuario mudar de fase (aprovar ou reprovar)
     o pk pe o id do candidato quem vem da url
     """
     candidatura =  get_object_or_404(Candidatura, pk=pk)
@@ -97,7 +97,7 @@ def candidate_datail(request, pk):
 
         candidatura.save()
 
-        messages.success(request, f'Avaliação de {candidatura.nome_completo} atualizada.')
+        messages.success(request, f'AvaliaÃ§Ã£o de {candidatura.nome_completo} atualizada.')
 
         return redirect('candidate_datail', pk= candidatura.id)
 
@@ -159,7 +159,7 @@ def solicitar_abertura_vaga(request):
             solicitacao.solicitante = request.user
             solicitacao.save()
 
-            messages.success(request, "Solicitação enviada! O RH analisará o pedido em breve.")
+            messages.success(request, "SolicitaÃ§Ã£o enviada! O RH analisarÃ¡ o pedido em breve.")
             return redirect('home')
     else:
         form = SolicitacaoVagaForm()
@@ -172,10 +172,10 @@ def solicitar_abertura_vaga(request):
 def listar_solicitacoes(request):
     """
     O QUE FAZ: Painel do RH para ver todos os pedidos de vagas dos gestores.
-    ENGENHARIA: Usamos Case/When para forçar o banco de dados a colocar o status
+    ENGENHARIA: Usamos Case/When para forÃ§ar o banco de dados a colocar o status
     'PENDENTE' sempre no topo da tabela, agilizando a vida do RH.
     """
-    # Ordenação customizada: Pendentes = 0, Aprovadas = 1, Reprovadas = 2
+    # OrdenaÃ§Ã£o customizada: Pendentes = 0, Aprovadas = 1, Reprovadas = 2
     solicitacoes = SolicitacaoVaga.objects.all().order_by(
         Case(
             When(status='PENDENTE', then=Value(0)),
@@ -184,7 +184,7 @@ def listar_solicitacoes(request):
             default=Value(3),
             output_field=IntegerField(),
         ),
-        '-data_solicitacao'  # Critério de desempate: Mais recentes primeiro
+        '-data_solicitacao'  # CritÃ©rio de desempate: Mais recentes primeiro
     )
 
     total_pendentes = solicitacoes.filter(status='PENDENTE').count()
@@ -213,7 +213,7 @@ def detalhe_solicitacao(request, pk):
             solicitacao.observacoes_rh = parecer
 
         solicitacao.save()
-        messages.success(request, f"Parecer registrado! A solicitação para {solicitacao.nome_vaga} foi atualizada.")
+        messages.success(request, f"Parecer registrado! A solicitaÃ§Ã£o para {solicitacao.nome_vaga} foi atualizada.")
 
         return redirect('listar_solicitacoes')
 
@@ -314,7 +314,7 @@ def _dependentes_texto(formulario):
 
 
 @login_required(login_url='/login/')
-@group_required(['RH'])
+@exige_permissao(['rh'])
 def listar_formularios_admissionais(request):
     formularios = FormularioAdmissional.objects.select_related('gerado_por').prefetch_related('dependentes').order_by('-data_geracao')
 
@@ -326,11 +326,12 @@ def listar_formularios_admissionais(request):
         writer = csv.writer(response, delimiter=';')
         writer.writerow([
             'Nome Candidato Interno', 'Data Geracao', 'Gerado Por', 'Status', 'Data Resposta',
-            'Nome Completo', 'CPF', 'Cidade/Estado', 'Funcao Pretendida', 'PIS', 'Numero CTPS', 'Serie CTPS', 'UF CTPS',
-            'CEP', 'Endereco', 'Telefone Principal', 'Contato Recado', 'Email',
+            'Nome Completo', 'CPF', 'Funcao Pretendida', 'PIS', 'Numero CTPS', 'Serie CTPS', 'UF CTPS',
+            'CEP', 'Endereco', 'Bairro', 'Cidade/Estado', 'Telefone Principal', 'Contato Recado', 'Email',
             'Data Nascimento', 'Estado Nascimento', 'Naturalidade', 'Cor/Raca', 'Grau Instrucao',
             'Nome Mae', 'Nome Pai', 'Numero RG', 'Orgao Expedidor', 'UF RG', 'Data Emissao RG',
-            'Titulo Eleitor', 'Zona Eleitoral', 'Secao Eleitoral', 'UF Titulo Eleitor', 'Reservista', 'CNH',
+            'Titulo Eleitor', 'Zona Eleitoral', 'Secao Eleitoral', 'UF Titulo Eleitor', 'Reservista',
+            'NÂº CNH', 'Validade CNH', 'Estado CNH',
             'Estado Civil', 'Possui Dependentes IR', 'Dependentes Texto',
             'Botina', 'Camisa', 'Calca', 'Utiliza Vale Transporte', 'Trajeto Vale Transporte', 'LGPD Consentimento', 'Observacoes RH',
         ])
@@ -344,7 +345,6 @@ def listar_formularios_admissionais(request):
                 formulario.data_resposta.strftime('%d/%m/%Y %H:%M') if formulario.data_resposta else '',
                 formulario.nome_completo,
                 formulario.cpf,
-                formulario.cidade_estado,
                 formulario.funcao_pretendida,
                 formulario.pis,
                 formulario.numero_ctps,
@@ -352,6 +352,8 @@ def listar_formularios_admissionais(request):
                 formulario.uf_ctps,
                 formulario.cep,
                 formulario.endereco,
+                formulario.bairro,
+                formulario.cidade_estado,
                 formulario.telefone_principal,
                 formulario.contato_recado,
                 formulario.email,
@@ -371,7 +373,9 @@ def listar_formularios_admissionais(request):
                 formulario.secao_eleitoral,
                 formulario.uf_titulo_eleitor,
                 formulario.reservista,
-                formulario.cnh,
+                formulario.numero_cnh,
+                formulario.validade_cnh.strftime('%d/%m/%Y') if formulario.validade_cnh else '',
+                formulario.estado_cnh,
                 formulario.get_estado_civil_display() if formulario.estado_civil else '',
                 formulario.get_possui_dependentes_ir_display() if formulario.possui_dependentes_ir else '',
                 _dependentes_texto(formulario),
@@ -399,7 +403,7 @@ def listar_formularios_admissionais(request):
 
 
 @login_required(login_url='/login/')
-@group_required(['RH'])
+@exige_permissao(['rh'])
 def gerar_formulario_admissional(request):
     if request.method == 'POST':
         form = FormularioAdmissionalGeracaoForm(request.POST)
@@ -417,7 +421,7 @@ def gerar_formulario_admissional(request):
 
 
 @login_required(login_url='/login/')
-@group_required(['RH'])
+@exige_permissao(['rh'])
 def detalhe_formulario_admissional(request, uuid_formulario):
     formulario = get_object_or_404(
         FormularioAdmissional.objects.select_related('gerado_por').prefetch_related('dependentes'),
@@ -437,16 +441,22 @@ def responder_formulario_admissional(request, uuid_formulario):
         form = FormularioAdmissionalRespostaForm(request.POST, instance=formulario)
         formset = DependenteAdmissionalFormSet(request.POST, instance=formulario)
 
-        if form.is_valid() and formset.is_valid():
+        if form.is_valid():
             possui_dependentes = form.cleaned_data.get('possui_dependentes_ir') == 'SIM'
-            dependentes_validos = [
-                form_dependente for form_dependente in formset.forms
-                if form_dependente.cleaned_data
-                and not form_dependente.cleaned_data.get('DELETE')
-                and form_dependente.cleaned_data.get('nome_completo')
-            ]
+            formset_valido = formset.is_valid() if possui_dependentes else True
+            dependentes_validos = []
 
-            if possui_dependentes and not dependentes_validos:
+            if formset_valido and possui_dependentes:
+                dependentes_validos = [
+                    form_dependente for form_dependente in formset.forms
+                    if form_dependente.cleaned_data
+                    and not form_dependente.cleaned_data.get('DELETE')
+                    and form_dependente.cleaned_data.get('nome_completo')
+                ]
+
+            if possui_dependentes and not formset_valido:
+                pass
+            elif possui_dependentes and not dependentes_validos:
                 form.add_error('possui_dependentes_ir', 'Informe pelo menos 1 dependente completo.')
             else:
                 with transaction.atomic():
@@ -520,7 +530,7 @@ def dashboard_rh(request):
         turnover_geral = ((admissoes_ano + desligamentos_ano) / 2) / media_colab
 
 
-    # FUNIL DE CONTRATAÇÕES
+    # FUNIL DE CONTRATAÃ‡Ã•ES
     # total de vagas criadas no ano
     total_vagas = Vaga.objects.filter(
         data_criacao__year=ano_atual
@@ -548,7 +558,7 @@ def dashboard_rh(request):
     ).count()
 
 
-    # ABSENTEÍSMO
+    # ABSENTEÃSMO
     registros_ponto_ano = RegistroAbsenteismo.objects.filter(data_referencia__year=ano_atual)
 
     if mes_filtro > 0:
@@ -600,18 +610,18 @@ def importar_base_rh(request):
             return redirect('importar_base_rh')
 
         if not arquivo.name.endswith(('.xls', '.xlsx')):
-            messages.error(request, 'Formato inválido. Envie um arquivo Excel (.xls ou .xlsx).')
+            messages.error(request, 'Formato invÃ¡lido. Envie um arquivo Excel (.xls ou .xlsx).')
             return redirect('importar_base_rh')
 
         try:
             df = pd.read_excel(arquivo)
             df = df.replace({pd.NA: None, float('nan'): None, 'NaT': None})
 
-            df['Descrição Dpto'] = df['Descrição Dpto'].str.replace(' ', '_', regex=False).str.replace('-', '', regex=False)
-            df['Admissão'] = pd.to_datetime(df['Admissão'], errors='coerce', dayfirst=True)
-            df['Data Demissão'] = pd.to_datetime(df['Data Demissão'], errors='coerce', dayfirst=True)
-            df['Admissão'] = df['Admissão'].dt.strftime('%Y-%m-%d')
-            df['Data Demissão'] = df['Data Demissão'].dt.strftime('%Y-%m-%d')
+            df['DescriÃ§Ã£o Dpto'] = df['DescriÃ§Ã£o Dpto'].str.replace(' ', '_', regex=False).str.replace('-', '', regex=False)
+            df['AdmissÃ£o'] = pd.to_datetime(df['AdmissÃ£o'], errors='coerce', dayfirst=True)
+            df['Data DemissÃ£o'] = pd.to_datetime(df['Data DemissÃ£o'], errors='coerce', dayfirst=True)
+            df['AdmissÃ£o'] = df['AdmissÃ£o'].dt.strftime('%Y-%m-%d')
+            df['Data DemissÃ£o'] = df['Data DemissÃ£o'].dt.strftime('%Y-%m-%d')
             df = df.replace({
                 pd.NA: None,
                 float('nan'): None,
@@ -624,14 +634,14 @@ def importar_base_rh(request):
                 'ADMINISTRATIVO': 'AD', 'COMERCIAL': 'CO', 'COMPRAS': 'CM',
                 'DIRETORIA': 'DI', 'FINANCEIRO': 'FI', 'OBRAS': 'OB',
                 'OBRA_MOSAIC': 'OM', 'OBRA_TIMAC': 'OT', 'PLANEJAMENTO_PROCESSO_E_QUALIDADE': 'PP',
-                'PRAF_INDUSTRIAL_LTDA': 'PR', 'PRODUÇÃO': 'PD', 'PROJETOS': 'PJ',
-                'RECURSOS_HUMANOS': 'RH', 'Sede_ADM': 'SA', 'TECNOLOGIA_DA_INFORMAÇAO': 'TI',
+                'PRAF_INDUSTRIAL_LTDA': 'PR', 'PRODUÃ‡ÃƒO': 'PD', 'PROJETOS': 'PJ',
+                'RECURSOS_HUMANOS': 'RH', 'Sede_ADM': 'SA', 'TECNOLOGIA_DA_INFORMAÃ‡AO': 'TI',
             }
 
             sucesso = 0
 
             for index, row in df.iterrows():
-                matricula_excel = str(row['Cód Epr']).strip()
+                matricula_excel = str(row['CÃ³d Epr']).strip()
                 if matricula_excel.lower() in ['nan', 'none', '']:
                     matricula_excel = None
                 cpf_excel = str(row['CPF']).replace('.0', '').strip()
@@ -641,15 +651,15 @@ def importar_base_rh(request):
                     else:
                         continue
                 nome_excel = row['Nome']
-                salario_excel = row['Salário']
-                situacao_excel = str(row['Situação']).strip().upper()
-                data_demissao_excel = row['Data Demissão']
-                grau_instrucao_excel = row['Grau instrução']
+                salario_excel = row['SalÃ¡rio']
+                situacao_excel = str(row['SituaÃ§Ã£o']).strip().upper()
+                data_demissao_excel = row['Data DemissÃ£o']
+                grau_instrucao_excel = row['Grau instruÃ§Ã£o']
                 sexo_excel = row['Sexo']
-                dpto_excel = row['Descrição Dpto']
-                desc_cargo_excel = row['Descrição cargo']
-                admissao = row['Admissão']
-                sigla_setor = mapa_setor.get(row['Descrição Dpto'], 'CA')
+                dpto_excel = row['DescriÃ§Ã£o Dpto']
+                desc_cargo_excel = row['DescriÃ§Ã£o cargo']
+                admissao = row['AdmissÃ£o']
+                sigla_setor = mapa_setor.get(row['DescriÃ§Ã£o Dpto'], 'CA')
                 sigla_situacao = ''
                 if situacao_excel == 'DEMITIDO':
                     sigla_situacao = 'DM'
@@ -666,7 +676,7 @@ def importar_base_rh(request):
                         'data_demissao': data_demissao_excel if pd.notnull(data_demissao_excel) else None,
                         'cargo': desc_cargo_excel,
                         'salario': salario_excel,
-                        'matricula': str(row['Cód Epr']).strip()
+                        'matricula': str(row['CÃ³d Epr']).strip()
                     }
                 )
 
@@ -692,20 +702,20 @@ def importar_ponto_rh(request):
         data_referencia_form = request.POST.get('data_referencia')
 
         if not arquivo or not data_referencia_form:
-            messages.error(request, 'Por favor, selecione o arquivo e a data de referência.')
+            messages.error(request, 'Por favor, selecione o arquivo e a data de referÃªncia.')
             return redirect('importar_ponto_rh')
 
-        # TODO 1: Valide se o arquivo termina com '.csv' (Se não, retorne um erro igual na outra view)
+        # TODO 1: Valide se o arquivo termina com '.csv' (Se nÃ£o, retorne um erro igual na outra view)
         if not arquivo:
             messages.error(request, 'Por favor, selecione um arquivo.')
             return redirect('importar_ponto_rh')
 
         if not arquivo.name.lower().endswith('.csv'):
-            messages.error(request, 'Formato inválido. Envie um arquivo CSV (.csv).')
+            messages.error(request, 'Formato invÃ¡lido. Envie um arquivo CSV (.csv).')
             return redirect('importar_ponto_rh')
 
         try:
-            # TODO 2: Leia o CSV usando os mesmos parâmetros de sucesso que descobrimos no script
+            # TODO 2: Leia o CSV usando os mesmos parÃ¢metros de sucesso que descobrimos no script
             df =  pd.read_csv(arquivo, sep=',', encoding='utf-8-sig', dtype=str)
             df.columns = df.columns.str.strip()
             sucesso = 0
@@ -739,7 +749,7 @@ def importar_ponto_rh(request):
                 sucesso += 1
 
             messages.success(request,
-                             f'Ponto importado com sucesso! {sucesso} registros salvos. {erros} não encontrados.')
+                             f'Ponto importado com sucesso! {sucesso} registros salvos. {erros} nÃ£o encontrados.')
             return redirect('dashboard_rh')
 
         except Exception as e:
@@ -747,3 +757,4 @@ def importar_ponto_rh(request):
             return redirect('importar_ponto_rh')
 
     return render(request, 'rh/importar_ponto.html')
+
