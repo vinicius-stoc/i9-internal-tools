@@ -64,7 +64,7 @@
                             <h5 class="fw-bold section-title">CTPS</h5>
                             <div class="row g-3">
                                 <div class="col-md-3"><label class="form-label fw-semibold required">PIS <i class="bi bi-question-circle tooltip-help" data-bs-toggle="tooltip" data-bs-placement="top" title="Pode ser consultado na Carteira de Trabalho Digital, no app FGTS, no Cartão Cidadão ou em documentos antigos de registro."></i></label>{% render_field form.pis %}{{ form.pis.errors }}</div>
-                                <div class="col-md-3"><label class="form-label fw-semibold required">Número da CTPS <i class="bi bi-question-circle tooltip-help" data-bs-toggle="tooltip" data-bs-placement="top" title="Na Carteira de Trabalho Digital, consulte seus dados pessoais ou contratos. Se não localizar, informe o número apresentado no aplicativo."></i></label>{% render_field form.numero_ctps %}{{ form.numero_ctps.errors }}</div>
+                                <div class="col-md-3"><label class="form-label fw-semibold">Número da CTPS <i class="bi bi-question-circle tooltip-help" data-bs-toggle="tooltip" data-bs-placement="top" title="Na Carteira de Trabalho Digital, consulte seus dados pessoais ou contratos. Se não localizar, deixe em branco."></i></label>{% render_field form.numero_ctps %}{{ form.numero_ctps.errors }}</div>
                                 <div class="col-md-3"><label class="form-label fw-semibold">Série da CTPS <i class="bi bi-question-circle tooltip-help" data-bs-toggle="tooltip" data-bs-placement="top" title="Na CTPS física fica ao lado do número. Na CTPS Digital, deixe em branco se não houver série separada."></i></label>{% render_field form.serie_ctps %}{{ form.serie_ctps.errors }}</div>
                                 <div class="col-md-3"><label class="form-label fw-semibold required">UF <i class="bi bi-question-circle tooltip-help" data-bs-toggle="tooltip" data-bs-placement="top" title="Informe o estado de emissão da CTPS. Na CTPS Digital, use a UF exibida nos dados do documento."></i></label>{% render_field form.uf_ctps %}{{ form.uf_ctps.errors }}</div>
                             </div>
@@ -80,8 +80,10 @@
                             <h5 class="fw-bold section-title">Contatos</h5>
                             <div class="row g-3">
                                 <div class="col-md-4"><label class="form-label fw-semibold required">Telefone principal</label>{% render_field form.telefone_principal %}<div class="help-text">{{ form.telefone_principal.help_text }}</div>{{ form.telefone_principal.errors }}</div>
-                                <div class="col-md-4"><label class="form-label fw-semibold required">Contato para recado</label>{% render_field form.contato_recado %}<div class="help-text">{{ form.contato_recado.help_text }}</div>{{ form.contato_recado.errors }}</div>
-                                <div class="col-md-4"><label class="form-label fw-semibold required">Endereço de e-mail</label>{% render_field form.email %}{{ form.email.errors }}</div>
+                                <div class="col-md-4"><label class="form-label fw-semibold required">Telefone para recado</label>{% render_field form.contato_recado %}<div class="help-text">{{ form.contato_recado.help_text }}</div>{{ form.contato_recado.errors }}</div>
+                                <div class="col-md-4"><label class="form-label fw-semibold required">Nome do contato para recado</label>{% render_field form.nome_contato_recado %}{{ form.nome_contato_recado.errors }}</div>
+                                <div class="col-md-4"><label class="form-label fw-semibold required">Grau de parentesco</label>{% render_field form.grau_parentesco_contato_recado %}{{ form.grau_parentesco_contato_recado.errors }}</div>
+                                <div class="col-md-8"><label class="form-label fw-semibold required">Endereço de e-mail</label>{% render_field form.email %}{{ form.email.errors }}</div>
                             </div>
 
                             <h5 class="fw-bold section-title">Dados Pessoais</h5>
@@ -127,7 +129,8 @@
                                     <div class="dependente-form border rounded-3 p-3 bg-light">
                                         {{ dependente_form.id }}
                                         <div class="row g-3">
-                                            <div class="col-md-4"><label class="form-label fw-semibold">Nome completo</label>{{ dependente_form.nome_completo }}{{ dependente_form.nome_completo.errors }}</div>
+                                            <div class="col-md-3"><label class="form-label fw-semibold">Nome completo</label>{{ dependente_form.nome_completo }}{{ dependente_form.nome_completo.errors }}</div>
+                                            <div class="col-md-2"><label class="form-label fw-semibold">Grau de parentesco</label>{{ dependente_form.grau_parentesco }}{{ dependente_form.grau_parentesco.errors }}</div>
                                             <div class="col-md-2"><label class="form-label fw-semibold">Nascimento</label>{{ dependente_form.data_nascimento }}{{ dependente_form.data_nascimento.errors }}</div>
                                             <div class="col-md-2"><label class="form-label fw-semibold">RG <i class="bi bi-question-circle tooltip-help" data-bs-toggle="tooltip" data-bs-placement="top" title="Informe o RG/CIN do dependente, se ele possuir."></i></label>{{ dependente_form.rg }}{{ dependente_form.rg.errors }}</div>
                                             <div class="col-md-2"><label class="form-label fw-semibold">CPF <i class="bi bi-question-circle tooltip-help" data-bs-toggle="tooltip" data-bs-placement="top" title="Informe os 11 números do CPF do dependente."></i></label>{{ dependente_form.cpf }}{{ dependente_form.cpf.errors }}</div>
@@ -180,7 +183,8 @@
     <template id="dependente-empty-form">
         <div class="dependente-form border rounded-3 p-3 bg-light">
             <div class="row g-3">
-                <div class="col-md-4"><label class="form-label fw-semibold">Nome completo</label>{{ formset.empty_form.nome_completo }}</div>
+                <div class="col-md-3"><label class="form-label fw-semibold">Nome completo</label>{{ formset.empty_form.nome_completo }}</div>
+                <div class="col-md-2"><label class="form-label fw-semibold">Grau de parentesco</label>{{ formset.empty_form.grau_parentesco }}</div>
                 <div class="col-md-2"><label class="form-label fw-semibold">Nascimento</label>{{ formset.empty_form.data_nascimento }}</div>
                 <div class="col-md-2"><label class="form-label fw-semibold">RG <i class="bi bi-question-circle tooltip-help" data-bs-toggle="tooltip" data-bs-placement="top" title="Informe o RG/CIN do dependente, se ele possuir."></i></label>{{ formset.empty_form.rg }}</div>
                 <div class="col-md-2"><label class="form-label fw-semibold">CPF <i class="bi bi-question-circle tooltip-help" data-bs-toggle="tooltip" data-bs-placement="top" title="Informe os 11 números do CPF do dependente."></i></label>{{ formset.empty_form.cpf }}</div>
@@ -190,6 +194,7 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'rh/js/formulario_admissional.js' %}"></script>
     <script>
         function inicializarTooltips() {
             document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
@@ -209,6 +214,9 @@
             container.insertAdjacentHTML('beforeend', template.replace(/__prefix__/g, index));
             totalForms.value = index + 1;
             inicializarTooltips();
+            if (window.inicializarFormularioAdmissional) {
+                window.inicializarFormularioAdmissional(container);
+            }
         });
     </script>
 </body>

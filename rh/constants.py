@@ -49,3 +49,31 @@ ORGAOS_EXPEDIDORES_RG = [
     ('MAE', 'MAE - Ministério da Aeronáutica'),
     ('SESDC', 'SESDC - Secretaria de Estado da Segurança, Defesa e Cidadania'),
 ]
+
+
+GRAU_PARENTESCO_CONTATO_CHOICES = [
+    ('PAI', 'Pai'),
+    ('MAE', 'Mãe'),
+    ('FILHO', 'Filho(a)'),
+    ('IRMAO', 'Irmão(ã)'),
+    ('CONJUGE', 'Cônjuge'),
+    ('COMPANHEIRO', 'Companheiro(a)'),
+    ('AVO', 'Avô/Avó'),
+    ('TIO', 'Tio(a)'),
+    ('PRIMO', 'Primo(a)'),
+    ('AMIGO', 'Amigo(a)'),
+    ('OUTRO', 'Outro'),
+]
+
+
+GRAU_PARENTESCO_DEPENDENTE_CHOICES = [
+    ('FILHO', 'Filho(a)'),
+    ('ENTEADO', 'Enteado(a)'),
+    ('CONJUGE', 'Cônjuge'),
+    ('COMPANHEIRO', 'Companheiro(a)'),
+    ('PAI', 'Pai'),
+    ('MAE', 'Mãe'),
+    ('IRMAO', 'Irmão(ã)'),
+    ('NETO', 'Neto(a)'),
+    ('OUTRO', 'Outro'),
+]

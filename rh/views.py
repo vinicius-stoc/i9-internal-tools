@@ -1,5 +1,10 @@
-﻿import csv
+import csv
+import re
+import unicodedata
+from html import escape
+from pathlib import Path
 import pandas as pd
+from django.conf import settings
 from django.utils import timezone
 from django.contrib import messages
 from django.http import HttpResponse
@@ -8,6 +13,12 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db import transaction
 from django.db.models import Count, Case, When, Value, IntegerField, Q, Sum
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import cm
+from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from core.utils.utils import convert_hours
 from .models import (Vaga, Candidatura, SolicitacaoVaga, PesquisaDemissional,
@@ -306,11 +317,24 @@ def _dependentes_texto(formulario):
     for dependente in formulario.dependentes.all():
         data_nascimento = dependente.data_nascimento.strftime('%d/%m/%Y') if dependente.data_nascimento else ''
         dependentes.append(
-            f'Nome: {dependente.nome_completo} | Nascimento: {data_nascimento} | '
+            f'Nome: {dependente.nome_completo} | Grau parentesco: {dependente.get_grau_parentesco_display() if dependente.grau_parentesco else ""} | '
+            f'Nascimento: {data_nascimento} | '
             f'RG: {dependente.rg} | CPF: {dependente.cpf} | '
             f'Cidade/Estado: {dependente.cidade_estado_nascimento}'
         )
     return ' || '.join(dependentes)
+
+
+def _valor_pdf(valor):
+    return valor if valor not in [None, ''] else '-'
+
+
+def _nome_arquivo_formulario(formulario):
+    nome = formulario.nome_completo or formulario.candidato_nome_interno or 'COLABORADOR'
+    cpf = re.sub(r'\D', '', formulario.cpf or '')
+    nome = unicodedata.normalize('NFKD', nome).encode('ascii', 'ignore').decode('ascii')
+    nome = re.sub(r'[^A-Za-z0-9]+', '_', nome).strip('_').upper()
+    return f'formulario_admissional_{nome}_{cpf}.pdf'
 
 
 @login_required(login_url='/login/')
@@ -327,7 +351,8 @@ def listar_formularios_admissionais(request):
         writer.writerow([
             'Nome Candidato Interno', 'Data Geracao', 'Gerado Por', 'Status', 'Data Resposta',
             'Nome Completo', 'CPF', 'Funcao Pretendida', 'PIS', 'Numero CTPS', 'Serie CTPS', 'UF CTPS',
-            'CEP', 'Endereco', 'Bairro', 'Cidade/Estado', 'Telefone Principal', 'Contato Recado', 'Email',
+            'CEP', 'Endereco', 'Bairro', 'Cidade/Estado', 'Telefone Principal', 'Telefone para recado',
+            'Nome do contato para recado', 'Grau de parentesco do contato para recado', 'Email',
             'Data Nascimento', 'Estado Nascimento', 'Naturalidade', 'Cor/Raca', 'Grau Instrucao',
             'Nome Mae', 'Nome Pai', 'Numero RG', 'Orgao Expedidor', 'UF RG', 'Data Emissao RG',
             'Titulo Eleitor', 'Zona Eleitoral', 'Secao Eleitoral', 'UF Titulo Eleitor', 'Reservista',
@@ -356,6 +381,8 @@ def listar_formularios_admissionais(request):
                 formulario.cidade_estado,
                 formulario.telefone_principal,
                 formulario.contato_recado,
+                formulario.nome_contato_recado,
+                formulario.get_grau_parentesco_contato_recado_display() if formulario.grau_parentesco_contato_recado else '',
                 formulario.email,
                 formulario.data_nascimento.strftime('%d/%m/%Y') if formulario.data_nascimento else '',
                 formulario.estado_nascimento,
@@ -428,6 +455,141 @@ def detalhe_formulario_admissional(request, uuid_formulario):
         id_formulario=uuid_formulario
     )
     return render(request, 'rh/detalhe_formulario_admissional.html', {'formulario': formulario})
+
+
+@login_required(login_url='/login/')
+@exige_permissao(['rh'])
+def exportar_formulario_admissional_pdf(request, uuid_formulario):
+    formulario = get_object_or_404(
+        FormularioAdmissional.objects.select_related('gerado_por').prefetch_related('dependentes'),
+        id_formulario=uuid_formulario
+    )
+
+    if not formulario.respondido:
+        messages.error(request, 'Só é possível exportar PDF de formulário respondido.')
+        return redirect('detalhe_formulario_admissional', uuid_formulario=formulario.id_formulario)
+
+    response = HttpResponse(content_type='application/pdf')
+    filename = _nome_arquivo_formulario(formulario)
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    doc = SimpleDocTemplate(response, pagesize=A4, rightMargin=1.5 * cm, leftMargin=1.5 * cm, topMargin=1.2 * cm, bottomMargin=1.2 * cm)
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='TituloI9', parent=styles['Title'], alignment=TA_CENTER, fontSize=16, spaceAfter=12))
+    styles.add(ParagraphStyle(name='SecaoI9', parent=styles['Heading2'], fontSize=11, textColor=colors.HexColor('#141C3C'), spaceBefore=10, spaceAfter=6))
+    normal = styles['BodyText']
+    elementos = []
+
+    logo_path = Path(settings.BASE_DIR) / 'static' / 'img' / 'logo.jpg'
+    if logo_path.exists():
+        elementos.append(Image(str(logo_path), width=3.0 * cm, height=1.6 * cm))
+        elementos.append(Spacer(1, 0.2 * cm))
+
+    elementos.append(Paragraph('FORMULÁRIO ADMISSIONAL', styles['TituloI9']))
+
+    def data_hora(valor):
+        return timezone.localtime(valor).strftime('%d/%m/%Y %H:%M') if valor else '-'
+
+    def data(valor):
+        return valor.strftime('%d/%m/%Y') if valor else '-'
+
+    def add_section(titulo, linhas):
+        elementos.append(Paragraph(titulo, styles['SecaoI9']))
+        table_data = [
+            [Paragraph(f'<b>{escape(str(label))}</b>', normal), Paragraph(escape(str(_valor_pdf(valor))), normal)]
+            for label, valor in linhas
+        ]
+        tabela = Table(table_data, colWidths=[6.0 * cm, 11.0 * cm], hAlign='LEFT')
+        tabela.setStyle(TableStyle([
+            ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#DDDDDD')),
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F2F3F5')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        elementos.append(tabela)
+
+    add_section('Cabeçalho', [
+        ('Nome do colaborador', formulario.nome_completo),
+        ('CPF', formulario.cpf),
+        ('Data de resposta', data_hora(formulario.data_resposta)),
+        ('Gerado por', request.user.get_username()),
+        ('Data de geração', timezone.localtime(timezone.now()).strftime('%d/%m/%Y %H:%M')),
+    ])
+    add_section('Dados Básicos', [
+        ('Nome completo', formulario.nome_completo),
+        ('CPF', formulario.cpf),
+        ('Função pretendida', formulario.funcao_pretendida),
+    ])
+    add_section('CTPS', [
+        ('PIS', formulario.pis),
+        ('Número da CTPS', formulario.numero_ctps),
+        ('Série CTPS', formulario.serie_ctps),
+        ('UF CTPS', formulario.uf_ctps),
+    ])
+    add_section('Endereço', [
+        ('CEP', formulario.cep),
+        ('Endereço', formulario.endereco),
+        ('Bairro', formulario.bairro),
+        ('Cidade/Estado', formulario.cidade_estado),
+    ])
+    add_section('Contatos', [
+        ('Telefone principal', formulario.telefone_principal),
+        ('Telefone para recado', formulario.contato_recado),
+        ('Nome do contato para recado', formulario.nome_contato_recado),
+        ('Grau de parentesco', formulario.get_grau_parentesco_contato_recado_display() if formulario.grau_parentesco_contato_recado else ''),
+        ('Endereço de e-mail', formulario.email),
+    ])
+    add_section('Dados Pessoais', [
+        ('Data de nascimento', data(formulario.data_nascimento)),
+        ('Estado nascimento', formulario.estado_nascimento),
+        ('Naturalidade', formulario.naturalidade),
+        ('Cor/Raça', formulario.get_cor_raca_display() if formulario.cor_raca else ''),
+        ('Grau de instrução', formulario.get_grau_instrucao_display() if formulario.grau_instrucao else ''),
+        ('Nome da mãe', formulario.nome_mae),
+        ('Nome do pai', formulario.nome_pai),
+    ])
+    add_section('Documentos', [
+        ('Número RG', formulario.numero_rg),
+        ('Órgão expedidor', formulario.orgao_expedidor),
+        ('UF RG', formulario.uf_rg),
+        ('Data emissão RG', data(formulario.data_emissao_rg)),
+        ('Título de eleitor', formulario.titulo_eleitor),
+        ('Zona eleitoral', formulario.zona_eleitoral),
+        ('Seção eleitoral', formulario.secao_eleitoral),
+        ('UF título eleitor', formulario.uf_titulo_eleitor),
+        ('Reservista', formulario.reservista),
+        ('Nº CNH', formulario.numero_cnh),
+        ('Validade CNH', data(formulario.validade_cnh)),
+        ('Estado CNH', formulario.estado_cnh),
+    ])
+    add_section('Dados Cônjuge', [('Estado civil', formulario.get_estado_civil_display() if formulario.estado_civil else '')])
+    add_section('Dependentes', [
+        ('Possui dependentes IR', formulario.get_possui_dependentes_ir_display() if formulario.possui_dependentes_ir else ''),
+        ('Dependentes', _dependentes_texto(formulario)),
+    ])
+    add_section('Uniforme', [
+        ('Botina', formulario.botina),
+        ('Camisa', formulario.camisa),
+        ('Calça', formulario.calca),
+    ])
+    add_section('Vale Transporte', [
+        ('Utiliza vale transporte', formulario.get_utiliza_vale_transporte_display() if formulario.utiliza_vale_transporte else ''),
+        ('Trajeto', formulario.trajeto_vale_transporte),
+    ])
+    add_section('LGPD', [('Consentimento', 'Sim' if formulario.lgpd_consentimento else 'Não')])
+    add_section('Controle Interno', [
+        ('ID formulário', formulario.id_formulario),
+        ('Gerado por', formulario.gerado_por.get_username() if formulario.gerado_por else ''),
+        ('Data geração', data_hora(formulario.data_geracao)),
+        ('Respondido', 'Sim' if formulario.respondido else 'Não'),
+        ('Observações RH', formulario.observacoes_rh),
+    ])
+
+    doc.build(elementos)
+    return response
 
 
 def responder_formulario_admissional(request, uuid_formulario):
