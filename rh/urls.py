@@ -17,6 +17,7 @@ urlpatterns = [
     path('pesquisa-demissional/responder/<uuid:uuid_pesquisa>/', views.responder_pesquisa, name='responder_pesquisa'),
     path('formulario-admissional/', views.listar_formularios_admissionais, name='listar_formularios_admissionais'),
     path('formulario-admissional/gerar/', views.gerar_formulario_admissional, name='gerar_formulario_admissional'),
+    path('formulario-admissional/<uuid:uuid_formulario>/pdf/', views.exportar_formulario_admissional_pdf, name='exportar_formulario_admissional_pdf'),
     path('formulario-admissional/<uuid:uuid_formulario>/', views.detalhe_formulario_admissional, name='detalhe_formulario_admissional'),
     path('formulario-admissional/responder/<uuid:uuid_formulario>/', views.responder_formulario_admissional, name='responder_formulario_admissional'),
     path('pesquisas/', views.listar_pesquisas, name='listar_pesquisas'),

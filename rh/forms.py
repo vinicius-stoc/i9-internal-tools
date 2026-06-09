@@ -3,7 +3,12 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
 from phonenumber_field.formfields import PhoneNumberField
-from .constants import ORGAOS_EXPEDIDORES_RG, get_municipios_brasileiros_choices
+from .constants import (
+    GRAU_PARENTESCO_CONTATO_CHOICES,
+    GRAU_PARENTESCO_DEPENDENTE_CHOICES,
+    ORGAOS_EXPEDIDORES_RG,
+    get_municipios_brasileiros_choices,
+)
 from .models import (Candidatura, Vaga, SolicitacaoVaga, PesquisaDemissional,
                      FormularioAdmissional, DependenteAdmissional)
 
@@ -129,13 +134,18 @@ class FormularioAdmissionalRespostaForm(forms.ModelForm):
     Formulario publico para preenchimento admissional.
     """
     telefone_principal = PhoneNumberField(region='BR', error_messages={'invalid': 'Informe um telefone brasileiro valido.'})
-    contato_recado = PhoneNumberField(region='BR', error_messages={'invalid': 'Informe um telefone brasileiro valido para recado.'})
+    contato_recado = PhoneNumberField(
+        region='BR',
+        label='Telefone para recado',
+        error_messages={'invalid': 'Informe um telefone brasileiro valido para recado.'},
+    )
 
     campos_obrigatorios = [
         'nome_completo', 'cpf', 'funcao_pretendida',
-        'pis', 'numero_ctps', 'uf_ctps',
+        'pis', 'uf_ctps',
         'cep', 'endereco', 'bairro', 'cidade_estado',
-        'telefone_principal', 'contato_recado', 'email',
+        'telefone_principal', 'contato_recado', 'nome_contato_recado',
+        'grau_parentesco_contato_recado', 'email',
         'data_nascimento', 'estado_nascimento', 'naturalidade', 'cor_raca',
         'grau_instrucao', 'nome_mae', 'nome_pai',
         'numero_rg', 'orgao_expedidor', 'uf_rg', 'data_emissao_rg',
@@ -150,7 +160,8 @@ class FormularioAdmissionalRespostaForm(forms.ModelForm):
             'nome_completo', 'cpf', 'funcao_pretendida',
             'pis', 'numero_ctps', 'serie_ctps', 'uf_ctps',
             'cep', 'endereco', 'bairro', 'cidade_estado',
-            'telefone_principal', 'contato_recado', 'email',
+            'telefone_principal', 'contato_recado', 'nome_contato_recado',
+            'grau_parentesco_contato_recado', 'email',
             'data_nascimento', 'estado_nascimento', 'naturalidade', 'cor_raca',
             'grau_instrucao', 'nome_mae', 'nome_pai',
             'numero_rg', 'orgao_expedidor', 'uf_rg', 'data_emissao_rg',
@@ -182,6 +193,10 @@ class FormularioAdmissionalRespostaForm(forms.ModelForm):
         for nome in self.campos_obrigatorios:
             self.fields[nome].required = True
 
+        self.fields['contato_recado'].label = 'Telefone para recado'
+        self.fields['nome_contato_recado'].label = 'Nome do contato para recado'
+        self.fields['grau_parentesco_contato_recado'].label = 'Grau de parentesco'
+        self.fields['grau_parentesco_contato_recado'].choices = [('', '---------')] + list(GRAU_PARENTESCO_CONTATO_CHOICES)
         self.fields['cidade_estado'].help_text = 'Ex.: Araucária-PR'
         self.fields['funcao_pretendida'].help_text = 'Ex.: Ajudante, Soldador, Assistente Administrativo'
         self.fields['endereco'].help_text = 'Rua e número'
@@ -189,6 +204,7 @@ class FormularioAdmissionalRespostaForm(forms.ModelForm):
         self.fields['naturalidade'].help_text = 'Cidade onde nasceu'
         self.fields['trajeto_vale_transporte'].required = False
         self.fields['trajeto_vale_transporte'].help_text = 'Informe as linhas, terminais ou o caminho utilizado entre sua residência e o trabalho.'
+        self.fields['numero_ctps'].required = False
         self.fields['serie_ctps'].required = False
         self.fields['titulo_eleitor'].required = False
         self.fields['zona_eleitoral'].required = False
@@ -245,6 +261,28 @@ class FormularioAdmissionalRespostaForm(forms.ModelForm):
             ('NAO', 'Não'),
         ]
 
+        self._configurar_campos_numericos()
+
+    def _configurar_campos_numericos(self):
+        configs = {
+            'cpf': {'maxlength': '11', 'minlength': '11', 'pattern': '[0-9]{11}', 'autocomplete': 'off'},
+            'pis': {'maxlength': '11', 'minlength': '11', 'pattern': '[0-9]{11}', 'autocomplete': 'off'},
+            'cep': {'maxlength': '8', 'minlength': '8', 'pattern': '[0-9]{8}', 'autocomplete': 'postal-code'},
+            'numero_ctps': {'maxlength': '11', 'pattern': '[0-9]{0,11}', 'autocomplete': 'off'},
+            'serie_ctps': {'maxlength': '4', 'pattern': '[0-9]{4}', 'autocomplete': 'off'},
+            'numero_rg': {'maxlength': '9', 'pattern': '[0-9]{1,9}', 'autocomplete': 'off'},
+            'titulo_eleitor': {'maxlength': '12', 'pattern': '[0-9]{0,12}', 'autocomplete': 'off'},
+            'zona_eleitoral': {'maxlength': '4', 'pattern': '[0-9]*', 'autocomplete': 'off'},
+            'secao_eleitoral': {'maxlength': '4', 'pattern': '[0-9]*', 'autocomplete': 'off'},
+            'numero_cnh': {'maxlength': '9', 'pattern': '[0-9]{9}', 'autocomplete': 'off'},
+        }
+        for nome, attrs in configs.items():
+            self.fields[nome].widget.attrs.update({
+                'inputmode': 'numeric',
+                'data-only-digits': 'true',
+                **attrs,
+            })
+
     def clean_cpf(self):
         cpf = self._numero_sem_formatacao('cpf')
         if len(cpf) != 11:
@@ -265,9 +303,9 @@ class FormularioAdmissionalRespostaForm(forms.ModelForm):
 
     def clean_numero_ctps(self):
         numero_ctps = self._numero_sem_formatacao('numero_ctps')
-        if not numero_ctps or len(numero_ctps) > 11:
+        if numero_ctps and len(numero_ctps) > 11:
             raise ValidationError('Numero da CTPS deve conter apenas numeros e no maximo 11 digitos.')
-        return numero_ctps
+        return numero_ctps or None
 
     def clean_serie_ctps(self):
         serie_ctps = self._numero_sem_formatacao('serie_ctps')
@@ -319,7 +357,7 @@ class FormularioAdmissionalRespostaForm(forms.ModelForm):
             cleaned_data['trajeto_vale_transporte'] = ''
 
         if telefone_principal and contato_recado and telefone_principal.as_e164 == contato_recado.as_e164:
-            self.add_error('contato_recado', 'O contato para recado não pode ser igual ao telefone principal.')
+            self.add_error('contato_recado', 'O telefone para recado n?o pode ser igual ao telefone principal.')
 
         return cleaned_data
 
@@ -327,7 +365,7 @@ class FormularioAdmissionalRespostaForm(forms.ModelForm):
 class DependenteAdmissionalForm(forms.ModelForm):
     class Meta:
         model = DependenteAdmissional
-        fields = ['nome_completo', 'data_nascimento', 'rg', 'cpf', 'cidade_estado_nascimento']
+        fields = ['nome_completo', 'grau_parentesco', 'data_nascimento', 'rg', 'cpf', 'cidade_estado_nascimento']
         widgets = {
             'data_nascimento': forms.DateInput(attrs={'type': 'date'}),
         }
@@ -340,6 +378,15 @@ class DependenteAdmissionalForm(forms.ModelForm):
                 field.widget.attrs.update({'class': 'form-select'})
             else:
                 field.widget.attrs.update({'class': 'form-control'})
+        self.fields['grau_parentesco'].label = 'Grau de parentesco'
+        self.fields['grau_parentesco'].choices = [('', '---------')] + list(GRAU_PARENTESCO_DEPENDENTE_CHOICES)
+        self.fields['cpf'].widget.attrs.update({
+            'maxlength': '11',
+            'minlength': '11',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]{11}',
+            'data-only-digits': 'true',
+        })
 
     def clean_cpf(self):
         valor = self.cleaned_data.get('cpf') or ''
@@ -357,6 +404,7 @@ class DependenteAdmissionalForm(forms.ModelForm):
 
         valores = [
             cleaned_data.get('nome_completo'),
+            cleaned_data.get('grau_parentesco'),
             cleaned_data.get('data_nascimento'),
             cleaned_data.get('rg'),
             cleaned_data.get('cpf'),

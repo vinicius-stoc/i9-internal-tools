@@ -2,7 +2,12 @@ from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from phonenumber_field.modelfields import PhoneNumberField
-from .constants import ORGAOS_EXPEDIDORES_RG, UF_CHOICES
+from .constants import (
+    GRAU_PARENTESCO_CONTATO_CHOICES,
+    GRAU_PARENTESCO_DEPENDENTE_CHOICES,
+    ORGAOS_EXPEDIDORES_RG,
+    UF_CHOICES,
+)
 import uuid
 import os
 
@@ -231,7 +236,7 @@ class FormularioAdmissional(models.Model):
     funcao_pretendida = models.CharField(max_length=120, blank=True, null=True)
 
     pis = models.CharField(max_length=30, blank=True, null=True)
-    numero_ctps = models.CharField(max_length=30, blank=True, null=True)
+    numero_ctps = models.CharField(max_length=11, blank=True, null=True, verbose_name="Número da CTPS")
     serie_ctps = models.CharField(max_length=4, blank=True, null=True)
     uf_ctps = models.CharField(max_length=2, choices=UF_CHOICES, blank=True, null=True)
 
@@ -240,7 +245,9 @@ class FormularioAdmissional(models.Model):
     bairro = models.CharField(max_length=120, blank=True, null=True)
 
     telefone_principal = PhoneNumberField(region='BR', blank=True, null=True, help_text="Ex.: DD 99999-9999")
-    contato_recado = PhoneNumberField(region='BR', blank=True, null=True, help_text="Ex.: DD 99999-9999")
+    contato_recado = PhoneNumberField(region='BR', blank=True, null=True, verbose_name="Telefone para recado", help_text="Ex.: DD 99999-9999")
+    nome_contato_recado = models.CharField(max_length=150, blank=True, null=True, verbose_name="Nome do contato para recado")
+    grau_parentesco_contato_recado = models.CharField(max_length=20, choices=GRAU_PARENTESCO_CONTATO_CHOICES, blank=True, null=True, verbose_name="Grau de parentesco")
     email = models.EmailField(blank=True, null=True)
 
     data_nascimento = models.DateField(blank=True, null=True)
@@ -300,6 +307,7 @@ class FormularioAdmissional(models.Model):
 class DependenteAdmissional(models.Model):
     formulario = models.ForeignKey(FormularioAdmissional, related_name='dependentes', on_delete=models.CASCADE)
     nome_completo = models.CharField(max_length=150)
+    grau_parentesco = models.CharField(max_length=20, choices=GRAU_PARENTESCO_DEPENDENTE_CHOICES, blank=True, null=True, verbose_name="Grau de parentesco")
     data_nascimento = models.DateField()
     rg = models.CharField(max_length=30)
     cpf = models.CharField(max_length=14)

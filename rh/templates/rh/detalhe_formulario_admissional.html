@@ -9,7 +9,14 @@
             <h3 class="mb-0 text-dark fw-bold"><i class="bi bi-person-vcard me-2" style="color: var(--laranja-principal);"></i>{{ formulario.candidato_nome_interno }}</h3>
             <p class="text-muted small mb-0">Consulta completa do formulario admissional</p>
         </div>
-        <a href="{% url 'listar_formularios_admissionais' %}" class="btn btn-sm btn-outline-secondary">Voltar</a>
+        <div class="d-flex gap-2">
+            {% if formulario.respondido %}
+                <a href="{% url 'exportar_formulario_admissional_pdf' formulario.id_formulario %}" class="btn btn-sm btn-success">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+                </a>
+            {% endif %}
+            <a href="{% url 'listar_formularios_admissionais' %}" class="btn btn-sm btn-outline-secondary">Voltar</a>
+        </div>
     </div>
 
     <div class="row g-4">
@@ -25,7 +32,7 @@
             <div class="card border-0 shadow-sm rounded-3 h-100"><div class="card-body">
                 <h5 class="fw-bold border-bottom pb-2 mb-3">CTPS</h5>
                 <p><strong>PIS:</strong> {{ formulario.pis|default:"-" }}</p>
-                <p><strong>Numero CTPS:</strong> {{ formulario.numero_ctps|default:"-" }}</p>
+                <p><strong>Número da CTPS:</strong> {{ formulario.numero_ctps|default:"Não informado" }}</p>
                 <p><strong>Serie CTPS:</strong> {{ formulario.serie_ctps|default:"-" }}</p>
                 <p><strong>UF CTPS:</strong> {{ formulario.uf_ctps|default:"-" }}</p>
             </div></div>
@@ -43,7 +50,9 @@
             <div class="card border-0 shadow-sm rounded-3 h-100"><div class="card-body">
                 <h5 class="fw-bold border-bottom pb-2 mb-3">Contatos</h5>
                 <p><strong>Telefone principal:</strong> {{ formulario.telefone_principal|default:"-" }}</p>
-                <p><strong>Contato recado:</strong> {{ formulario.contato_recado|default:"-" }}</p>
+                <p><strong>Telefone para recado:</strong> {{ formulario.contato_recado|default:"-" }}</p>
+                <p><strong>Nome do contato para recado:</strong> {{ formulario.nome_contato_recado|default:"-" }}</p>
+                <p><strong>Grau de parentesco:</strong> {{ formulario.get_grau_parentesco_contato_recado_display|default:"-" }}</p>
                 <p><strong>E-mail:</strong> {{ formulario.email|default:"-" }}</p>
             </div></div>
         </div>
@@ -99,11 +108,12 @@
                 {% if formulario.dependentes.all %}
                     <div class="table-responsive">
                         <table class="table table-sm align-middle">
-                            <thead><tr><th>Nome</th><th>Nascimento</th><th>RG</th><th>CPF</th><th>Cidade/Estado</th></tr></thead>
+                            <thead><tr><th>Nome</th><th>Grau de parentesco</th><th>Nascimento</th><th>RG</th><th>CPF</th><th>Cidade/Estado</th></tr></thead>
                             <tbody>
                                 {% for dependente in formulario.dependentes.all %}
                                 <tr>
                                     <td>{{ dependente.nome_completo }}</td>
+                                    <td>{{ dependente.get_grau_parentesco_display|default:"-" }}</td>
                                     <td>{{ dependente.data_nascimento|date:"d/m/Y" }}</td>
                                     <td>{{ dependente.rg }}</td>
                                     <td>{{ dependente.cpf }}</td>
