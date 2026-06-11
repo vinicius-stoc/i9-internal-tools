@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from phonenumber_field.modelfields import PhoneNumberField
@@ -361,6 +361,196 @@ class Funcionario(models.Model):
         if self.cpf:
             import re
             self.cpf = re.sub(r'\D', '', self.cpf)
+        super().save(*args, **kwargs)
+
+
+class CompetenciaDesempenho(models.Model):
+    nome = models.CharField(max_length=150)
+    descricao = models.TextField()
+    ativa = models.BooleanField(default=True)
+    ordem = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['ordem', 'nome']
+        verbose_name = 'Competencia de desempenho'
+        verbose_name_plural = 'Competencias de desempenho'
+
+    def __str__(self):
+        return self.nome
+
+
+class AvaliacaoDesempenho(models.Model):
+    class CICLO(models.TextChoices):
+        A = 'A', 'A - Junho'
+        B = 'B', 'B - Dezembro'
+
+    class STATUS(models.TextChoices):
+        RASCUNHO = 'RASCUNHO', 'Rascunho'
+        FINALIZADA = 'FINALIZADA', 'Finalizada'
+        CIENCIA_PENDENTE = 'CIENCIA_PENDENTE', 'Ciencia Pendente'
+        CIENCIA_PARCIAL = 'CIENCIA_PARCIAL', 'Ciencia Parcial'
+        CIENCIA_CONCLUIDA = 'CIENCIA_CONCLUIDA', 'Ciencia Concluida'
+        CANCELADA = 'CANCELADA', 'Cancelada'
+
+    avaliado = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='avaliacoes_recebidas',
+    )
+    avaliada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='avaliacoes_realizadas'
+    )
+    ano = models.PositiveIntegerField()
+    ciclo = models.CharField(max_length=1, choices=CICLO.choices)
+    nome_avaliado = models.CharField(max_length=255)
+    cargo_avaliado = models.CharField(max_length=150, blank=True, null=True)
+    setor_avaliado = models.CharField(max_length=120, blank=True, null=True)
+    data_admissao_avaliado = models.DateField(blank=True, null=True)
+    data_avaliacao = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=30, choices=STATUS.choices, default=STATUS.RASCUNHO)
+    comentarios = models.TextField(blank=True, null=True)
+    ciencia_gestor = models.BooleanField(default=False)
+    data_ciencia_gestor = models.DateTimeField(null=True, blank=True)
+    usuario_ciencia_gestor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ciencias_gestor_desempenho',
+    )
+    ciencia_colaborador = models.BooleanField(default=False)
+    data_ciencia_colaborador = models.DateTimeField(null=True, blank=True)
+    usuario_ciencia_colaborador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ciencias_colaborador_desempenho',
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['avaliado', 'ano', 'ciclo']
+        ordering = ['-ano', '-ciclo', '-data_avaliacao']
+        verbose_name = 'Avaliacao de desempenho'
+        verbose_name_plural = 'Avaliacoes de desempenho'
+
+    def __str__(self):
+        return f'{self.nome_avaliado} - {self.ano}{self.ciclo}'
+
+    @property
+    def funcionario(self):
+        return self.avaliado
+
+    @property
+    def funcionario_nome(self):
+        return self.nome_avaliado
+
+    @property
+    def funcionario_cargo(self):
+        return self.cargo_avaliado or '-'
+
+    @property
+    def funcionario_setor(self):
+        return self.setor_avaliado or '-'
+
+    @property
+    def funcionario_data_admissao(self):
+        return self.data_admissao_avaliado
+
+    @property
+    def mes_referencia(self):
+        if self.ciclo == self.CICLO.A:
+            return 'Junho'
+        if self.ciclo == self.CICLO.B:
+            return 'Dezembro'
+        return ''
+
+    @property
+    def periodo_formatado(self):
+        return f'{self.ano}{self.ciclo} - {self.mes_referencia}'
+
+    @property
+    def media(self):
+        resultado = self.notas.aggregate(media=models.Avg('nota'))
+        media = resultado.get('media')
+        return round(media, 2) if media is not None else None
+
+    @property
+    def classificacao(self):
+        media = self.media
+        if media is None:
+            return 'Sem nota'
+        if media >= 9:
+            return 'Excelente'
+        if media >= 8:
+            return 'Bom'
+        if media >= 7:
+            return 'Adequado com pontos de atenção'
+        if media >= 6:
+            return 'Abaixo do esperado'
+        return 'Crítico'
+
+    def atualizar_status_ciencia(self):
+        if self.status == self.STATUS.CANCELADA:
+            return
+
+        if self.ciencia_gestor and self.ciencia_colaborador:
+            self.status = self.STATUS.CIENCIA_CONCLUIDA
+            return
+
+        if self.ciencia_gestor or self.ciencia_colaborador:
+            self.status = self.STATUS.CIENCIA_PARCIAL
+            return
+
+        if self.status == self.STATUS.FINALIZADA:
+            self.status = self.STATUS.CIENCIA_PENDENTE
+
+    @property
+    def status_calculado(self):
+        if self.status == self.STATUS.CANCELADA:
+            return self.STATUS.CANCELADA
+
+        if self.ciencia_gestor and self.ciencia_colaborador:
+            return self.STATUS.CIENCIA_CONCLUIDA
+
+        if self.ciencia_gestor or self.ciencia_colaborador:
+            return self.STATUS.CIENCIA_PARCIAL
+
+        if self.status == self.STATUS.FINALIZADA:
+            return self.STATUS.CIENCIA_PENDENTE
+
+        return self.status
+
+    @property
+    def status_calculado_display(self):
+        return self.STATUS(self.status_calculado).label
+
+
+class NotaCompetenciaDesempenho(models.Model):
+    avaliacao = models.ForeignKey(AvaliacaoDesempenho, on_delete=models.CASCADE, related_name='notas')
+    competencia = models.ForeignKey(CompetenciaDesempenho, on_delete=models.PROTECT, related_name='notas_desempenho')
+    nota = models.PositiveSmallIntegerField()
+    comentario = models.TextField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ['avaliacao', 'competencia']
+        ordering = ['competencia__ordem', 'competencia__nome']
+        verbose_name = 'Nota de competencia de desempenho'
+        verbose_name_plural = 'Notas de competencias de desempenho'
+
+    def __str__(self):
+        return f'{self.avaliacao} - {self.competencia.nome}: {self.nota}'
+
+    def clean(self):
+        super().clean()
+        if self.nota is not None and not 1 <= self.nota <= 10:
+            raise ValidationError({'nota': 'A nota deve estar entre 1 e 10.'})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
         super().save(*args, **kwargs)
 
 

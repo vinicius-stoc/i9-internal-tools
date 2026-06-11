@@ -1,10 +1,13 @@
-import csv
+﻿import csv
 import re
 import unicodedata
+from collections import Counter
 from html import escape
 from pathlib import Path
 import pandas as pd
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.utils import timezone
 from django.contrib import messages
 from django.http import HttpResponse
@@ -12,21 +15,41 @@ from core.decorators import group_required, exige_permissao
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db import transaction
-from django.db.models import Count, Case, When, Value, IntegerField, Q, Sum
+from django.db.models import Avg, Count, Case, When, Value, IntegerField, Q, Sum, Prefetch
+from django.views.decorators.http import require_POST
+from reportlab.graphics.charts.barcharts import VerticalBarChart
+from reportlab.graphics.shapes import Drawing, String
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from core.models import SetorOrganizacional
+from core.services.permissoes_organizacionais import (
+    setores_gerenciados_por,
+    usuario_tem_acesso_global,
+    usuarios_avaliaveis_para,
+    usuarios_visiveis_para,
+)
 from core.utils.utils import convert_hours
+from rh.services.avaliacoes_desempenho import (
+    avaliacoes_visiveis_para,
+    pode_criar_avaliacao,
+    pode_dar_ciencia_colaborador,
+    pode_dar_ciencia_gestor,
+    pode_editar_avaliacao,
+    preencher_snapshot_avaliacao,
+)
 from .models import (Vaga, Candidatura, SolicitacaoVaga, PesquisaDemissional,
-                     FormularioAdmissional, Funcionario, RegistroAbsenteismo)
+                     FormularioAdmissional, Funcionario, RegistroAbsenteismo,
+                     AvaliacaoDesempenho, NotaCompetenciaDesempenho, CompetenciaDesempenho)
 from .forms import (CandidaturaForm, VagaForm, SolicitacaoVagaForm,
                     PesquisaDemissionalGeracaoForm, PesquisaDemissionalRespostaForm,
                     FormularioAdmissionalGeracaoForm, FormularioAdmissionalRespostaForm,
-                    DependenteAdmissionalFormSet)
+                    DependenteAdmissionalFormSet, AvaliacaoDesempenhoForm,
+                    NotasCompetenciasDesempenhoForm)
 
 
 def job_list(request):
@@ -649,6 +672,781 @@ def responder_formulario_admissional(request, uuid_formulario):
     })
 
 
+def _query_avaliacoes_desempenho():
+    return AvaliacaoDesempenho.objects.select_related(
+        'avaliado',
+        'avaliada_por',
+        'usuario_ciencia_gestor',
+        'usuario_ciencia_colaborador',
+    ).prefetch_related(
+        Prefetch(
+            'notas',
+            queryset=NotaCompetenciaDesempenho.objects.select_related('competencia').order_by(
+                'competencia__ordem',
+                'competencia__nome',
+            )
+        )
+    )
+
+
+def _aplicar_filtros_avaliacoes_desempenho(queryset, params):
+    avaliado_id = params.get('avaliado') or params.get('funcionario')
+    ano = params.get('ano')
+    ciclo = params.get('ciclo')
+    status = params.get('status')
+    setor = params.get('setor')
+
+    if avaliado_id:
+        queryset = queryset.filter(avaliado_id=avaliado_id)
+    if ano:
+        queryset = queryset.filter(ano=ano)
+    if ciclo:
+        queryset = queryset.filter(ciclo=ciclo)
+    if status:
+        queryset = queryset.filter(status=status)
+    if setor:
+        queryset = queryset.filter(avaliado__perfil_organizacional__setor_id=setor)
+
+    return queryset
+
+
+def _funcionarios_avaliacao_queryset(user):
+    return usuarios_visiveis_para(user)
+
+
+def _setores_visiveis_para(user):
+    if usuario_tem_acesso_global(user):
+        return SetorOrganizacional.objects.filter(ativo=True).order_by('ordem', 'nome')
+    return setores_gerenciados_por(user)
+
+
+def _opcoes_setores_para_template(user):
+    return [(setor.id, setor.nome) for setor in _setores_visiveis_para(user)]
+
+
+def _salvar_notas_desempenho(avaliacao, notas_limpas):
+    notas_existentes = {
+        nota.competencia_id: nota
+        for nota in avaliacao.notas.select_for_update().all()
+    }
+
+    for item in notas_limpas:
+        competencia = item['competencia']
+        nota = notas_existentes.get(competencia.id) or NotaCompetenciaDesempenho(
+            avaliacao=avaliacao,
+            competencia=competencia,
+        )
+        nota.nota = item['nota']
+        nota.comentario = item['comentario']
+        nota.save()
+
+
+def _dados_dashboard_avaliacao(avaliacao, user=None):
+    notas = list(avaliacao.notas.select_related('competencia').order_by('competencia__ordem', 'competencia__nome'))
+    media = avaliacao.media
+    maior_nota = max((nota.nota for nota in notas), default=None)
+    menor_nota = min((nota.nota for nota in notas), default=None)
+
+    pontos_fortes = [nota for nota in notas if nota.nota >= 9]
+    pontos_atencao = [nota for nota in notas if nota.nota <= 7]
+    acima_media = [nota for nota in notas if media is not None and nota.nota >= media]
+    abaixo_media = [nota for nota in notas if media is not None and nota.nota < media]
+    historico_avaliacoes = list(
+        _query_avaliacoes_desempenho()
+        .filter(avaliado=avaliacao.avaliado)
+        .order_by('ano', 'ciclo')
+    )
+    historico_periodos = [historico.periodo_formatado for historico in historico_avaliacoes]
+    competencias_historico = list(CompetenciaDesempenho.objects.filter(ativa=True).order_by('ordem', 'nome'))
+    notas_historico = {
+        (nota.avaliacao_id, nota.competencia_id): nota.nota
+        for historico in historico_avaliacoes
+        for nota in historico.notas.all()
+    }
+    tabela_historico = []
+    for competencia in competencias_historico:
+        tabela_historico.append({
+            'competencia': competencia,
+            'valores': [
+                notas_historico.get((historico.id, competencia.id), '')
+                for historico in historico_avaliacoes
+            ],
+        })
+    medias_historico = [
+        {
+            'periodo': historico.periodo_formatado,
+            'media': float(historico.media or 0),
+        }
+        for historico in historico_avaliacoes
+    ]
+    labels_padrao_competencias = {
+        1: 'Pontualidade',
+        2: 'Iniciativa',
+        3: 'Relacionamento',
+        4: 'Organização',
+        5: 'Metas',
+        6: 'Qualidade',
+        7: 'Postura',
+        8: 'Conhecimento',
+        9: 'Liderança',
+    }
+    labels_competencias = [
+        labels_padrao_competencias.get(
+            nota.competencia.ordem,
+            nota.competencia.nome.split('/')[0].split('-')[0].strip(),
+        )
+        for nota in notas
+    ]
+    notas_competencias = [float(nota.nota) for nota in notas]
+
+    pode_editar = pode_editar_avaliacao(user, avaliacao) if user else False
+    pode_ciencia_gestor = pode_dar_ciencia_gestor(user, avaliacao) if user else False
+    pode_ciencia_colaborador = pode_dar_ciencia_colaborador(user, avaliacao) if user else False
+
+    return {
+        'avaliacao': avaliacao,
+        'notas': notas,
+        'media': media,
+        'maior_nota': maior_nota,
+        'menor_nota': menor_nota,
+        'total_competencias': len(notas),
+        'pontos_fortes': pontos_fortes,
+        'pontos_atencao': pontos_atencao,
+        'competencias_acima_media': acima_media,
+        'competencias_abaixo_media': abaixo_media,
+        'chart_labels': labels_competencias,
+        'chart_values': notas_competencias,
+        'historico_avaliacoes': historico_avaliacoes,
+        'historico_periodos': historico_periodos,
+        'tabela_historico': tabela_historico,
+        'medias_historico': medias_historico,
+        'medias_historico_labels': [item['periodo'] for item in medias_historico],
+        'medias_historico_values': [item['media'] for item in medias_historico],
+        'pode_editar': pode_editar,
+        'pode_dar_ciencia_gestor': pode_ciencia_gestor and not avaliacao.ciencia_gestor,
+        'pode_dar_ciencia_colaborador': pode_ciencia_colaborador and not avaliacao.ciencia_colaborador,
+    }
+
+
+def _valor_pdf(valor):
+    if valor is None:
+        return '-'
+    texto = str(valor).strip()
+    return texto if texto else '-'
+
+
+def _nome_arquivo_avaliacao(avaliacao):
+    nome = unicodedata.normalize('NFKD', avaliacao.funcionario_nome)
+    nome = nome.encode('ascii', 'ignore').decode('ascii')
+    nome = re.sub(r'[^A-Za-z0-9]+', '_', nome).strip('_').lower()
+    return f'avaliacao_desempenho_{nome}_{avaliacao.ano}_{avaliacao.ciclo}.pdf'
+
+
+def _paragraph(texto, style):
+    texto = escape(_valor_pdf(texto)).replace('\n', '<br/>')
+    texto = texto.replace('&lt;b&gt;', '<b>').replace('&lt;/b&gt;', '</b>')
+    return Paragraph(texto, style)
+
+
+def _grafico_barras_pdf(notas):
+    drawing = Drawing(500, 220)
+    chart = VerticalBarChart()
+    chart.x = 35
+    chart.y = 45
+    chart.height = 135
+    chart.width = 420
+    chart.data = [[nota.nota for nota in notas]]
+    chart.valueAxis.valueMin = 0
+    chart.valueAxis.valueMax = 10
+    chart.valueAxis.valueStep = 1
+    chart.categoryAxis.categoryNames = [str(nota.competencia.ordem) for nota in notas]
+    chart.bars[0].fillColor = colors.HexColor('#FF742E')
+    chart.barSpacing = 3
+    drawing.add(chart)
+    drawing.add(String(35, 15, 'Competencias por ordem de cadastro', fontSize=8, fillColor=colors.HexColor('#666666')))
+    return drawing
+
+
+def _grafico_medias_pdf(medias_historico):
+    valores = [item['media'] or 0 for item in medias_historico]
+    labels = [item['periodo'].split(' - ')[0] for item in medias_historico]
+    drawing = Drawing(500, 220)
+    chart = VerticalBarChart()
+    chart.x = 35
+    chart.y = 45
+    chart.height = 135
+    chart.width = 420
+    chart.data = [valores]
+    chart.valueAxis.valueMin = 0
+    chart.valueAxis.valueMax = 10
+    chart.valueAxis.valueStep = 1
+    chart.categoryAxis.categoryNames = labels
+    chart.bars[0].fillColor = colors.HexColor('#141C3C')
+    chart.barSpacing = 4
+    drawing.add(chart)
+    drawing.add(String(35, 15, 'Evolucao da media por ciclo', fontSize=8, fillColor=colors.HexColor('#666666')))
+    return drawing
+
+
+def _tabela_pdf(linhas, col_widths, header=True):
+    tabela = Table(linhas, colWidths=col_widths, repeatRows=1 if header else 0, hAlign='LEFT')
+    estilos = [
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#DDDDDD')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]
+    if header:
+        estilos.extend([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#141C3C')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ])
+    tabela.setStyle(TableStyle(estilos))
+    return tabela
+
+
+def _nome_usuario_pdf(user):
+    if not user:
+        return ''
+    return user.get_full_name() or user.username
+
+
+def _formatar_data_hora_pdf(data_hora):
+    if not data_hora:
+        return ''
+    return timezone.localtime(data_hora).strftime('%d/%m/%Y %H:%M')
+
+
+def _assinatura_gestor_pdf(avaliacao):
+    if avaliacao.ciencia_gestor:
+        nome = _nome_usuario_pdf(avaliacao.usuario_ciencia_gestor)
+        data = _formatar_data_hora_pdf(avaliacao.data_ciencia_gestor)
+        return nome or 'Gestor ciente', data
+    return '________________________________________', '______________'
+
+
+def _assinatura_colaborador_pdf(avaliacao):
+    if avaliacao.ciencia_colaborador:
+        usuario = avaliacao.usuario_ciencia_colaborador or avaliacao.avaliado
+        nome = _nome_usuario_pdf(usuario)
+        data = _formatar_data_hora_pdf(avaliacao.data_ciencia_colaborador)
+        return nome or 'Colaborador ciente', data
+    return '________________________________________', '______________'
+
+
+def _assinaturas_pdf(avaliacao):
+    nome_gestor, data_gestor = _assinatura_gestor_pdf(avaliacao)
+    nome_colaborador, data_colaborador = _assinatura_colaborador_pdf(avaliacao)
+    header_style = ParagraphStyle(
+        'AssinaturaHeaderPdf',
+        fontName='Helvetica-Bold',
+        fontSize=8,
+        leading=10,
+        alignment=TA_CENTER,
+    )
+    valor_style = ParagraphStyle(
+        'AssinaturaValorPdf',
+        fontName='Helvetica',
+        fontSize=8,
+        leading=10,
+        alignment=TA_CENTER,
+    )
+    assinaturas = [
+        [
+            Paragraph('Assinatura Gestor', header_style),
+            Paragraph('Data', header_style),
+            Paragraph('Assinatura Colaborador', header_style),
+            Paragraph('Data', header_style),
+        ],
+        [
+            Paragraph(escape(nome_gestor), valor_style),
+            Paragraph(escape(data_gestor), valor_style),
+            Paragraph(escape(nome_colaborador), valor_style),
+            Paragraph(escape(data_colaborador), valor_style),
+        ],
+    ]
+    tabela = Table(assinaturas, colWidths=[6.0 * cm, 2.2 * cm, 6.0 * cm, 2.2 * cm], rowHeights=[0.7 * cm, 1.2 * cm])
+    tabela.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica'),
+        ('LINEBELOW', (0, 1), (0, 1), 0.6, colors.HexColor('#333333')),
+        ('LINEBELOW', (2, 1), (2, 1), 0.6, colors.HexColor('#333333')),
+        ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    return tabela
+
+
+def _ciencia_pdf(avaliacao, normal):
+    linhas = [
+        [_paragraph('<b>Ciencia do Gestor</b>', normal), _paragraph('Ciente' if avaliacao.ciencia_gestor else 'Pendente', normal), _paragraph('<b>Usuario</b>', normal), _paragraph(avaliacao.usuario_ciencia_gestor.get_username() if avaliacao.usuario_ciencia_gestor else '-', normal)],
+        [_paragraph('<b>Data/Hora</b>', normal), _paragraph(timezone.localtime(avaliacao.data_ciencia_gestor).strftime('%d/%m/%Y %H:%M') if avaliacao.data_ciencia_gestor else '-', normal), _paragraph('', normal), _paragraph('', normal)],
+        [_paragraph('<b>Ciencia do Colaborador</b>', normal), _paragraph('Ciente' if avaliacao.ciencia_colaborador else 'Pendente', normal), _paragraph('<b>Usuario</b>', normal), _paragraph(avaliacao.usuario_ciencia_colaborador.get_username() if avaliacao.usuario_ciencia_colaborador else '-', normal)],
+        [_paragraph('<b>Data/Hora</b>', normal), _paragraph(timezone.localtime(avaliacao.data_ciencia_colaborador).strftime('%d/%m/%Y %H:%M') if avaliacao.data_ciencia_colaborador else '-', normal), _paragraph('', normal), _paragraph('', normal)],
+    ]
+    return _tabela_pdf(linhas, [4.2 * cm, 4.5 * cm, 3.0 * cm, 5.7 * cm], header=False)
+
+
+def _exportar_avaliacoes_desempenho_csv(avaliacoes):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="avaliacoes_desempenho.csv"'
+    response.write(u'\ufeff'.encode('utf8'))
+
+    competencias_csv = [
+        'Pontualidade/Assiduidade',
+        'Iniciativa/Pro-atividade',
+        'Relacionamento',
+        'Organizacao',
+        'Metas',
+        'Qualidade do servico/Atencao',
+        'Postura Profissional',
+        'Conhecimento/Desenvolvimento profissional',
+        'Lideranca',
+    ]
+
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow([
+        'Colaborador', 'Cargo', 'Setor', 'Data Admissao', 'Ano', 'Ciclo', 'Mes Calculado',
+        'Periodo', 'Status', 'Media', 'Classificacao', *competencias_csv, 'Comentarios Gerais',
+        'Ciencia Gestor', 'Data Ciencia Gestor', 'Usuario Ciencia Gestor', 'Ciencia Colaborador',
+        'Data Ciencia Colaborador', 'Usuario Ciencia Colaborador', 'Data Avaliacao', 'Avaliado Por',
+    ])
+
+    for avaliacao in avaliacoes:
+        notas_por_ordem = {nota.competencia.ordem: nota.nota for nota in avaliacao.notas.all()}
+        writer.writerow([
+            avaliacao.funcionario_nome,
+            avaliacao.funcionario_cargo,
+            avaliacao.funcionario_setor,
+            avaliacao.funcionario_data_admissao.strftime('%d/%m/%Y') if avaliacao.funcionario_data_admissao else '',
+            avaliacao.ano,
+            avaliacao.ciclo,
+            avaliacao.mes_referencia,
+            avaliacao.periodo_formatado,
+            avaliacao.status_calculado_display,
+            str(avaliacao.media).replace('.', ',') if avaliacao.media is not None else '',
+            avaliacao.classificacao,
+            *[notas_por_ordem.get(ordem, '') for ordem in range(1, 10)],
+            avaliacao.comentarios,
+            'Sim' if avaliacao.ciencia_gestor else 'Nao',
+            avaliacao.data_ciencia_gestor.strftime('%d/%m/%Y %H:%M') if avaliacao.data_ciencia_gestor else '',
+            avaliacao.usuario_ciencia_gestor.get_username() if avaliacao.usuario_ciencia_gestor else '',
+            'Sim' if avaliacao.ciencia_colaborador else 'Nao',
+            avaliacao.data_ciencia_colaborador.strftime('%d/%m/%Y %H:%M') if avaliacao.data_ciencia_colaborador else '',
+            avaliacao.usuario_ciencia_colaborador.get_username() if avaliacao.usuario_ciencia_colaborador else '',
+            avaliacao.data_avaliacao.strftime('%d/%m/%Y %H:%M') if avaliacao.data_avaliacao else '',
+            avaliacao.avaliada_por.get_username() if avaliacao.avaliada_por else '',
+        ])
+
+    return response
+
+
+def _usuarios_sem_avaliacao_context(request):
+    if not pode_criar_avaliacao(request.user):
+        return {
+            'usuarios_sem_avaliacao': [],
+            'ano_sem_avaliacao': timezone.now().year,
+            'ciclo_sem_avaliacao': 'A',
+        }
+
+    try:
+        ano = int(request.GET.get('ano_sem_avaliacao') or request.GET.get('ano') or timezone.now().year)
+    except (TypeError, ValueError):
+        ano = timezone.now().year
+    ciclo = request.GET.get('ciclo_sem_avaliacao') or request.GET.get('ciclo') or 'A'
+    if ciclo not in ['A', 'B']:
+        ciclo = 'A'
+
+    usuarios = usuarios_avaliaveis_para(request.user).exclude(
+        avaliacoes_recebidas__ano=ano,
+        avaliacoes_recebidas__ciclo=ciclo,
+    ).select_related('perfil_organizacional__setor')
+
+    return {
+        'usuarios_sem_avaliacao': usuarios,
+        'ano_sem_avaliacao': ano,
+        'ciclo_sem_avaliacao': ciclo,
+    }
+
+
+@login_required(login_url='/login/')
+def listar_avaliacoes_desempenho(request):
+    avaliacoes = _aplicar_filtros_avaliacoes_desempenho(
+        avaliacoes_visiveis_para(request.user).order_by('-data_avaliacao'),
+        request.GET,
+    )
+
+    if request.GET.get('export_csv') == '1':
+        return _exportar_avaliacoes_desempenho_csv(avaliacoes)
+
+    avaliacoes_lista = list(avaliacoes)
+    for avaliacao in avaliacoes_lista:
+        avaliacao.pode_editar = pode_editar_avaliacao(request.user, avaliacao)
+
+    medias = [avaliacao.media for avaliacao in avaliacoes_lista if avaliacao.media is not None]
+    media_geral = round(sum(medias) / len(medias), 2) if medias else None
+
+    context = {
+        'avaliacoes': avaliacoes_lista,
+        'funcionarios': _funcionarios_avaliacao_queryset(request.user),
+        'setores': _opcoes_setores_para_template(request.user),
+        'status_choices': AvaliacaoDesempenho.STATUS.choices,
+        'ciclo_choices': AvaliacaoDesempenho.CICLO.choices,
+        'filtros': request.GET,
+        'total_avaliacoes': len(avaliacoes_lista),
+        'total_finalizadas': sum(1 for avaliacao in avaliacoes_lista if avaliacao.status_calculado == AvaliacaoDesempenho.STATUS.CIENCIA_CONCLUIDA),
+        'total_rascunhos': sum(1 for avaliacao in avaliacoes_lista if avaliacao.status_calculado == AvaliacaoDesempenho.STATUS.RASCUNHO),
+        'media_geral': media_geral,
+        'pode_criar_avaliacao': pode_criar_avaliacao(request.user),
+        'pode_criar': pode_criar_avaliacao(request.user),
+    }
+    context.update(_usuarios_sem_avaliacao_context(request))
+    return render(request, 'rh/listar_avaliacoes_desempenho.html', context)
+
+
+@login_required(login_url='/login/')
+def nova_avaliacao_desempenho(request):
+    if not pode_criar_avaliacao(request.user):
+        messages.error(request, 'Voce nao possui permissao para criar avaliacoes.')
+        return redirect('listar_avaliacoes_desempenho')
+
+    initial = {}
+    if request.method == 'GET':
+        avaliado_id = request.GET.get('avaliado')
+        if avaliado_id:
+            try:
+                avaliado_id = int(avaliado_id)
+            except (TypeError, ValueError):
+                avaliado_id = None
+            if avaliado_id and usuarios_avaliaveis_para(request.user).filter(pk=avaliado_id).exists():
+                initial['avaliado'] = avaliado_id
+
+        for campo in ['ano', 'ciclo']:
+            valor = request.GET.get(campo)
+            if valor:
+                initial[campo] = valor
+
+    if request.method == 'POST':
+        form = AvaliacaoDesempenhoForm(request.POST, usuario_logado=request.user)
+        notas_form = NotasCompetenciasDesempenhoForm(request.POST)
+
+        if form.is_valid() and notas_form.is_valid():
+            with transaction.atomic():
+                avaliacao = form.save(commit=False)
+                avaliacao.avaliada_por = request.user
+                preencher_snapshot_avaliacao(avaliacao)
+                avaliacao.atualizar_status_ciencia()
+                avaliacao.save()
+                _salvar_notas_desempenho(avaliacao, notas_form.notas_limpas())
+
+            messages.success(request, 'Avaliacao de desempenho cadastrada com sucesso.')
+            return redirect('dashboard_avaliacao_desempenho', pk=avaliacao.pk)
+    else:
+        form = AvaliacaoDesempenhoForm(initial=initial, usuario_logado=request.user)
+        notas_form = NotasCompetenciasDesempenhoForm()
+
+    return render(request, 'rh/form_avaliacao_desempenho.html', {
+        'form': form,
+        'notas_form': notas_form,
+        'titulo_pagina': 'Nova Avaliacao de Desempenho',
+    })
+
+
+@login_required(login_url='/login/')
+def detalhe_avaliacao_desempenho(request, pk):
+    avaliacao = get_object_or_404(avaliacoes_visiveis_para(request.user), pk=pk)
+    return render(request, 'rh/detalhe_avaliacao_desempenho.html', {
+        'avaliacao': avaliacao,
+        'notas': avaliacao.notas.all(),
+        'pode_editar': pode_editar_avaliacao(request.user, avaliacao),
+    })
+
+
+@login_required(login_url='/login/')
+def editar_avaliacao_desempenho(request, pk):
+    avaliacao = get_object_or_404(avaliacoes_visiveis_para(request.user), pk=pk)
+    if not pode_editar_avaliacao(request.user, avaliacao):
+        messages.error(request, 'Voce nao tem permissao para editar esta avaliacao.')
+        return redirect('dashboard_avaliacao_desempenho', pk=avaliacao.pk)
+
+    if request.method == 'POST':
+        form = AvaliacaoDesempenhoForm(request.POST, instance=avaliacao, usuario_logado=request.user)
+        notas_form = NotasCompetenciasDesempenhoForm(request.POST, avaliacao=avaliacao)
+
+        if form.is_valid() and notas_form.is_valid():
+            with transaction.atomic():
+                avaliacao = form.save(commit=False)
+                if not avaliacao.nome_avaliado:
+                    preencher_snapshot_avaliacao(avaliacao)
+                avaliacao.atualizar_status_ciencia()
+                avaliacao.save()
+                _salvar_notas_desempenho(avaliacao, notas_form.notas_limpas())
+
+            messages.success(request, 'Avaliacao de desempenho atualizada com sucesso.')
+            return redirect('dashboard_avaliacao_desempenho', pk=avaliacao.pk)
+    else:
+        form = AvaliacaoDesempenhoForm(instance=avaliacao, usuario_logado=request.user)
+        notas_form = NotasCompetenciasDesempenhoForm(avaliacao=avaliacao)
+
+    return render(request, 'rh/form_avaliacao_desempenho.html', {
+        'form': form,
+        'notas_form': notas_form,
+        'avaliacao': avaliacao,
+        'titulo_pagina': 'Editar Avaliacao de Desempenho',
+    })
+
+
+@login_required(login_url='/login/')
+def dashboard_avaliacao_desempenho(request, pk):
+    avaliacao = get_object_or_404(avaliacoes_visiveis_para(request.user), pk=pk)
+    return render(request, 'rh/dashboard_avaliacao_desempenho.html', _dados_dashboard_avaliacao(avaliacao, request.user))
+
+
+@login_required(login_url='/login/')
+@require_POST
+def dar_ciencia_gestor_avaliacao(request, pk):
+    avaliacao = get_object_or_404(avaliacoes_visiveis_para(request.user), pk=pk)
+    if not pode_dar_ciencia_gestor(request.user, avaliacao):
+        messages.error(request, 'Voce nao tem permissao para dar ciencia como gestor nesta avaliacao.')
+        return redirect('dashboard_avaliacao_desempenho', pk=avaliacao.pk)
+
+    avaliacao.ciencia_gestor = True
+    avaliacao.data_ciencia_gestor = timezone.now()
+    avaliacao.usuario_ciencia_gestor = request.user
+    avaliacao.atualizar_status_ciencia()
+    avaliacao.save(update_fields=[
+        'ciencia_gestor',
+        'data_ciencia_gestor',
+        'usuario_ciencia_gestor',
+        'status',
+        'atualizado_em',
+    ])
+
+    messages.success(request, 'Ciencia do gestor registrada com sucesso.')
+    return redirect('dashboard_avaliacao_desempenho', pk=avaliacao.pk)
+
+
+@login_required(login_url='/login/')
+@require_POST
+def dar_ciencia_colaborador_avaliacao(request, pk):
+    avaliacao = get_object_or_404(avaliacoes_visiveis_para(request.user), pk=pk)
+    if not pode_dar_ciencia_colaborador(request.user, avaliacao):
+        messages.error(request, 'Voce so pode dar ciencia nas suas proprias avaliacoes.')
+        return redirect('dashboard_avaliacao_desempenho', pk=avaliacao.pk)
+
+    avaliacao.ciencia_colaborador = True
+    avaliacao.data_ciencia_colaborador = timezone.now()
+    avaliacao.usuario_ciencia_colaborador = request.user
+    avaliacao.atualizar_status_ciencia()
+    avaliacao.save(update_fields=[
+        'ciencia_colaborador',
+        'data_ciencia_colaborador',
+        'usuario_ciencia_colaborador',
+        'status',
+        'atualizado_em',
+    ])
+
+    messages.success(request, 'Ciencia do colaborador registrada com sucesso.')
+    return redirect('dashboard_avaliacao_desempenho', pk=avaliacao.pk)
+
+
+@login_required(login_url='/login/')
+def exportar_pdf_avaliacao_desempenho(request, pk):
+    avaliacao = get_object_or_404(avaliacoes_visiveis_para(request.user), pk=pk)
+    dados = _dados_dashboard_avaliacao(avaliacao, request.user)
+    notas = dados['notas']
+    historico_avaliacoes = dados['historico_avaliacoes']
+    historico_periodos = dados['historico_periodos']
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{_nome_arquivo_avaliacao(avaliacao)}"'
+
+    doc = SimpleDocTemplate(
+        response,
+        pagesize=A4,
+        rightMargin=1.4 * cm,
+        leftMargin=1.4 * cm,
+        topMargin=1.2 * cm,
+        bottomMargin=1.2 * cm,
+    )
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='TituloAvaliacao', parent=styles['Title'], alignment=TA_CENTER, fontSize=18, spaceAfter=12))
+    styles.add(ParagraphStyle(name='SecaoAvaliacao', parent=styles['Heading2'], fontSize=12, textColor=colors.HexColor('#141C3C'), spaceBefore=10, spaceAfter=6))
+    styles.add(ParagraphStyle(name='TextoPequeno', parent=styles['BodyText'], fontSize=8, leading=10, alignment=TA_LEFT))
+    normal = styles['BodyText']
+    pequeno = styles['TextoPequeno']
+    elementos = []
+
+    logo_path = Path(settings.BASE_DIR) / 'static' / 'img' / 'logo.jpg'
+    if logo_path.exists():
+        elementos.append(Image(str(logo_path), width=3.0 * cm, height=1.6 * cm))
+        elementos.append(Spacer(1, 0.15 * cm))
+
+    elementos.append(Paragraph('AVALIACAO DE DESEMPENHO COLABORADOR - AD', styles['TituloAvaliacao']))
+    resumo = [
+        [_paragraph('<b>Colaborador</b>', normal), _paragraph(avaliacao.funcionario_nome, normal), _paragraph('<b>Cargo</b>', normal), _paragraph(avaliacao.funcionario_cargo, normal)],
+        [_paragraph('<b>Setor</b>', normal), _paragraph(avaliacao.funcionario_setor, normal), _paragraph('<b>Data de admissao</b>', normal), _paragraph(avaliacao.funcionario_data_admissao.strftime('%d/%m/%Y') if avaliacao.funcionario_data_admissao else '-', normal)],
+        [_paragraph('<b>Periodo atual</b>', normal), _paragraph(avaliacao.periodo_formatado, normal), _paragraph('<b>Data da avaliacao</b>', normal), _paragraph(timezone.localtime(avaliacao.data_avaliacao).strftime('%d/%m/%Y %H:%M') if avaliacao.data_avaliacao else '-', normal)],
+        [_paragraph('<b>Avaliado por</b>', normal), _paragraph(avaliacao.avaliada_por.get_username() if avaliacao.avaliada_por else '-', normal), _paragraph('<b>Status</b>', normal), _paragraph(avaliacao.status_calculado_display, normal)],
+    ]
+    elementos.append(_tabela_pdf(resumo, [3.5 * cm, 5.0 * cm, 3.5 * cm, 5.0 * cm], header=False))
+    elementos.append(Spacer(1, 0.4 * cm))
+
+    elementos.append(Paragraph('Ciencia Digital', styles['SecaoAvaliacao']))
+    elementos.append(_ciencia_pdf(avaliacao, normal))
+    elementos.append(Spacer(1, 0.4 * cm))
+
+    elementos.append(Paragraph('Criterios de Avaliacao', styles['SecaoAvaliacao']))
+    criterios = [
+        '10 - Acima de qualquer expectativa, um exemplo a ser seguido.',
+        '9 - Excelente, sabe o que precisa para desempenhar seu papel.',
+        '8 - Bom, desempenha corretamente suas atividades.',
+        '7 - Desempenha corretamente, mas precisa de motivacao da equipe/gestor para cumprir seu papel.',
+        '6 - Desempenha seu papel com algumas falhas e nao consegue motivar-se por conta propria.',
+        '5 - Regular, precisa entender melhor seu papel, ter mais empenho e mudar comportamento.',
+        '4 - Ruim, comportamento abaixo da expectativa, precisa de mudancas rapidas.',
+        '3 - Ruim, comportamento bem abaixo da expectativa, nao esta correspondendo ao perfil desejado.',
+        '2 - Pessimo, precisa de mudanca de comportamento urgente.',
+        '1 - Pessimo, reavaliar.',
+    ]
+    elementos.append(_paragraph(' '.join(criterios), pequeno))
+    elementos.append(Spacer(1, 0.3 * cm))
+
+    elementos.append(Paragraph('Ficha comparativa por ciclo', styles['SecaoAvaliacao']))
+    header = [_paragraph('Competencia', pequeno), _paragraph('Descricao', pequeno)] + [_paragraph(periodo.split(' - ')[0], pequeno) for periodo in historico_periodos]
+    linhas = [header]
+    for linha in dados['tabela_historico']:
+        linhas.append([
+            _paragraph(linha['competencia'].nome, pequeno),
+            _paragraph(linha['competencia'].descricao, pequeno),
+            *[_paragraph(valor, pequeno) for valor in linha['valores']],
+        ])
+    linhas.append([
+        _paragraph('<b>Media</b>', pequeno),
+        _paragraph('', pequeno),
+        *[_paragraph(historico.media if historico.media is not None else '', pequeno) for historico in historico_avaliacoes],
+    ])
+    largura_periodo = max(1.1 * cm, (17.4 * cm - 8.8 * cm) / max(len(historico_periodos), 1))
+    elementos.append(_tabela_pdf(linhas, [3.5 * cm, 5.3 * cm] + [largura_periodo] * len(historico_periodos)))
+    elementos.append(Spacer(1, 0.3 * cm))
+
+    comentarios = [[_paragraph('<b>Comentarios gerais</b>', normal), _paragraph(avaliacao.comentarios, normal)]]
+    elementos.append(_tabela_pdf(comentarios, [4.2 * cm, 13.2 * cm], header=False))
+    elementos.append(Spacer(1, 0.9 * cm))
+    elementos.append(_assinaturas_pdf(avaliacao))
+
+    elementos.append(PageBreak())
+    elementos.append(Paragraph('AVALIACAO DE DESEMPENHO COLABORADOR', styles['TituloAvaliacao']))
+    elementos.append(_tabela_pdf([
+        [_paragraph('<b>Nome do colaborador</b>', normal), _paragraph(avaliacao.funcionario_nome, normal)],
+        [_paragraph('<b>Periodo atual</b>', normal), _paragraph(avaliacao.periodo_formatado, normal)],
+        [_paragraph('<b>Media atual</b>', normal), _paragraph(dados['media'], normal)],
+        [_paragraph('<b>Classificacao</b>', normal), _paragraph(avaliacao.classificacao, normal)],
+    ], [5.0 * cm, 12.0 * cm], header=False))
+    elementos.append(Spacer(1, 0.35 * cm))
+    elementos.append(Paragraph('Dashboard comparativo', styles['SecaoAvaliacao']))
+    if notas:
+        elementos.append(_grafico_barras_pdf(notas))
+    if dados['medias_historico']:
+        elementos.append(_grafico_medias_pdf(dados['medias_historico']))
+    elementos.append(Spacer(1, 0.25 * cm))
+    elementos.append(_tabela_pdf([
+        [_paragraph('<b>Pontos fortes</b>', normal), _paragraph(', '.join(nota.competencia.nome for nota in dados['pontos_fortes']) or '-', normal)],
+        [_paragraph('<b>Pontos de atencao</b>', normal), _paragraph(', '.join(nota.competencia.nome for nota in dados['pontos_atencao']) or '-', normal)],
+        [_paragraph('<b>Abaixo da media</b>', normal), _paragraph(', '.join(nota.competencia.nome for nota in dados['competencias_abaixo_media']) or '-', normal)],
+        [_paragraph('<b>Observacoes</b>', normal), _paragraph(avaliacao.comentarios, normal)],
+    ], [4.5 * cm, 12.5 * cm], header=False))
+    elementos.append(Spacer(1, 0.9 * cm))
+    elementos.append(_assinaturas_pdf(avaliacao))
+
+    doc.build(elementos)
+    return response
+
+
+@login_required(login_url='/login/')
+def dashboard_geral_avaliacoes_desempenho(request):
+    if not pode_criar_avaliacao(request.user):
+        messages.error(request, 'Voce nao possui permissao para acessar o dashboard geral de avaliacoes.')
+        return redirect('listar_avaliacoes_desempenho')
+
+    avaliacoes = _aplicar_filtros_avaliacoes_desempenho(
+        avaliacoes_visiveis_para(request.user).order_by('-data_avaliacao'),
+        request.GET,
+    )
+
+    avaliacoes_lista = list(avaliacoes)
+    medias = [(avaliacao, avaliacao.media) for avaliacao in avaliacoes_lista if avaliacao.media is not None]
+    media_geral = round(sum(media for _, media in medias) / len(medias), 2) if medias else None
+
+    ranking_maiores = sorted(medias, key=lambda item: item[1], reverse=True)[:10]
+    ranking_menores = sorted(medias, key=lambda item: item[1])[:10]
+
+    media_por_competencia = [
+        {
+            'competencia__nome': item['competencia__nome'],
+            'competencia__ordem': item['competencia__ordem'],
+            'media': round(float(item['media']), 2) if item['media'] is not None else None,
+        }
+        for item in NotaCompetenciaDesempenho.objects.filter(avaliacao__in=avaliacoes_lista)
+        .values('competencia__nome', 'competencia__ordem')
+        .annotate(media=Avg('nota'))
+        .order_by('competencia__ordem', 'competencia__nome')
+    ]
+
+    media_por_setor = [
+        {
+            'setor': item['avaliacao__setor_avaliado'] or 'Sem setor',
+            'media': round(float(item['media']), 2) if item['media'] is not None else None,
+        }
+        for item in NotaCompetenciaDesempenho.objects.filter(avaliacao__in=avaliacoes_lista)
+        .values('avaliacao__setor_avaliado')
+        .annotate(media=Avg('nota'))
+        .order_by('avaliacao__setor_avaliado')
+    ]
+
+    qtd_por_ciclo = list(avaliacoes.values('ano', 'ciclo').annotate(total=Count('id')).order_by('ano', 'ciclo'))
+    qtd_por_status_contador = Counter(avaliacao.status_calculado for avaliacao in avaliacoes_lista)
+    qtd_por_status = [
+        {
+            'status': AvaliacaoDesempenho.STATUS(status).label,
+            'total': total,
+        }
+        for status, total in sorted(qtd_por_status_contador.items())
+    ]
+
+    evolucao = []
+    for avaliacao, media in sorted(medias, key=lambda item: (item[0].funcionario_nome, item[0].ano, item[0].ciclo)):
+        evolucao.append({
+            'label': f'{avaliacao.funcionario_nome} - {avaliacao.ano}{avaliacao.ciclo}',
+            'media': float(media),
+        })
+
+    context = {
+        'avaliacoes': avaliacoes_lista,
+        'funcionarios': _funcionarios_avaliacao_queryset(request.user),
+        'setores': _opcoes_setores_para_template(request.user),
+        'status_choices': AvaliacaoDesempenho.STATUS.choices,
+        'ciclo_choices': AvaliacaoDesempenho.CICLO.choices,
+        'filtros': request.GET,
+        'media_geral': media_geral,
+        'media_por_competencia': media_por_competencia,
+        'media_por_setor': media_por_setor,
+        'qtd_por_ciclo': qtd_por_ciclo,
+        'qtd_por_status': qtd_por_status,
+        'ranking_maiores': ranking_maiores,
+        'ranking_menores': ranking_menores,
+        'evolucao': evolucao,
+        'pode_criar_avaliacao': pode_criar_avaliacao(request.user),
+    }
+    context.update(_usuarios_sem_avaliacao_context(request))
+    return render(request, 'rh/dashboard_geral_avaliacoes_desempenho.html', context)
+
 @login_required(login_url='/login/')
 @group_required(['RH'])
 def dashboard_rh(request):
@@ -919,4 +1717,5 @@ def importar_ponto_rh(request):
             return redirect('importar_ponto_rh')
 
     return render(request, 'rh/importar_ponto.html')
+
 
