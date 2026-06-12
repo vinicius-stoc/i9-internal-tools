@@ -237,6 +237,26 @@
                                     <i class="bi bi-clipboard-data me-2"></i> Pesquisa Demissional
                                 </a>
                             </li>
+                            <li class="nav-item mt-3 mb-1 px-3 text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px; color: var(--laranja-principal); font-weight: bold;">
+                                Avalia&ccedil;&otilde;es de Desempenho
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'listar_avaliacoes_desempenho' %}" class="nav-link submenu-link {% if 'avaliacoes-desempenho' in request.path %}active-sub{% endif %}">
+                                    <i class="bi bi-clipboard-check me-2"></i> Listar Avalia&ccedil;&otilde;es
+                                </a>
+                            </li>
+                            {% if pode_criar_avaliacao_desempenho %}
+                                <li class="nav-item">
+                                    <a href="{% url 'nova_avaliacao_desempenho' %}" class="nav-link submenu-link {% if 'avaliacoes-desempenho/nova' in request.path %}active-sub{% endif %}">
+                                        <i class="bi bi-plus-circle me-2"></i> Nova Avalia&ccedil;&atilde;o
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{% url 'dashboard_geral_avaliacoes_desempenho' %}" class="nav-link submenu-link {% if 'avaliacoes-desempenho/dashboard-geral' in request.path %}active-sub{% endif %}">
+                                        <i class="bi bi-speedometer2 me-2"></i> Dashboard Geral
+                                    </a>
+                                </li>
+                            {% endif %}
                         </ul>
                     </div>
                 </li>

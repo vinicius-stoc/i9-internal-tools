@@ -1,0 +1,82 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Detalhe da Avalia&ccedil;&atilde;o - I9TMG{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h3 class="mb-0 text-dark fw-bold"><i class="bi bi-clipboard-data me-2" style="color: var(--laranja-principal);"></i>Detalhe da Avalia&ccedil;&atilde;o</h3>
+            <p class="text-muted small mb-0">{{ avaliacao.funcionario_nome }} - {{ avaliacao.ano_formatado }}{{ avaliacao.ciclo }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'dashboard_avaliacao_desempenho' avaliacao.pk %}" class="btn btn-outline-info shadow-sm"><i class="bi bi-bar-chart me-2"></i>Dashboard</a>
+            <a href="{% url 'exportar_pdf_avaliacao_desempenho' avaliacao.pk %}" class="btn btn-outline-danger shadow-sm"><i class="bi bi-filetype-pdf me-2"></i>Exportar PDF</a>
+            {% if pode_editar %}<a href="{% url 'editar_avaliacao_desempenho' avaliacao.pk %}" class="btn btn-primary shadow-sm" style="background-color: var(--laranja-principal); border: none;"><i class="bi bi-pencil me-2"></i>Editar</a>{% endif %}
+            <a href="{% url 'listar_avaliacoes_desempenho' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Voltar</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3" style="color: var(--azul-principal);">Dados do colaborador</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6"><span class="text-muted small d-block">Colaborador</span><span class="fw-semibold">{{ avaliacao.funcionario_nome }}</span></div>
+                        <div class="col-md-3"><span class="text-muted small d-block">Cargo</span><span class="fw-semibold">{{ avaliacao.funcionario_cargo }}</span></div>
+                        <div class="col-md-3"><span class="text-muted small d-block">Setor</span><span class="fw-semibold">{{ avaliacao.funcionario_setor }}</span></div>
+                        <div class="col-md-3"><span class="text-muted small d-block">Data admiss&atilde;o</span><span class="fw-semibold">{{ avaliacao.funcionario_data_admissao|date:"d/m/Y"|default:"-" }}</span></div>
+                        <div class="col-md-3"><span class="text-muted small d-block">Per&iacute;odo</span><span class="fw-semibold">{{ avaliacao.periodo_formatado }}</span></div>
+                        <div class="col-md-3"><span class="text-muted small d-block">Status</span><span class="fw-semibold">{{ avaliacao.status_calculado_display }}</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-3 h-100 text-center">
+                <div class="card-body p-4 d-flex flex-column justify-content-center">
+                    <span class="text-muted small fw-semibold text-uppercase">M&eacute;dia final</span>
+                    <div class="display-4 fw-bold" style="color: var(--laranja-principal);">{{ avaliacao.media|default:"-" }}</div>
+                    <span class="badge bg-light text-dark border align-self-center px-3 py-2">{{ avaliacao.classificacao }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-header bg-white border-0 pt-4 px-4"><h5 class="fw-bold mb-0" style="color: var(--azul-principal);">Notas por compet&ecirc;ncia</h5></div>
+        <div class="card-body px-4 pb-4">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="bg-light text-secondary"><tr><th>Compet&ecirc;ncia</th><th>Descri&ccedil;&atilde;o</th><th class="text-center">Nota</th><th>Coment&aacute;rio</th></tr></thead>
+                    <tbody>
+                        {% for nota in notas %}
+                        <tr>
+                            <td class="fw-semibold" style="min-width: 220px;">{{ nota.competencia.nome }}</td>
+                            <td class="text-muted small" style="min-width: 360px;">{{ nota.competencia.descricao }}</td>
+                            <td class="text-center"><span class="badge rounded-pill px-3 py-2 fs-6" style="background-color: var(--azul-principal);">{{ nota.nota }}</span></td>
+                            <td style="min-width: 260px;">{{ nota.comentario|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center py-4 text-muted">Nenhuma nota cadastrada.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-3" style="color: var(--azul-principal);">Coment&aacute;rios gerais</h5>
+            <div class="p-3 rounded bg-light" style="white-space: pre-wrap;">{{ avaliacao.comentarios|default:"Nenhum comentario geral informado." }}</div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-body p-4"><div class="row g-3"><div class="col-md-6"><span class="text-muted small d-block">Respons&aacute;vel pela avalia&ccedil;&atilde;o</span><span class="fw-semibold">{{ avaliacao.avaliada_por.get_username }}</span></div><div class="col-md-6"><span class="text-muted small d-block">Data da avalia&ccedil;&atilde;o</span><span class="fw-semibold">{{ avaliacao.data_avaliacao|date:"d/m/Y H:i" }}</span></div></div></div>
+    </div>
+</div>
+{% endblock %}
+

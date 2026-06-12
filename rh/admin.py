@@ -1,6 +1,8 @@
 from django.contrib import admin
 from .models import (Funcionario, RegistroAbsenteismo, Vaga, Candidatura,
-                     FormularioAdmissional, DependenteAdmissional)
+                     FormularioAdmissional, DependenteAdmissional,
+                     CompetenciaDesempenho, AvaliacaoDesempenho,
+                     NotaCompetenciaDesempenho)
 
 @admin.register(Vaga)
 class VagaAdmin(admin.ModelAdmin):
@@ -58,3 +60,32 @@ class FormularioAdmissionalAdmin(admin.ModelAdmin):
 class DependenteAdmissionalAdmin(admin.ModelAdmin):
     list_display = ('nome_completo', 'formulario', 'data_nascimento', 'cpf')
     search_fields = ('nome_completo', 'cpf', 'formulario__candidato_nome_interno')
+
+
+@admin.register(CompetenciaDesempenho)
+class CompetenciaDesempenhoAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'ordem', 'ativa')
+    list_filter = ('ativa',)
+    search_fields = ('nome',)
+    ordering = ('ordem', 'nome')
+
+
+class NotaCompetenciaDesempenhoInline(admin.TabularInline):
+    model = NotaCompetenciaDesempenho
+    extra = 0
+
+
+@admin.register(AvaliacaoDesempenho)
+class AvaliacaoDesempenhoAdmin(admin.ModelAdmin):
+    list_display = ('avaliado', 'ano', 'ciclo', 'status', 'media', 'avaliada_por', 'data_avaliacao')
+    list_filter = ('ano', 'ciclo', 'status', 'ciencia_gestor', 'ciencia_colaborador')
+    search_fields = ('avaliado__username', 'avaliado__first_name', 'avaliado__last_name', 'avaliado__email', 'nome_avaliado')
+    readonly_fields = ('data_avaliacao', 'atualizado_em')
+    inlines = [NotaCompetenciaDesempenhoInline]
+
+
+@admin.register(NotaCompetenciaDesempenho)
+class NotaCompetenciaDesempenhoAdmin(admin.ModelAdmin):
+    list_display = ('avaliacao', 'competencia', 'nota')
+    list_filter = ('competencia', 'nota')
+    search_fields = ('avaliacao__avaliado__username', 'avaliacao__avaliado__first_name', 'avaliacao__avaliado__last_name', 'competencia__nome')
