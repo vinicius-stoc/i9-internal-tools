@@ -1,8 +1,11 @@
 import re
 from django import forms
+from django.contrib.auth import get_user_model
+from django.db import models
 from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
 from phonenumber_field.formfields import PhoneNumberField
+from core.services.permissoes_organizacionais import usuarios_avaliaveis_para
 from .constants import (
     GRAU_PARENTESCO_CONTATO_CHOICES,
     GRAU_PARENTESCO_DEPENDENTE_CHOICES,
@@ -10,7 +13,8 @@ from .constants import (
     get_municipios_brasileiros_choices,
 )
 from .models import (Candidatura, Vaga, SolicitacaoVaga, PesquisaDemissional,
-                     FormularioAdmissional, DependenteAdmissional)
+                     FormularioAdmissional, DependenteAdmissional,
+                     AvaliacaoDesempenho, CompetenciaDesempenho)
 
 
 class CandidaturaForm(forms.ModelForm):
@@ -425,3 +429,114 @@ DependenteAdmissionalFormSet = inlineformset_factory(
     extra=2,
     can_delete=True,
 )
+
+
+class AvaliacaoDesempenhoForm(forms.ModelForm):
+    class Meta:
+        model = AvaliacaoDesempenho
+        fields = ['avaliado', 'ano', 'ciclo', 'status', 'comentarios']
+        widgets = {
+            'avaliado': forms.Select(attrs={'class': 'form-select'}),
+            'ano': forms.NumberInput(attrs={'class': 'form-control', 'min': '2000'}),
+            'ciclo': forms.Select(attrs={'class': 'form-select'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'comentarios': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        usuario_logado = kwargs.pop('usuario_logado', None)
+        super().__init__(*args, **kwargs)
+
+        if usuario_logado:
+            self.fields['avaliado'].queryset = usuarios_avaliaveis_para(usuario_logado)
+        else:
+            self.fields['avaliado'].queryset = get_user_model().objects.none()
+
+        if self.instance and self.instance.pk and self.instance.avaliado_id:
+            User = self.instance.avaliado.__class__
+            queryset_atual = self.fields['avaliado'].queryset
+            avaliado_atual = User.objects.filter(pk=self.instance.avaliado_id)
+
+            self.fields['avaliado'].queryset = (queryset_atual.distinct() | avaliado_atual.distinct())
+            self.fields['avaliado'].initial = self.instance.avaliado_id
+            self.fields['avaliado'].disabled = True
+
+        self.fields['avaliado'].empty_label = 'Selecione um usuario'
+        self.fields['avaliado'].label_from_instance = lambda obj: obj.get_full_name() or obj.username
+
+    def clean(self):
+        cleaned_data = super().clean()
+        avaliado = cleaned_data.get('avaliado')
+        ano = cleaned_data.get('ano')
+        ciclo = cleaned_data.get('ciclo')
+
+        if avaliado and ano and ciclo:
+            duplicada = AvaliacaoDesempenho.objects.filter(
+                avaliado=avaliado,
+                ano=ano,
+                ciclo=ciclo,
+            )
+            if self.instance and self.instance.pk:
+                duplicada = duplicada.exclude(pk=self.instance.pk)
+            if duplicada.exists():
+                raise ValidationError('Ja existe uma avaliacao para este usuario, ano e ciclo.')
+
+        return cleaned_data
+
+class NotasCompetenciasDesempenhoForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        self.avaliacao = kwargs.pop('avaliacao', None)
+        super().__init__(*args, **kwargs)
+        self.competencias = list(CompetenciaDesempenho.objects.filter(ativa=True).order_by('ordem', 'nome'))
+        notas_atuais = {}
+
+        if self.avaliacao:
+            notas_atuais = {
+                nota.competencia_id: nota
+                for nota in self.avaliacao.notas.select_related('competencia').all()
+            }
+
+        self.competencias_campos = []
+        for competencia in self.competencias:
+            nota_atual = notas_atuais.get(competencia.id)
+            nome_nota = f'nota_{competencia.id}'
+            nome_comentario = f'comentario_{competencia.id}'
+
+            self.fields[nome_nota] = forms.IntegerField(
+                min_value=1,
+                max_value=10,
+                required=True,
+                label=competencia.nome,
+                initial=nota_atual.nota if nota_atual else None,
+                widget=forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '10'})
+            )
+            self.fields[nome_comentario] = forms.CharField(
+                required=False,
+                initial=nota_atual.comentario if nota_atual else '',
+                widget=forms.Textarea(attrs={
+                    'class': 'form-control',
+                    'rows': 2,
+                    'placeholder': 'Comentario opcional sobre esta competencia'
+                })
+            )
+            self.competencias_campos.append({
+                'competencia': competencia,
+                'nota': self[nome_nota],
+                'comentario': self[nome_comentario],
+            })
+
+    def notas_limpas(self):
+        notas = []
+        for competencia in self.competencias:
+            notas.append({
+                'competencia': competencia,
+                'nota': self.cleaned_data[f'nota_{competencia.id}'],
+                'comentario': self.cleaned_data.get(f'comentario_{competencia.id}', ''),
+            })
+        return notas
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not self.competencias:
+            raise ValidationError('Cadastre ao menos uma competencia ativa antes de salvar a avaliacao.')
+        return cleaned_data

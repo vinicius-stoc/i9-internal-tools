@@ -1,0 +1,167 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Avalia&ccedil;&otilde;es de Desempenho - I9TMG{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h3 class="mb-0 text-dark fw-bold"><i class="bi bi-clipboard-check me-2" style="color: var(--laranja-principal);"></i>Avalia&ccedil;&otilde;es de Desempenho</h3>
+            <p class="text-muted small mb-0">Cadastre, consulte e exporte avalia&ccedil;&otilde;es internas de colaboradores</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            {% if pode_criar_avaliacao %}<a href="{% url 'dashboard_geral_avaliacoes_desempenho' %}" class="btn btn-outline-primary shadow-sm"><i class="bi bi-speedometer2 me-2"></i>Dashboard Geral</a>{% endif %}
+            {% if pode_exportar_csv %}<a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}export_csv=1" class="btn btn-success shadow-sm border-0"><i class="bi bi-file-earmark-excel me-2"></i>Exportar CSV</a>{% endif %}
+            {% if pode_criar_avaliacao %}<a href="{% url 'nova_avaliacao_desempenho' %}" class="btn btn-primary shadow-sm" style="background-color: var(--laranja-principal); border: none;"><i class="bi bi-plus-circle me-2"></i>Nova Avalia&ccedil;&atilde;o</a>{% endif %}
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card border-0 shadow-sm rounded-3 border-bottom border-4 border-primary h-100"><div class="card-body"><h6 class="text-muted fw-semibold mb-1">Total de Avalia&ccedil;&otilde;es</h6><h2 class="mb-0 fw-bold">{{ total_avaliacoes }}</h2></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm rounded-3 border-bottom border-4 border-success h-100"><div class="card-body"><h6 class="text-muted fw-semibold mb-1">Finalizadas</h6><h2 class="mb-0 fw-bold">{{ total_finalizadas }}</h2></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm rounded-3 border-bottom border-4 border-warning h-100"><div class="card-body"><h6 class="text-muted fw-semibold mb-1">Rascunhos</h6><h2 class="mb-0 fw-bold">{{ total_rascunhos }}</h2></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm rounded-3 border-bottom border-4 border-info h-100"><div class="card-body"><h6 class="text-muted fw-semibold mb-1">M&eacute;dia Geral</h6><h2 class="mb-0 fw-bold">{{ media_geral|default:"-" }}</h2></div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-body">
+            <form method="get" id="formFiltrosAvaliacoes" class="row g-3 align-items-end">
+                <input type="hidden" name="pendentes_ano" value="{{ pendentes_ano }}">
+                <input type="hidden" name="pendentes_ciclo" value="{{ pendentes_ciclo }}">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-muted">Usu&aacute;rio avaliado</label>
+                    <select name="filtro_avaliado" class="form-select auto-submit-filter-avaliacoes">
+                        <option value="">Todos</option>
+                        {% for funcionario in funcionarios %}
+                            <option value="{{ funcionario.id }}" {% if filtro_avaliado == funcionario.id|stringformat:"s" %}selected{% endif %}>{{ funcionario.get_full_name|default:funcionario.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold text-muted">Setor</label>
+                    <select name="filtro_setor" class="form-select auto-submit-filter-avaliacoes"><option value="">Todos</option>{% for valor, rotulo in setores %}<option value="{{ valor }}" {% if filtro_setor == valor|stringformat:"s" %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select>
+                </div>
+                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ano</label><select name="filtro_ano" class="form-select auto-submit-filter-avaliacoes"><option value="">Todos</option>{% for ano in anos %}<option value="{{ ano }}" {% if filtro_ano == ano %}selected{% endif %}>{{ ano }}</option>{% endfor %}</select></div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold text-muted">Ciclo</label>
+                    <select name="filtro_ciclo" class="form-select auto-submit-filter-avaliacoes"><option value="">Todos</option>{% for valor, rotulo in ciclo_choices %}<option value="{{ valor }}" {% if filtro_ciclo == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold text-muted">Status</label>
+                    <select name="filtro_status" class="form-select auto-submit-filter-avaliacoes"><option value="">Todos</option>{% for valor, rotulo in status_choices %}<option value="{{ valor }}" {% if filtro_status == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select>
+                </div>
+                <div class="col-md-2 d-flex gap-2"><button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-funnel me-1"></i>Filtrar</button><a href="{% url 'listar_avaliacoes_desempenho' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary">
+                        <tr>
+                            <th class="ps-4">Colaborador</th><th>Cargo</th><th>Setor</th><th>Per&iacute;odo</th><th>M&eacute;dia</th><th>Classifica&ccedil;&atilde;o</th><th>Status</th><th>Avaliado por</th><th>Data avalia&ccedil;&atilde;o</th><th class="text-end pe-4">A&ccedil;&otilde;es</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for avaliacao in avaliacoes %}
+                        <tr>
+                            <td class="ps-4 fw-semibold">{{ avaliacao.funcionario_nome }}</td>
+                            <td>{{ avaliacao.funcionario_cargo }}</td>
+                            <td>{{ avaliacao.funcionario_setor }}</td>
+                            <td>{{ avaliacao.periodo_formatado }}</td>
+                            {% if avaliacao.pode_visualizar_resultado %}
+                                <td><span class="fw-bold">{{ avaliacao.media|default:"-" }}</span></td>
+                                <td>{{ avaliacao.classificacao }}</td>
+                            {% else %}
+                                <td colspan="2"><span class="badge bg-light text-muted border">Resultado indispon&iacute;vel</span></td>
+                            {% endif %}
+                            <td>
+                                {% if not avaliacao.pode_visualizar_resultado %}<span class="badge bg-warning bg-opacity-10 text-warning border border-warning px-2 py-1">Aguardando ci&ecirc;ncia do avaliador</span>
+                                {% elif avaliacao.status_calculado == 'CIENCIA_CONCLUIDA' %}<span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1">{{ avaliacao.status_calculado_display }}</span>
+                                {% elif avaliacao.status_calculado == 'CIENCIA_PARCIAL' %}<span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1">{{ avaliacao.status_calculado_display }}</span>
+                                {% elif avaliacao.status_calculado == 'CIENCIA_PENDENTE' %}<span class="badge bg-warning bg-opacity-10 text-warning border border-warning px-2 py-1">{{ avaliacao.status_calculado_display }}</span>
+                                {% elif avaliacao.status_calculado == 'CANCELADA' %}<span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-2 py-1">{{ avaliacao.status_calculado_display }}</span>
+                                {% elif avaliacao.status_calculado == 'FINALIZADA' %}<span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2 py-1">{{ avaliacao.status_calculado_display }}</span>
+                                {% else %}<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary px-2 py-1">{{ avaliacao.status_calculado_display }}</span>{% endif %}
+                            </td>
+                            <td>{{ avaliacao.avaliada_por.get_username }}</td>
+                            <td>{{ avaliacao.data_avaliacao|date:"d/m/Y H:i" }}</td>
+                            <td class="text-end pe-4" style="min-width: 310px;">
+                                {% if avaliacao.pode_visualizar_resultado %}
+                                    <a href="{% url 'detalhe_avaliacao_desempenho' avaliacao.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye me-1"></i>Ver</a>
+                                    <a href="{% url 'dashboard_avaliacao_desempenho' avaliacao.pk %}" class="btn btn-sm btn-outline-info ms-1"><i class="bi bi-bar-chart me-1"></i>Dashboard</a>
+                                    {% if avaliacao.pode_editar %}<a href="{% url 'editar_avaliacao_desempenho' avaliacao.pk %}" class="btn btn-sm btn-outline-secondary ms-1"><i class="bi bi-pencil me-1"></i>Editar</a>{% endif %}
+                                    <a href="{% url 'exportar_pdf_avaliacao_desempenho' avaliacao.pk %}" class="btn btn-sm btn-outline-danger ms-1"><i class="bi bi-filetype-pdf me-1"></i>PDF</a>
+                                    {% if avaliacao.pode_dar_ciencia_colaborador %}<form method="post" action="{% url 'dar_ciencia_colaborador_avaliacao' avaliacao.pk %}" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-success ms-1">Ci&ecirc;ncia</button></form>{% endif %}
+                                {% else %}
+                                    <span class="text-muted small">Resultado indispon&iacute;vel</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="10" class="text-center py-5 text-muted">Nenhuma avalia&ccedil;&atilde;o encontrada.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if pode_criar_avaliacao %}
+    <div class="card border-0 shadow-sm rounded-3 mt-4">
+        <div class="card-header bg-white border-0 pt-4 px-4">
+            <h5 class="fw-bold mb-1" style="color: var(--azul-principal);">Usu&aacute;rios sem Avalia&ccedil;&atilde;o</h5>
+            <p class="text-muted small mb-0">Usu&aacute;rios ativos com perfil organizacional avali&aacute;vel, filtrados por ano e ciclo.</p>
+        </div>
+        <div class="card-body px-4 pb-4">
+            <form method="get" id="formFiltrosPendentes" class="row g-3 align-items-end mb-3">
+                <input type="hidden" name="filtro_avaliado" value="{{ filtro_avaliado }}">
+                <input type="hidden" name="filtro_setor" value="{{ filtro_setor }}">
+                <input type="hidden" name="filtro_ano" value="{{ filtro_ano }}">
+                <input type="hidden" name="filtro_ciclo" value="{{ filtro_ciclo }}">
+                <input type="hidden" name="filtro_status" value="{{ filtro_status }}">
+                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ano</label><input type="text" name="pendentes_ano" id="pendentes_ano" class="form-control" value="{{ pendentes_ano|default:'' }}" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="Ex: 2026"></div>
+                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ciclo</label><select name="pendentes_ciclo" id="pendentes_ciclo" class="form-select auto-submit-filter-pendentes">{% for valor, rotulo in ciclo_choices %}<option value="{{ valor }}" {% if pendentes_ciclo == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select></div>
+                <div class="col-md-2"><button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-search me-1"></i>Buscar</button></div>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary"><tr><th>Nome</th><th>Username</th><th>Setor</th><th>Cargo</th><th>Admiss&atilde;o</th><th class="text-end">A&ccedil;&atilde;o</th></tr></thead>
+                    <tbody>
+                    {% for usuario in usuarios_sem_avaliacao %}
+                        <tr>
+                            <td class="fw-semibold">{{ usuario.get_full_name|default:usuario.username }}</td>
+                            <td>{{ usuario.username }}</td>
+                            <td>{{ usuario.perfil_organizacional.setor.nome }}</td>
+                            <td>{{ usuario.perfil_organizacional.cargo|default:"-" }}</td>
+                            <td>{{ usuario.perfil_organizacional.data_admissao|date:"d/m/Y"|default:"-" }}</td>
+                            <td class="text-end"><a href="{% url 'nova_avaliacao_desempenho' %}?avaliado={{ usuario.id }}&ano={{ pendentes_ano }}&ciclo={{ pendentes_ciclo }}" class="btn btn-sm btn-primary" style="background-color: var(--laranja-principal); border: none;">Criar Avalia&ccedil;&atilde;o</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="text-center py-4 text-muted">Nenhum usu&aacute;rio sem avalia&ccedil;&atilde;o para o per&iacute;odo selecionado.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const filtros = document.querySelectorAll('.auto-submit-filter-avaliacoes, .auto-submit-filter-pendentes');
+
+    filtros.forEach(function (filtro) {
+        filtro.addEventListener('change', function () {
+            const form = filtro.closest('form');
+            if (form) {
+                form.submit();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+
