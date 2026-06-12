@@ -691,19 +691,18 @@ def _query_avaliacoes_desempenho():
 
 
 def _aplicar_filtros_avaliacoes_desempenho(queryset, params):
-    avaliado_id = params.get('avaliado') or params.get('funcionario')
-    ano = params.get('ano')
-    ciclo = params.get('ciclo')
-    status = params.get('status')
-    setor = params.get('setor')
+    avaliado_id = params.get('filtro_avaliado') or params.get('avaliado') or params.get('funcionario')
+    ano = params.get('filtro_ano') or params.get('ano')
+    ciclo = params.get('filtro_ciclo') or params.get('ciclo')
+    status = params.get('filtro_status') or params.get('status')
+    setor = params.get('filtro_setor') or params.get('setor')
 
     if avaliado_id:
         queryset = queryset.filter(avaliado_id=avaliado_id)
     if ano:
-        try:
-            queryset = queryset.filter(ano=int(ano))
-        except (TypeError, ValueError):
-            pass
+        ano_int = _normalizar_ano_int(ano)
+        if ano_int:
+            queryset = queryset.filter(ano=ano_int)
     if ciclo:
         queryset = queryset.filter(ciclo=ciclo)
     if status:
@@ -736,7 +735,7 @@ def _anos_avaliacoes_desempenho():
         .values_list('ano', flat=True)
     }
     anos.add(timezone.now().year)
-    return sorted(anos, reverse=True)
+    return [str(ano) for ano in sorted(anos, reverse=True)]
 
 
 def _salvar_notas_desempenho(avaliacao, notas_limpas):
@@ -800,24 +799,7 @@ def _dados_dashboard_avaliacao(avaliacao, user=None):
         }
         for historico in historico_avaliacoes
     ]
-    labels_padrao_competencias = {
-        1: 'Pontualidade',
-        2: 'Iniciativa',
-        3: 'Relacionamento',
-        4: 'Organização',
-        5: 'Metas',
-        6: 'Qualidade',
-        7: 'Postura',
-        8: 'Conhecimento',
-        9: 'Liderança',
-    }
-    labels_competencias = [
-        labels_padrao_competencias.get(
-            nota.competencia.ordem,
-            nota.competencia.nome.split('/')[0].split('-')[0].strip(),
-        )
-        for nota in notas
-    ]
+    labels_competencias = [nome_curto_competencia(nota.competencia.nome) for nota in notas]
     notas_competencias = [float(nota.nota) for nota in notas]
 
     pode_editar = pode_editar_avaliacao(user, avaliacao) if user else False
@@ -849,6 +831,29 @@ def _dados_dashboard_avaliacao(avaliacao, user=None):
     }
 
 
+def nome_curto_competencia(nome):
+    nome = nome or ''
+    mapa = {
+        'Pontualidade/ Assiduidade': 'Pontualidade',
+        'Pontualidade/Assiduidade': 'Pontualidade',
+        'Iniciativa/Pró-atividade': 'Iniciativa',
+        'Iniciativa/Pro-atividade': 'Iniciativa',
+        'Relacionamento': 'Relacionamento',
+        'Organização': 'Organização',
+        'Organizacao': 'Organização',
+        'Metas': 'Metas',
+        'Qualidade do serviço /Atenção': 'Qualidade',
+        'Qualidade do serviço/Atenção': 'Qualidade',
+        'Qualidade do servico/Atencao': 'Qualidade',
+        'Postura Profissional': 'Postura',
+        'Conhecimento / Desenvolvimento profissional': 'Conhecimento',
+        'Conhecimento/Desenvolvimento profissional': 'Conhecimento',
+        'Liderança': 'Liderança',
+        'Lideranca': 'Liderança',
+    }
+    return mapa.get(nome, nome[:18])
+
+
 def _valor_pdf(valor):
     if valor is None:
         return '-'
@@ -870,21 +875,28 @@ def _paragraph(texto, style):
 
 
 def _grafico_barras_pdf(notas):
-    drawing = Drawing(500, 220)
+    drawing = Drawing(500, 240)
     chart = VerticalBarChart()
     chart.x = 35
-    chart.y = 45
+    chart.y = 70
     chart.height = 135
     chart.width = 420
     chart.data = [[nota.nota for nota in notas]]
     chart.valueAxis.valueMin = 0
     chart.valueAxis.valueMax = 10
     chart.valueAxis.valueStep = 1
-    chart.categoryAxis.categoryNames = [str(nota.competencia.ordem) for nota in notas]
+    chart.categoryAxis.categoryNames = [
+        nome_curto_competencia(nota.competencia.nome)
+        for nota in notas
+    ]
+    chart.categoryAxis.labels.angle = 30
+    chart.categoryAxis.labels.fontSize = 7
+    chart.categoryAxis.labels.boxAnchor = 'ne'
+    chart.categoryAxis.labels.dy = -4
     chart.bars[0].fillColor = colors.HexColor('#FF742E')
     chart.barSpacing = 3
     drawing.add(chart)
-    drawing.add(String(35, 15, 'Competencias por ordem de cadastro', fontSize=8, fillColor=colors.HexColor('#666666')))
+    drawing.add(String(35, 15, 'Competencias avaliadas', fontSize=8, fillColor=colors.HexColor('#666666')))
     return drawing
 
 
@@ -1068,19 +1080,38 @@ def _exportar_avaliacoes_desempenho_csv(avaliacoes):
     return response
 
 
+def _normalizar_ano_int(valor):
+    ano_limpo = str(valor or '').replace('.', '').replace(',', '').strip()
+    if not ano_limpo.isdigit():
+        return None
+    try:
+        return int(ano_limpo)
+    except (TypeError, ValueError):
+        return None
+
+
+def _ano_filtro_avaliacao(parametro, padrao=None):
+    padrao = padrao or timezone.now().year
+    return _normalizar_ano_int(parametro) or padrao
+
+
 def _usuarios_sem_avaliacao_context(request):
+    ano_atual = timezone.now().year
     if not pode_criar_avaliacao(request.user):
+        pendentes_ano = str(ano_atual)
         return {
             'usuarios_sem_avaliacao': [],
-            'ano_sem_avaliacao': timezone.now().year,
-            'ciclo_sem_avaliacao': 'A',
+            'pendentes_ano': pendentes_ano,
+            'pendentes_ciclo': 'A',
+            'ano_filtro': pendentes_ano,
+            'ciclo_filtro': 'A',
         }
 
-    try:
-        ano = int(request.GET.get('ano_sem_avaliacao') or request.GET.get('ano') or timezone.now().year)
-    except (TypeError, ValueError):
-        ano = timezone.now().year
-    ciclo = request.GET.get('ciclo_sem_avaliacao') or request.GET.get('ciclo') or 'A'
+    ano = _ano_filtro_avaliacao(
+        request.GET.get('pendentes_ano'),
+        ano_atual,
+    )
+    ciclo = request.GET.get('pendentes_ciclo') or 'A'
     if ciclo not in ['A', 'B']:
         ciclo = 'A'
 
@@ -1089,18 +1120,29 @@ def _usuarios_sem_avaliacao_context(request):
         avaliacoes_recebidas__ciclo=ciclo,
     ).select_related('perfil_organizacional__setor')
 
+    pendentes_ano = str(int(ano))
     return {
         'usuarios_sem_avaliacao': usuarios,
-        'ano_sem_avaliacao': ano,
-        'ciclo_sem_avaliacao': ciclo,
+        'pendentes_ano': pendentes_ano,
+        'pendentes_ciclo': ciclo,
+        'ano_filtro': pendentes_ano,
+        'ciclo_filtro': ciclo,
     }
 
 
 @login_required(login_url='/login/')
 def listar_avaliacoes_desempenho(request):
+    filtro_ano_int = _normalizar_ano_int(request.GET.get('filtro_ano'))
+    filtros_avaliacoes = {
+        'filtro_avaliado': request.GET.get('filtro_avaliado', ''),
+        'filtro_setor': request.GET.get('filtro_setor', ''),
+        'filtro_ano': str(filtro_ano_int) if filtro_ano_int else '',
+        'filtro_ciclo': request.GET.get('filtro_ciclo', ''),
+        'filtro_status': request.GET.get('filtro_status', ''),
+    }
     avaliacoes = _aplicar_filtros_avaliacoes_desempenho(
         avaliacoes_visiveis_para(request.user).order_by('-data_avaliacao'),
-        request.GET,
+        filtros_avaliacoes,
     )
 
     if request.GET.get('export_csv') == '1':
@@ -1138,7 +1180,8 @@ def listar_avaliacoes_desempenho(request):
         'anos': _anos_avaliacoes_desempenho(),
         'status_choices': AvaliacaoDesempenho.STATUS.choices,
         'ciclo_choices': AvaliacaoDesempenho.CICLO.choices,
-        'filtros': request.GET,
+        'filtros': filtros_avaliacoes,
+        **filtros_avaliacoes,
         'total_avaliacoes': len(avaliacoes_lista),
         'total_finalizadas': sum(1 for avaliacao in avaliacoes_lista if avaliacao.status_calculado == AvaliacaoDesempenho.STATUS.CIENCIA_CONCLUIDA),
         'total_rascunhos': sum(1 for avaliacao in avaliacoes_lista if avaliacao.status_calculado == AvaliacaoDesempenho.STATUS.RASCUNHO),

@@ -26,27 +26,29 @@
     <div class="card border-0 shadow-sm rounded-3 mb-4">
         <div class="card-body">
             <form method="get" id="formFiltrosAvaliacoes" class="row g-3 align-items-end">
+                <input type="hidden" name="pendentes_ano" value="{{ pendentes_ano }}">
+                <input type="hidden" name="pendentes_ciclo" value="{{ pendentes_ciclo }}">
                 <div class="col-md-4">
                     <label class="form-label small fw-semibold text-muted">Usu&aacute;rio avaliado</label>
-                    <select name="avaliado" class="form-select auto-submit-filter">
+                    <select name="filtro_avaliado" class="form-select auto-submit-filter-avaliacoes">
                         <option value="">Todos</option>
                         {% for funcionario in funcionarios %}
-                            <option value="{{ funcionario.id }}" {% if filtros.avaliado == funcionario.id|stringformat:"s" or filtros.funcionario == funcionario.id|stringformat:"s" %}selected{% endif %}>{{ funcionario.get_full_name|default:funcionario.username }}</option>
+                            <option value="{{ funcionario.id }}" {% if filtro_avaliado == funcionario.id|stringformat:"s" %}selected{% endif %}>{{ funcionario.get_full_name|default:funcionario.username }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-semibold text-muted">Setor</label>
-                    <select name="setor" class="form-select auto-submit-filter"><option value="">Todos</option>{% for valor, rotulo in setores %}<option value="{{ valor }}" {% if filtros.setor == valor|stringformat:"s" %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select>
+                    <select name="filtro_setor" class="form-select auto-submit-filter-avaliacoes"><option value="">Todos</option>{% for valor, rotulo in setores %}<option value="{{ valor }}" {% if filtro_setor == valor|stringformat:"s" %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select>
                 </div>
-                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ano</label><select name="ano" class="form-select auto-submit-filter"><option value="">Todos</option>{% for ano in anos %}<option value="{{ ano }}" {% if filtros.ano == ano|stringformat:"s" %}selected{% endif %}>{{ ano }}</option>{% endfor %}</select></div>
+                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ano</label><select name="filtro_ano" class="form-select auto-submit-filter-avaliacoes"><option value="">Todos</option>{% for ano in anos %}<option value="{{ ano }}" {% if filtro_ano == ano %}selected{% endif %}>{{ ano }}</option>{% endfor %}</select></div>
                 <div class="col-md-2">
                     <label class="form-label small fw-semibold text-muted">Ciclo</label>
-                    <select name="ciclo" class="form-select auto-submit-filter"><option value="">Todos</option>{% for valor, rotulo in ciclo_choices %}<option value="{{ valor }}" {% if filtros.ciclo == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select>
+                    <select name="filtro_ciclo" class="form-select auto-submit-filter-avaliacoes"><option value="">Todos</option>{% for valor, rotulo in ciclo_choices %}<option value="{{ valor }}" {% if filtro_ciclo == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-semibold text-muted">Status</label>
-                    <select name="status" class="form-select auto-submit-filter"><option value="">Todos</option>{% for valor, rotulo in status_choices %}<option value="{{ valor }}" {% if filtros.status == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select>
+                    <select name="filtro_status" class="form-select auto-submit-filter-avaliacoes"><option value="">Todos</option>{% for valor, rotulo in status_choices %}<option value="{{ valor }}" {% if filtro_status == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select>
                 </div>
                 <div class="col-md-2 d-flex gap-2"><button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-funnel me-1"></i>Filtrar</button><a href="{% url 'listar_avaliacoes_desempenho' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a></div>
             </form>
@@ -114,9 +116,14 @@
             <p class="text-muted small mb-0">Usu&aacute;rios ativos com perfil organizacional avali&aacute;vel, filtrados por ano e ciclo.</p>
         </div>
         <div class="card-body px-4 pb-4">
-            <form method="get" id="formFiltrosUsuariosSemAvaliacao" class="row g-3 align-items-end mb-3">
-                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ano</label><input type="number" name="ano_sem_avaliacao" class="form-control" value="{{ ano_sem_avaliacao }}"></div>
-                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ciclo</label><select name="ciclo_sem_avaliacao" class="form-select auto-submit-filter">{% for valor, rotulo in ciclo_choices %}<option value="{{ valor }}" {% if ciclo_sem_avaliacao == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select></div>
+            <form method="get" id="formFiltrosPendentes" class="row g-3 align-items-end mb-3">
+                <input type="hidden" name="filtro_avaliado" value="{{ filtro_avaliado }}">
+                <input type="hidden" name="filtro_setor" value="{{ filtro_setor }}">
+                <input type="hidden" name="filtro_ano" value="{{ filtro_ano }}">
+                <input type="hidden" name="filtro_ciclo" value="{{ filtro_ciclo }}">
+                <input type="hidden" name="filtro_status" value="{{ filtro_status }}">
+                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ano</label><input type="text" name="pendentes_ano" id="pendentes_ano" class="form-control" value="{{ pendentes_ano|default:'' }}" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="Ex: 2026"></div>
+                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ciclo</label><select name="pendentes_ciclo" id="pendentes_ciclo" class="form-select auto-submit-filter-pendentes">{% for valor, rotulo in ciclo_choices %}<option value="{{ valor }}" {% if pendentes_ciclo == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select></div>
                 <div class="col-md-2"><button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-search me-1"></i>Buscar</button></div>
             </form>
             <div class="table-responsive">
@@ -130,7 +137,7 @@
                             <td>{{ usuario.perfil_organizacional.setor.nome }}</td>
                             <td>{{ usuario.perfil_organizacional.cargo|default:"-" }}</td>
                             <td>{{ usuario.perfil_organizacional.data_admissao|date:"d/m/Y"|default:"-" }}</td>
-                            <td class="text-end"><a href="{% url 'nova_avaliacao_desempenho' %}?avaliado={{ usuario.id }}&ano={{ ano_sem_avaliacao }}&ciclo={{ ciclo_sem_avaliacao }}" class="btn btn-sm btn-primary" style="background-color: var(--laranja-principal); border: none;">Criar Avalia&ccedil;&atilde;o</a></td>
+                            <td class="text-end"><a href="{% url 'nova_avaliacao_desempenho' %}?avaliado={{ usuario.id }}&ano={{ pendentes_ano }}&ciclo={{ pendentes_ciclo }}" class="btn btn-sm btn-primary" style="background-color: var(--laranja-principal); border: none;">Criar Avalia&ccedil;&atilde;o</a></td>
                         </tr>
                     {% empty %}
                         <tr><td colspan="6" class="text-center py-4 text-muted">Nenhum usu&aacute;rio sem avalia&ccedil;&atilde;o para o per&iacute;odo selecionado.</td></tr>
@@ -144,7 +151,7 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const filtros = document.querySelectorAll('.auto-submit-filter');
+    const filtros = document.querySelectorAll('.auto-submit-filter-avaliacoes, .auto-submit-filter-pendentes');
 
     filtros.forEach(function (filtro) {
         filtro.addEventListener('change', function () {
