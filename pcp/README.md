@@ -16,6 +16,8 @@ Views, endpoints e tasks nao devem alterar models diretamente quando existir um 
 
 - Models principais utilizam soft delete por meio do campo `ativo`.
 - Um ativo pode possuir apenas um downtime aberto.
+- Todo downtime possui categoria macro derivada do tipo: tempo de producao perdido ou tempo ocioso.
+- Tipos de downtime novos nao podem definir uma categoria incompativel.
 - Um ativo pode possuir apenas uma execucao de manutencao aberta.
 - Um plano pode possuir apenas uma programacao pendente.
 - Programacoes atrasadas sao identificadas pela data prevista; o atraso nao e persistido como status.
@@ -33,6 +35,11 @@ As invariantes criticas sao garantidas por constraints PostgreSQL e complementad
 - Dashboard: grupos `PCP`, `TI`, `Diretoria` ou superusuario.
 - API operacional: grupos `PCP`, `TI`, `Diretoria` ou superusuario.
 - API Power BI: header `Authorization: Api-Key <token>`, configurado por `POWER_BI_API_KEY`.
+
+## Documentacao da API
+
+- Contrato tecnico da API: [`api/README.md`](api/README.md)
+- POP para conexao no Power BI: [`POP_POWER_BI_API.md`](POP_POWER_BI_API.md)
 
 ## Tarefas Celery
 
