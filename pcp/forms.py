@@ -66,6 +66,7 @@ class PcpAtivoForm(BootstrapFormMixin, forms.ModelForm):
 
 class PcpPlanoManutencaoForm(BootstrapFormMixin, forms.ModelForm):
     itens_manutencao_field_name = "itens_manutencao"
+    sincronizar_itens_manutencao_field_name = "sincronizar_itens_manutencao"
 
     class Meta:
         model = PcpPlanoManutencao
@@ -110,8 +111,16 @@ class PcpPlanoManutencaoForm(BootstrapFormMixin, forms.ModelForm):
             choices.append((tipo_atual, label))
         self.fields["tipo"].choices = choices
 
+    def deve_sincronizar_itens_manutencao(self) -> bool:
+        if not self.is_bound:
+            return False
+        return (
+            self.sincronizar_itens_manutencao_field_name in self.data
+            or self.itens_manutencao_field_name in self.data
+        )
+
     def _clean_itens_manutencao(self) -> list[PcpItemManutencao]:
-        if not self.is_bound or not hasattr(self.data, "getlist"):
+        if not self.deve_sincronizar_itens_manutencao() or not hasattr(self.data, "getlist"):
             return []
 
         raw_values = [

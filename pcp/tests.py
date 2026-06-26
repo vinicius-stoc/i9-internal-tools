@@ -10,6 +10,7 @@ from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
+from django.http import QueryDict
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -369,6 +370,48 @@ class PcpPlanoManutencaoFormTests(TestCase):
         self.assertIn(TipoManutencao.INSPECAO, choices)
         self.assertIn(TipoManutencao.PREVENTIVA, choices)
         self.assertIn(TipoManutencao.CORRETIVA, choices)
+
+    def test_form_sincroniza_selecao_vazia_quando_marcador_eh_enviado(self) -> None:
+        item = PcpItemManutencao.objects.create(ativo_pcp=self.ativo, descricao="Verificar correias")
+        data_sem_itens = QueryDict(mutable=True)
+        data_sem_itens.update(
+            {
+                "tipo": TipoManutencao.PREVENTIVA,
+                "nome": "Preventiva mensal",
+                "descricao": "",
+                "intervalo_dias": "30",
+                "data_inicio": "2026-07-01",
+                PcpPlanoManutencaoForm.sincronizar_itens_manutencao_field_name: "1",
+            }
+        )
+        form = PcpPlanoManutencaoForm(
+            data=data_sem_itens,
+            ativo=self.ativo,
+        )
+
+        self.assertTrue(form.is_valid())
+        self.assertTrue(form.deve_sincronizar_itens_manutencao())
+        self.assertEqual(form.itens_manutencao_selecionados, [])
+
+        data_com_item = QueryDict(mutable=True)
+        data_com_item.update(
+            {
+                "tipo": TipoManutencao.PREVENTIVA,
+                "nome": "Preventiva mensal",
+                "descricao": "",
+                "intervalo_dias": "30",
+                "data_inicio": "2026-07-01",
+                PcpPlanoManutencaoForm.itens_manutencao_field_name: str(item.pk),
+            }
+        )
+        form = PcpPlanoManutencaoForm(
+            data=data_com_item,
+            ativo=self.ativo,
+        )
+
+        self.assertTrue(form.is_valid())
+        self.assertTrue(form.deve_sincronizar_itens_manutencao())
+        self.assertEqual(form.itens_manutencao_selecionados, [item])
 
 
 class PcpEstoqueETLTests(TestCase):
@@ -812,6 +855,90 @@ class PcpAssetViewsTests(TestCase):
         plano.refresh_from_db()
         self.assertRedirects(response, f"/pcp/ativos/{ativo.pk}/")
         self.assertFalse(plano.ativo)
+
+    def test_edicao_de_plano_preserva_ou_remove_itens_conforme_post(self) -> None:
+        ativo = AtivoService.criar_ativo(codigo="MAQ-ITENS-POST", nome="Maquina Itens Post")
+        plano = PlanoManutencaoService.criar_plano(
+            ativo_pcp=ativo,
+            nome="Preventiva com itens",
+            data_inicio=date(2026, 7, 1),
+            tipo=TipoManutencao.PREVENTIVA,
+            intervalo_dias=30,
+        )
+        item = PcpItemManutencao.objects.create(
+            ativo_pcp=ativo,
+            descricao="Inspecionar protecoes",
+        )
+        PcpPlanoManutencaoItem.objects.create(plano=plano, item_manutencao=item, ordem=1)
+
+        response = self.client.post(
+            f"/pcp/planos/{plano.pk}/editar/",
+            {
+                "tipo": TipoManutencao.PREVENTIVA,
+                "nome": "Preventiva com itens atualizada",
+                "descricao": "",
+                "intervalo_dias": 30,
+                "data_inicio": "2026-07-01",
+            },
+        )
+
+        self.assertRedirects(response, f"/pcp/ativos/{ativo.pk}/")
+        self.assertTrue(PcpPlanoManutencaoItem.objects.filter(plano=plano, item_manutencao=item).exists())
+
+        response = self.client.post(
+            f"/pcp/planos/{plano.pk}/editar/",
+            {
+                "tipo": TipoManutencao.PREVENTIVA,
+                "nome": "Preventiva sem itens",
+                "descricao": "",
+                "intervalo_dias": 30,
+                "data_inicio": "2026-07-01",
+                PcpPlanoManutencaoForm.sincronizar_itens_manutencao_field_name: "1",
+            },
+        )
+
+        self.assertRedirects(response, f"/pcp/ativos/{ativo.pk}/")
+        self.assertFalse(PcpPlanoManutencaoItem.objects.filter(plano=plano).exists())
+
+    def test_formulario_de_plano_exibe_modal_de_itens_com_item_marcado(self) -> None:
+        ativo = AtivoService.criar_ativo(codigo="MAQ-MODAL", nome="Maquina Modal")
+        item = PcpItemManutencao.objects.create(
+            ativo_pcp=ativo,
+            descricao="Conferir sensores",
+        )
+        plano = PlanoManutencaoService.criar_plano(
+            ativo_pcp=ativo,
+            nome="Preventiva modal",
+            data_inicio=date(2026, 7, 1),
+            tipo=TipoManutencao.PREVENTIVA,
+            intervalo_dias=30,
+            itens_manutencao=[item],
+        )
+
+        response = self.client.get(f"/pcp/planos/{plano.pk}/editar/")
+
+        self.assertContains(response, 'data-bs-target="#modalItensManutencao"')
+        self.assertContains(response, "Selecionar itens de manuten&ccedil;&atilde;o")
+        self.assertContains(response, "item-manutencao-checkbox")
+        self.assertContains(response, f'value="{item.pk}"')
+        self.assertContains(response, "checked")
+        self.assertContains(response, "Itens associados ao plano")
+        self.assertContains(response, "Conferir sensores")
+
+    def test_formulario_de_plano_exibe_estado_vazio_de_itens_associados(self) -> None:
+        ativo = AtivoService.criar_ativo(codigo="MAQ-SEM-ITENS", nome="Maquina Sem Itens")
+        plano = PlanoManutencaoService.criar_plano(
+            ativo_pcp=ativo,
+            nome="Preventiva sem itens",
+            data_inicio=date(2026, 7, 1),
+            tipo=TipoManutencao.PREVENTIVA,
+            intervalo_dias=30,
+        )
+
+        response = self.client.get(f"/pcp/planos/{plano.pk}/editar/")
+
+        self.assertContains(response, "Itens associados ao plano")
+        self.assertContains(response, "Nenhum item de manuten&ccedil;&atilde;o associado a este plano.")
 
     def test_preview_pdf_plano_retorna_pdf_inline(self) -> None:
         ativo = AtivoService.criar_ativo(codigo="MAQ-PDF", nome="Maquina PDF")
