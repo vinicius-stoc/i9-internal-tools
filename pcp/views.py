@@ -163,7 +163,7 @@ def criar_plano(request: HttpRequest, ativo_id: int) -> HttpResponse:
         try:
             itens_manutencao = (
                 form.itens_manutencao_selecionados
-                if PcpPlanoManutencaoForm.itens_manutencao_field_name in request.POST
+                if form.deve_sincronizar_itens_manutencao()
                 else None
             )
             plano = PlanoManutencaoService.criar_plano(
@@ -193,7 +193,7 @@ def editar_plano(request: HttpRequest, plano_id: int) -> HttpResponse:
         try:
             itens_manutencao = (
                 form.itens_manutencao_selecionados
-                if PcpPlanoManutencaoForm.itens_manutencao_field_name in request.POST
+                if form.deve_sincronizar_itens_manutencao()
                 else None
             )
             plano = PlanoManutencaoService.atualizar_plano(
