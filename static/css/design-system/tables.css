@@ -1,0 +1,43 @@
+.i9-table,
+.table {
+    --bs-table-color: var(--i9-color-text);
+    --bs-table-border-color: var(--i9-color-border);
+    font-size: var(--i9-font-size-table);
+}
+
+.i9-table thead,
+.table thead {
+    background-color: var(--i9-color-surface-muted);
+}
+
+.i9-table thead th,
+.table thead th {
+    color: var(--i9-color-neutral);
+    font-size: var(--i9-font-size-helper);
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border-bottom-color: var(--i9-color-border-strong);
+}
+
+.i9-table tbody tr,
+.table tbody tr {
+    vertical-align: middle;
+}
+
+.i9-table.table-hover tbody tr:hover,
+.table-hover tbody tr:hover {
+    --bs-table-hover-bg: #F9FAFB;
+}
+
+.i9-table .i9-table-actions,
+.table .i9-table-actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.i9-table .i9-table-number,
+.table .i9-table-number {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}

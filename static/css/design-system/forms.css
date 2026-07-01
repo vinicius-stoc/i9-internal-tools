@@ -1,0 +1,42 @@
+.form-label {
+    color: var(--i9-color-neutral);
+    font-size: var(--i9-font-size-helper);
+    font-weight: 700;
+}
+
+.form-control,
+.form-select {
+    color: var(--i9-color-text);
+    border-color: var(--i9-color-border-strong);
+    border-radius: var(--i9-radius-sm);
+    font-size: var(--i9-font-size-body);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--i9-color-primary);
+    box-shadow: var(--i9-focus-ring);
+}
+
+.form-text,
+.helptext {
+    color: var(--i9-color-text-muted);
+    font-size: var(--i9-font-size-helper);
+}
+
+.invalid-feedback,
+.errorlist {
+    color: var(--i9-color-danger);
+    font-size: var(--i9-font-size-helper);
+}
+
+.errorlist {
+    margin: var(--i9-space-1) 0 0;
+    padding-left: 1rem;
+}
+
+.i9-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--i9-space-3);
+}

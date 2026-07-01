@@ -28,6 +28,25 @@
     .tree-toggle-row { cursor: pointer; }
     .transition-transform { transition: transform 0.2s ease-in-out; }
     .tree-task-row { background: #fff; }
+    .component-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+    .help-btn {
+        width: 1.55rem;
+        height: 1.55rem;
+        min-width: 1.55rem;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid #ced4da;
+        color: var(--azul-principal);
+        background: #fff;
+        font-size: 0.8rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .help-btn:hover, .help-btn:focus {
+        color: #fff;
+        background: var(--azul-principal);
+        border-color: var(--azul-principal);
+    }
 </style>
 
 <div class="container-fluid">
@@ -121,31 +140,46 @@
     <div class="row g-4 mb-4">
         <div class="col-md">
             <div class="card kpi-card h-100 p-3 border-start border-4 border-primary">
-                <div class="kpi-title mb-1">Custo</div>
+                <div class="component-title mb-1">
+                    <div class="kpi-title">Custo</div>
+                    <button type="button" class="help-btn" data-help="custo" aria-label="Ajuda sobre Custo">?</button>
+                </div>
                 <div class="kpi-value">R$ {{ kpis.custo|floatformat:2 }}</div>
             </div>
         </div>
         <div class="col-md">
             <div class="card kpi-card h-100 p-3 border-start border-4 border-warning">
-                <div class="kpi-title mb-1">Empenhado</div>
+                <div class="component-title mb-1">
+                    <div class="kpi-title">Empenhado</div>
+                    <button type="button" class="help-btn" data-help="empenhado" aria-label="Ajuda sobre Empenhado">?</button>
+                </div>
                 <div class="kpi-value">R$ {{ kpis.empenhado|floatformat:2 }}</div>
             </div>
         </div>
         <div class="col-md">
             <div class="card kpi-card h-100 p-3 border-start border-4 border-info">
-                <div class="kpi-title mb-1">Saldo do Empenho</div>
+                <div class="component-title mb-1">
+                    <div class="kpi-title">Saldo do Empenho</div>
+                    <button type="button" class="help-btn" data-help="saldo_empenho" aria-label="Ajuda sobre Saldo do Empenho">?</button>
+                </div>
                 <div class="kpi-value {% if kpis.saldo_empenho < 0 %}text-danger{% endif %}">R$ {{ kpis.saldo_empenho|floatformat:2 }}</div>
             </div>
         </div>
         <div class="col-md">
             <div class="card kpi-card h-100 p-3 border-start border-4 border-secondary">
-                <div class="kpi-title mb-1">% Convertido em Custo</div>
+                <div class="component-title mb-1">
+                    <div class="kpi-title">% Convertido em Custo</div>
+                    <button type="button" class="help-btn" data-help="percentual_convertido" aria-label="Ajuda sobre Percentual Convertido em Custo">?</button>
+                </div>
                 <div class="kpi-value">{{ kpis.percentual_custo_empenhado|floatformat:2 }}%</div>
             </div>
         </div>
         <div class="col-md">
             <div class="card kpi-card h-100 p-3 border-start border-4 border-danger">
-                <div class="kpi-title mb-1">Custo sem Empenho</div>
+                <div class="component-title mb-1">
+                    <div class="kpi-title">Custo sem Empenho</div>
+                    <button type="button" class="help-btn" data-help="custo_sem_empenho" aria-label="Ajuda sobre Custo sem Empenho">?</button>
+                </div>
                 <div class="kpi-value {% if kpis.custo_sem_empenho > 0 %}text-danger{% endif %}">R$ {{ kpis.custo_sem_empenho|floatformat:2 }}</div>
             </div>
         </div>
@@ -154,33 +188,48 @@
     <div class="row g-4 mb-4">
         <div class="col-md">
             <div class="card kpi-card h-100 p-3">
-                <div class="kpi-title mb-1">Média por Projeto</div>
+                <div class="component-title mb-1">
+                    <div class="kpi-title">Média por Projeto</div>
+                    <button type="button" class="help-btn" data-help="media_projeto" aria-label="Ajuda sobre Media por Projeto">?</button>
+                </div>
                 <div class="kpi-value">R$ {{ kpis_executivos.media_custo_por_projeto|floatformat:2 }}</div>
             </div>
         </div>
         <div class="col-md">
             <div class="card kpi-card h-100 p-3">
-                <div class="kpi-title mb-1">Mediana por Projeto</div>
+                <div class="component-title mb-1">
+                    <div class="kpi-title">Mediana por Projeto</div>
+                    <button type="button" class="help-btn" data-help="mediana_projeto" aria-label="Ajuda sobre Mediana por Projeto">?</button>
+                </div>
                 <div class="kpi-value">R$ {{ kpis_executivos.mediana_custo_por_projeto|floatformat:2 }}</div>
             </div>
         </div>
         <div class="col-md">
             <div class="card kpi-card h-100 p-3">
-                <div class="kpi-title mb-1">Maior Custo</div>
+                <div class="component-title mb-1">
+                    <div class="kpi-title">Maior Custo</div>
+                    <button type="button" class="help-btn" data-help="maior_custo" aria-label="Ajuda sobre Maior Custo">?</button>
+                </div>
                 <div class="fw-bold">{{ kpis_executivos.projeto_maior_custo.projeto|default:"-" }}</div>
                 <div class="small text-muted">{{ kpis_executivos.projeto_maior_custo.descricao|default:"Sem projeto" }}</div>
             </div>
         </div>
         <div class="col-md">
             <div class="card kpi-card h-100 p-3">
-                <div class="kpi-title mb-1">Maior % Acima do Empenho</div>
+                <div class="component-title mb-1">
+                    <div class="kpi-title">Maior % Acima do Empenho</div>
+                    <button type="button" class="help-btn" data-help="maior_acima_empenho" aria-label="Ajuda sobre Maior Percentual Acima do Empenho">?</button>
+                </div>
                 <div class="fw-bold">{{ kpis_executivos.projeto_maior_acima_empenho.projeto|default:"-" }}</div>
                 <div class="small text-muted">{{ kpis_executivos.projeto_maior_acima_empenho.percentual_acima_empenho|floatformat:2 }}%</div>
             </div>
         </div>
         <div class="col-md">
             <div class="card kpi-card h-100 p-3">
-                <div class="kpi-title mb-1">Fora da Curva</div>
+                <div class="component-title mb-1">
+                    <div class="kpi-title">Fora da Curva</div>
+                    <button type="button" class="help-btn" data-help="fora_curva" aria-label="Ajuda sobre Fora da Curva">?</button>
+                </div>
                 <div class="kpi-value">{{ kpis_executivos.projetos_fora_curva }}</div>
             </div>
         </div>
@@ -189,7 +238,10 @@
     <div class="row g-4 mb-4">
         <div class="col-lg-4">
             <div class="chart-card">
-                <h6 class="fw-bold text-secondary mb-3">Custo x Empenhado</h6>
+                <div class="component-title mb-3">
+                    <h6 class="fw-bold text-secondary m-0">Custo x Empenhado</h6>
+                    <button type="button" class="help-btn" data-help="grafico_custo_empenho" aria-label="Ajuda sobre Custo x Empenhado">?</button>
+                </div>
                 <div class="chart-wrapper">
                     <canvas id="graficoCustoEmpenho"></canvas>
                 </div>
@@ -197,9 +249,12 @@
         </div>
         <div class="col-lg-8">
             <div class="chart-card">
-                <h6 class="fw-bold text-secondary mb-3">
-                    {% if modo_carteira %}Top 10 Projetos por Custo{% else %}Top 10 EDT/WBS por Custo{% endif %}
-                </h6>
+                <div class="component-title mb-3">
+                    <h6 class="fw-bold text-secondary m-0">
+                        {% if modo_carteira %}Top 10 Projetos por Custo{% else %}Top 10 EDT/WBS por Custo{% endif %}
+                    </h6>
+                    <button type="button" class="help-btn" data-help="{% if modo_carteira %}grafico_top_projetos{% else %}grafico_top_edts{% endif %}" aria-label="Ajuda sobre ranking de custo">?</button>
+                </div>
                 <div class="chart-wrapper">
                     <canvas id="graficoRanking"></canvas>
                 </div>
@@ -208,7 +263,10 @@
     </div>
 
     <div class="chart-card mb-4">
-        <h6 class="fw-bold text-secondary mb-3">Top 10 Tarefas por Custo</h6>
+        <div class="component-title mb-3">
+            <h6 class="fw-bold text-secondary m-0">Top 10 Tarefas por Custo</h6>
+            <button type="button" class="help-btn" data-help="grafico_top_tarefas" aria-label="Ajuda sobre Top 10 Tarefas por Custo">?</button>
+        </div>
         <div class="chart-wrapper">
             <canvas id="graficoTarefas"></canvas>
         </div>
@@ -217,7 +275,10 @@
     <div class="row g-4 mb-4">
         <div class="col-lg-6">
             <div class="chart-card">
-                <h6 class="fw-bold text-secondary mb-3">Eficiência: Volume x Custo Realizado</h6>
+                <div class="component-title mb-3">
+                    <h6 class="fw-bold text-secondary m-0">Eficiência: Volume x Custo Realizado</h6>
+                    <button type="button" class="help-btn" data-help="grafico_eficiencia" aria-label="Ajuda sobre Eficiencia Volume x Custo Realizado">?</button>
+                </div>
                 <div class="chart-wrapper">
                     <canvas id="graficoEficiencia"></canvas>
                 </div>
@@ -225,7 +286,10 @@
         </div>
         <div class="col-lg-6">
             <div class="chart-card">
-                <h6 class="fw-bold text-secondary mb-3">Matriz de Risco Financeiro</h6>
+                <div class="component-title mb-3">
+                    <h6 class="fw-bold text-secondary m-0">Matriz de Risco Financeiro</h6>
+                    <button type="button" class="help-btn" data-help="grafico_risco" aria-label="Ajuda sobre Matriz de Risco Financeiro">?</button>
+                </div>
                 <div class="chart-wrapper">
                     <canvas id="graficoRisco"></canvas>
                 </div>
@@ -234,7 +298,10 @@
     </div>
 
     <div class="chart-card mb-4">
-        <h6 class="fw-bold text-secondary mb-3">Tendência Temporal Financeira</h6>
+        <div class="component-title mb-3">
+            <h6 class="fw-bold text-secondary m-0">Tendência Temporal Financeira</h6>
+            <button type="button" class="help-btn" data-help="grafico_temporal" aria-label="Ajuda sobre Tendencia Temporal Financeira">?</button>
+        </div>
         {% if serie_temporal.disponivel %}
             <div class="chart-wrapper">
                 <canvas id="graficoTemporal"></canvas>
@@ -249,7 +316,10 @@
     <div class="row g-4 mb-4">
         <div class="col-lg-4">
             <div class="chart-card chart-card-sm">
-                <h6 class="fw-bold text-secondary mb-3">Pareto Projetos</h6>
+                <div class="component-title mb-3">
+                    <h6 class="fw-bold text-secondary m-0">Pareto Projetos</h6>
+                    <button type="button" class="help-btn" data-help="pareto_projetos" aria-label="Ajuda sobre Pareto Projetos">?</button>
+                </div>
                 <div class="chart-wrapper">
                     <canvas id="graficoParetoProjetos"></canvas>
                 </div>
@@ -257,7 +327,10 @@
         </div>
         <div class="col-lg-4">
             <div class="chart-card chart-card-sm">
-                <h6 class="fw-bold text-secondary mb-3">Pareto EDT/WBS</h6>
+                <div class="component-title mb-3">
+                    <h6 class="fw-bold text-secondary m-0">Pareto EDT/WBS</h6>
+                    <button type="button" class="help-btn" data-help="pareto_edts" aria-label="Ajuda sobre Pareto EDT/WBS">?</button>
+                </div>
                 <div class="chart-wrapper">
                     <canvas id="graficoParetoEdts"></canvas>
                 </div>
@@ -265,7 +338,10 @@
         </div>
         <div class="col-lg-4">
             <div class="chart-card chart-card-sm">
-                <h6 class="fw-bold text-secondary mb-3">Pareto Tarefas</h6>
+                <div class="component-title mb-3">
+                    <h6 class="fw-bold text-secondary m-0">Pareto Tarefas</h6>
+                    <button type="button" class="help-btn" data-help="pareto_tarefas" aria-label="Ajuda sobre Pareto Tarefas">?</button>
+                </div>
                 <div class="chart-wrapper">
                     <canvas id="graficoParetoTarefas"></canvas>
                 </div>
@@ -275,8 +351,11 @@
 
     <div class="table-container mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold text-secondary m-0">EDTs Críticas por Consumo</h6>
-            <span class="badge bg-light text-dark">{{ kpis_executivos.edt_mais_critica.edt|default:"-" }}</span>
+            <div class="component-title flex-grow-1">
+                <h6 class="fw-bold text-secondary m-0">EDTs Críticas por Consumo</h6>
+                <button type="button" class="help-btn" data-help="tabela_edts_criticas" aria-label="Ajuda sobre EDTs Criticas por Consumo">?</button>
+            </div>
+            <span class="badge bg-light text-dark ms-2">{{ kpis_executivos.edt_mais_critica.edt|default:"-" }}</span>
         </div>
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0">
@@ -322,7 +401,10 @@
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-body d-flex flex-wrap justify-content-between align-items-center p-3 gap-3">
             <div>
-                <h6 class="fw-bold text-secondary m-0">Estrutura Financeira por EDT/WBS e Tarefa</h6>
+                <div class="component-title">
+                    <h6 class="fw-bold text-secondary m-0">Estrutura Financeira por EDT/WBS e Tarefa</h6>
+                    <button type="button" class="help-btn" data-help="tabela_estrutura" aria-label="Ajuda sobre Estrutura Financeira por EDT/WBS e Tarefa">?</button>
+                </div>
                 <div class="text-muted small">
                     {% if linhas_hierarquia_page.paginator.count %}
                         Linhas {{ linhas_hierarquia_page.start_index }} a {{ linhas_hierarquia_page.end_index }} de {{ linhas_hierarquia_page.paginator.count }}
@@ -500,6 +582,261 @@
         empenhado: graficoEdts.empenhado
     }{% endif %};
     const money = (value) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const buildHelp = (origem, formula, interpretacao, acao, limite) => `
+        <div class="text-start">
+            <p><strong>Origem dos dados:</strong> ${origem}</p>
+            <p><strong>Calculo:</strong> ${formula}</p>
+            <p><strong>Como interpretar:</strong> ${interpretacao}</p>
+            <p><strong>Quando agir:</strong> ${acao}</p>
+            <p class="mb-0"><strong>Cuidado:</strong> ${limite}</p>
+        </div>
+    `;
+    const pmsDashboardHelp = {
+        custo: {
+            title: 'Custo',
+            html: buildHelp(
+                'Recebimentos e notas de entrada do Protheus vinculados as tarefas PMS pelo rateio AFG.',
+                'Soma de custo realizado no escopo filtrado.',
+                'Mostra quanto ja virou custo efetivo no projeto ou carteira.',
+                'Investigue quando crescer acima do esperado ou concentrar em poucos itens.',
+                'Depende do vinculo correto entre PMS, pedido e recebimento.'
+            )
+        },
+        empenhado: {
+            title: 'Empenhado',
+            html: buildHelp(
+                'Pedidos de compra SC7 vinculados as tarefas PMS pela distribuicao AFG.',
+                'Soma do valor empenhado no escopo filtrado.',
+                'Mostra quanto ja esta comprometido em pedido, mesmo sem recebimento.',
+                'Compare com o custo realizado para entender saldo em aberto ou estouro.',
+                'Empenhado nao significa custo realizado.'
+            )
+        },
+        saldo_empenho: {
+            title: 'Saldo do Empenho',
+            html: buildHelp(
+                'Custos e empenhos materializados por tarefa PMS.',
+                'Empenhado menos custo realizado.',
+                'Saldo positivo indica empenho ainda aberto; saldo negativo indica custo acima do empenho.',
+                'Investigue sempre que o saldo ficar negativo.',
+                'Pode ser afetado por vinculos incompletos entre pedidos e notas.'
+            )
+        },
+        percentual_convertido: {
+            title: '% Convertido em Custo',
+            html: buildHelp(
+                'Custo realizado e valor empenhado do escopo filtrado.',
+                'Custo realizado dividido pelo empenhado, multiplicado por 100.',
+                'Mostra quanto do empenho ja virou custo efetivo.',
+                'Percentuais acima de 100% exigem analise do saldo e dos vinculos.',
+                'Quando nao ha empenho, o percentual fica zerado para evitar divisao invalida.'
+            )
+        },
+        custo_sem_empenho: {
+            title: 'Custo sem Empenho',
+            html: buildHelp(
+                'Custos realizados em tarefas PMS sem empenho correspondente no dashboard.',
+                'Soma do custo realizado das tarefas com empenhado igual a zero.',
+                'Indica custo reconhecido sem pedido vinculado no fluxo esperado.',
+                'Deve ser investigado quando maior que zero.',
+                'Pode indicar falha de vinculo, lancamento fora do fluxo ou dado incompleto na origem.'
+            )
+        },
+        media_projeto: {
+            title: 'Media por Projeto',
+            html: buildHelp(
+                'Custos realizados dos projetos dentro do filtro atual.',
+                'Soma do custo realizado dividida pela quantidade de projetos.',
+                'Ajuda a entender o custo medio da carteira filtrada.',
+                'Compare com a mediana para identificar concentracao.',
+                'Projetos muito grandes podem puxar a media para cima.'
+            )
+        },
+        mediana_projeto: {
+            title: 'Mediana por Projeto',
+            html: buildHelp(
+                'Custos realizados dos projetos dentro do filtro atual.',
+                'Valor central da lista de custos por projeto.',
+                'Mostra um ponto de referencia menos sensivel a projetos extremos.',
+                'Use quando a media parecer distorcida por poucos projetos muito altos.',
+                'Nao substitui a analise individual dos maiores custos.'
+            )
+        },
+        maior_custo: {
+            title: 'Maior Custo',
+            html: buildHelp(
+                'Ranking de projetos por custo realizado.',
+                'Projeto com maior soma de custo realizado no escopo filtrado.',
+                'Aponta o projeto de maior impacto financeiro.',
+                'Priorize a abertura da estrutura do projeto e das EDTs mais caras.',
+                'Maior custo nao significa erro; pode refletir maior porte do projeto.'
+            )
+        },
+        maior_acima_empenho: {
+            title: 'Maior % Acima do Empenho',
+            html: buildHelp(
+                'Comparacao entre custo realizado e empenhado por projeto.',
+                'Percentual acima do empenho quando o custo supera o valor empenhado.',
+                'Mostra onde a relacao custo x empenho esta mais critica.',
+                'Investigue projetos com percentual alto, especialmente se tambem tiverem alto custo.',
+                'Quando nao ha empenho e ha custo, a regra marca 100% para evidenciar risco.'
+            )
+        },
+        fora_curva: {
+            title: 'Fora da Curva',
+            html: buildHelp(
+                'Custos e percentuais acima do empenho calculados por projeto.',
+                'Conta projetos com custo acima da mediana e percentual acima do empenho maior que zero.',
+                'Indica projetos que combinam custo alto e estouro de empenho.',
+                'Use como fila inicial de revisao gerencial.',
+                'E uma regra executiva simples, nao uma analise estatistica avancada.'
+            )
+        },
+        grafico_custo_empenho: {
+            title: 'Custo x Empenhado',
+            html: buildHelp(
+                'Mesma base filtrada dos KPIs principais.',
+                'Compara soma de custo realizado contra soma de empenhado.',
+                'Mostra se o escopo esta mais realizado, comprometido ou acima do empenho.',
+                'Investigue quando custo superar empenhado.',
+                'Nao mostra detalhes por tarefa; use a tabela ou rankings para aprofundar.'
+            )
+        },
+        grafico_top_projetos: {
+            title: 'Top 10 Projetos por Custo',
+            html: buildHelp(
+                'Custos realizados agrupados por projeto.',
+                'Ordena os projetos por custo realizado em ordem decrescente e exibe os 10 maiores.',
+                'Mostra onde esta a maior concentracao de custo da carteira.',
+                'Priorize os primeiros projetos do ranking.',
+                'Em carteira com multiplas revisoes, confirme a regra de revisao antes de decisao executiva.'
+            )
+        },
+        grafico_top_edts: {
+            title: 'Top 10 EDT/WBS por Custo',
+            html: buildHelp(
+                'Custos das tarefas consolidados por EDT/WBS e descendentes.',
+                'Ordena as EDTs por custo realizado e exibe as 10 maiores.',
+                'Mostra quais fases ou pacotes concentram mais custo no projeto.',
+                'Abra a tabela principal para chegar nas tarefas responsaveis.',
+                'Depende da estrutura EDT estar corretamente cadastrada no PMS.'
+            )
+        },
+        grafico_top_tarefas: {
+            title: 'Top 10 Tarefas por Custo',
+            html: buildHelp(
+                'Custos realizados agrupados por tarefa PMS.',
+                'Ordena tarefas por custo realizado e exibe as 10 maiores.',
+                'Leva a analise para o menor nivel operacional do dashboard.',
+                'Investigue as tarefas no topo quando houver custo alto, sem empenho ou acima do empenho.',
+                'Descricoes incompletas no PMS reduzem a clareza do ranking.'
+            )
+        },
+        grafico_eficiencia: {
+            title: 'Eficiencia: Volume x Custo Realizado',
+            html: buildHelp(
+                'Custos realizados, custo previsto, quantidade de tarefas e quantidade de EDTs.',
+                'Eixo X usa custo previsto; se nao existir, usa quantidade de tarefas ou EDTs. Eixo Y usa custo realizado.',
+                'Ajuda a identificar projetos caros em relacao ao volume.',
+                'Analise pontos destacados e projetos distantes do padrao da carteira.',
+                'O destaque de outlier usa media simples; trate como alerta visual.'
+            )
+        },
+        grafico_risco: {
+            title: 'Matriz de Risco Financeiro',
+            html: buildHelp(
+                'Custo realizado e percentual acima do empenho por projeto.',
+                'Eixo X e custo realizado; eixo Y e percentual acima do empenho; o corte de impacto usa a mediana.',
+                'Classifica projetos por impacto financeiro e estouro de empenho.',
+                'Priorize alto custo acima do empenho.',
+                'Quadrante e apoio de decisao; nao substitui analise do detalhe do projeto.'
+            )
+        },
+        grafico_temporal: {
+            title: 'Tendencia Temporal Financeira',
+            html: buildHelp(
+                'Custos mensais de PmsCustoTemporalMensal.',
+                'Soma custo realizado e empenhado por competencia, calcula acumulados, variacao mensal e media movel 3M.',
+                'Mostra evolucao mensal, picos e tendencia de gasto.',
+                'Investigue picos, crescimento recorrente e descasamento entre empenhado e realizado.',
+                'Depende de datas financeiras validas em SC7 e SD1.'
+            )
+        },
+        pareto_projetos: {
+            title: 'Pareto Projetos',
+            html: buildHelp(
+                'Custos realizados agrupados por projeto.',
+                'Ordena por custo e calcula percentual acumulado.',
+                'Mostra quais projetos explicam a maior parte do custo.',
+                'Comece a analise pelos primeiros itens.',
+                'Se houver multiplas revisoes no escopo, validar a regra antes de usar como numero final.'
+            )
+        },
+        pareto_edts: {
+            title: 'Pareto EDT/WBS',
+            html: buildHelp(
+                'Custos realizados agrupados por EDT/WBS.',
+                'Ordena por custo e calcula percentual acumulado.',
+                'Mostra quais estruturas concentram a maior parte do custo.',
+                'Priorize EDTs no inicio do Pareto.',
+                'Depende da vinculacao correta das tarefas a EDTs.'
+            )
+        },
+        pareto_tarefas: {
+            title: 'Pareto Tarefas',
+            html: buildHelp(
+                'Custos realizados agrupados por tarefa PMS.',
+                'Ordena por custo e calcula percentual acumulado.',
+                'Mostra quais tarefas explicam a maior parte do custo.',
+                'Use para aprofundar a investigacao apos escolher projeto ou EDT critica.',
+                'Tarefas com descricao ruim podem exigir consulta complementar ao Protheus.'
+            )
+        },
+        tabela_edts_criticas: {
+            title: 'EDTs Criticas por Consumo',
+            html: buildHelp(
+                'Custos, empenhos e serie temporal das EDTs.',
+                'Lista as EDTs com maior custo realizado e calcula participacao no total e burn rate quando ha base temporal.',
+                'Mostra as fases com maior consumo financeiro.',
+                'Investigue EDTs com alto custo, alta participacao ou burn rate relevante.',
+                'Burn rate depende da janela temporal disponivel.'
+            )
+        },
+        tabela_estrutura: {
+            title: 'Estrutura Financeira por EDT/WBS e Tarefa',
+            html: buildHelp(
+                'Estrutura PMS, custos por tarefa e consolidacao por EDT.',
+                'EDTs somam suas tarefas e descendentes; tarefas mostram custo, empenho, saldo e situacao financeira.',
+                'Permite chegar ao detalhe que explica os cards e graficos.',
+                'Priorize linhas com custo sem empenho, custo acima do empenho ou saldo negativo.',
+                'A tabela aparece somente quando um unico projeto esta selecionado.'
+            )
+        }
+    };
+
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('.help-btn');
+        if (!button) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const item = pmsDashboardHelp[button.dataset.help];
+        if (!item) {
+            return;
+        }
+        if (window.Swal) {
+            Swal.fire({
+                title: item.title,
+                html: item.html,
+                icon: 'info',
+                confirmButtonText: 'Entendi',
+                confirmButtonColor: '#0d6efd'
+            });
+            return;
+        }
+        alert(item.title);
+    });
 
     if (document.getElementById('filtroProjetos') && window.Choices) {
         new Choices('#filtroProjetos', {

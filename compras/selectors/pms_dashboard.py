@@ -58,6 +58,7 @@ class PmsDashboardSelector:
         projetos_filtro = cls._normalizar_projetos_filtro(filtros.get('projeto'))
         projeto_filtro = projetos_filtro[0] if len(projetos_filtro) == 1 else ''
         projetos_escopo = projetos_filtro or lista_projetos
+        revisoes_carteira = cls._revisoes_carteira(projetos_base, projetos_escopo)
         categorias_filtro = cls._normalizar_categorias_filtro(
             filtros.get('categorias')
             if 'categorias' in filtros
@@ -71,12 +72,12 @@ class PmsDashboardSelector:
             cls._listar_tarefas(projeto_filtro, revisao_filtro)
         )
         custos = cls._listar_custos(projeto_filtro, revisao_filtro)
-        custos_carteira = cls._listar_custos_carteira(projetos_escopo)
-        edts_carteira = cls._listar_edts_carteira(projetos_escopo)
+        custos_carteira = cls._listar_custos_carteira(projetos_escopo, revisoes_carteira)
+        edts_carteira = cls._listar_edts_carteira(projetos_escopo, revisoes_carteira)
         tarefas_carteira = cls._enriquecer_tarefas_categoria(
-            cls._listar_tarefas_carteira(projetos_escopo)
+            cls._listar_tarefas_carteira(projetos_escopo, revisoes_carteira)
         )
-        custos_temporais = cls._listar_custos_temporais(projetos_escopo)
+        custos_temporais = cls._listar_custos_temporais(projetos_escopo, revisoes_carteira)
 
         if categorias_filtro:
             tarefas = cls._filtrar_tarefas_por_categoria(tarefas, categorias_filtro)
@@ -173,6 +174,33 @@ class PmsDashboardSelector:
         return revisao or ''
 
     @staticmethod
+    def _revisoes_carteira(projetos_base, projetos):
+        if not projetos:
+            return {}
+        projetos = set(projetos)
+        revisoes = (
+            projetos_base
+            .filter(projeto__in=projetos)
+            .values('projeto')
+            .annotate(revisao=Max('revisao'))
+        )
+        return {
+            item['projeto']: item['revisao']
+            for item in revisoes
+            if item.get('projeto') and item.get('revisao')
+        }
+
+    @staticmethod
+    def _filtrar_ultima_revisao_itens(itens, revisoes_por_projeto):
+        if not revisoes_por_projeto:
+            return []
+        return [
+            item
+            for item in itens
+            if item.get('revisao') == revisoes_por_projeto.get(item.get('projeto'))
+        ]
+
+    @staticmethod
     def _get_projeto(projeto, revisao):
         if not projeto or not revisao:
             return None
@@ -242,10 +270,10 @@ class PmsDashboardSelector:
         )
 
     @staticmethod
-    def _listar_custos_carteira(projetos):
-        if not projetos:
+    def _listar_custos_carteira(projetos, revisoes_por_projeto):
+        if not projetos or not revisoes_por_projeto:
             return []
-        return list(
+        custos = list(
             PmsCustoTarefa.objects
             .filter(projeto__in=projetos)
             .order_by('projeto', 'revisao', 'edt', 'tarefa')
@@ -261,22 +289,30 @@ class PmsDashboardSelector:
                 'saldo_previsto_realizado',
             )
         )
+        return PmsDashboardSelector._filtrar_ultima_revisao_itens(
+            custos,
+            revisoes_por_projeto,
+        )
 
     @staticmethod
-    def _listar_edts_carteira(projetos):
-        if not projetos:
+    def _listar_edts_carteira(projetos, revisoes_por_projeto):
+        if not projetos or not revisoes_por_projeto:
             return []
-        return list(
+        edts = list(
             PmsEdt.objects
             .filter(projeto__in=projetos)
             .values('filial', 'projeto', 'revisao', 'edt', 'edt_pai', 'descricao', 'nivel')
         )
+        return PmsDashboardSelector._filtrar_ultima_revisao_itens(
+            edts,
+            revisoes_por_projeto,
+        )
 
     @staticmethod
-    def _listar_tarefas_carteira(projetos):
-        if not projetos:
+    def _listar_tarefas_carteira(projetos, revisoes_por_projeto):
+        if not projetos or not revisoes_por_projeto:
             return []
-        return list(
+        tarefas = list(
             PmsTarefa.objects
             .filter(projeto__in=projetos)
             .values(
@@ -292,12 +328,16 @@ class PmsDashboardSelector:
                 'data_fim_prevista',
             )
         )
+        return PmsDashboardSelector._filtrar_ultima_revisao_itens(
+            tarefas,
+            revisoes_por_projeto,
+        )
 
     @staticmethod
-    def _listar_custos_temporais(projetos):
-        if not projetos:
+    def _listar_custos_temporais(projetos, revisoes_por_projeto):
+        if not projetos or not revisoes_por_projeto:
             return []
-        return list(
+        custos = list(
             PmsCustoTemporalMensal.objects
             .filter(projeto__in=projetos)
             .order_by('competencia', 'projeto', 'edt', 'tarefa')
@@ -311,6 +351,10 @@ class PmsDashboardSelector:
                 'custo_empenhado',
                 'custo_realizado',
             )
+        )
+        return PmsDashboardSelector._filtrar_ultima_revisao_itens(
+            custos,
+            revisoes_por_projeto,
         )
 
     @staticmethod
