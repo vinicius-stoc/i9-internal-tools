@@ -1,0 +1,58 @@
+html {
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    background-color: var(--i9-color-bg);
+    color: var(--i9-color-text);
+    font-family: var(--i9-font-family);
+    font-size: var(--i9-font-size-body);
+    letter-spacing: 0;
+}
+
+a {
+    color: var(--i9-color-primary);
+}
+
+a:hover {
+    color: var(--i9-color-primary-hover);
+}
+
+::selection {
+    background: rgba(249, 115, 22, 0.22);
+}
+
+:focus-visible {
+    outline: 0;
+    box-shadow: var(--i9-focus-ring);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--i9-color-text);
+    letter-spacing: 0;
+}
+
+.text-muted {
+    color: var(--i9-color-text-muted) !important;
+}
+
+.dropdown-menu {
+    border-color: var(--i9-color-border);
+    border-radius: var(--i9-radius-md);
+    box-shadow: var(--i9-shadow-sm);
+}
+
+.dropdown-item {
+    font-size: var(--i9-font-size-body);
+}
+
+.dropdown-item:active {
+    background-color: var(--i9-color-primary);
+}

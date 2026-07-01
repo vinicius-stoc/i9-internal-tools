@@ -1,0 +1,36 @@
+.i9-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--i9-space-4);
+}
+
+.i9-dashboard-section {
+    margin-top: var(--i9-space-6);
+}
+
+.i9-chart-card {
+    min-height: 340px;
+    padding: var(--i9-space-5);
+}
+
+.i9-chart-title {
+    margin: 0 0 var(--i9-space-3);
+    color: var(--i9-color-text);
+    font-size: var(--i9-font-size-card-title);
+    font-weight: 700;
+}
+
+.i9-chart-frame {
+    position: relative;
+    min-height: 260px;
+}
+
+.i9-chart-frame canvas {
+    display: block;
+    width: 100% !important;
+}
+
+.i9-dashboard-muted-note {
+    color: var(--i9-color-text-muted);
+    font-size: var(--i9-font-size-helper);
+}
