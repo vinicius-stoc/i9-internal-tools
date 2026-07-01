@@ -5,46 +5,48 @@
 
 {% block content %}
 <div class="container-fluid py-3">
-    <div class="card shadow-sm border-0 rounded-4">
-        <div class="card-header bg-white border-bottom-0 pt-4 px-4">
-            <h3 class="fw-bold mb-1" style="color: var(--azul-principal);">
+    <div class="i9-page-header">
+        <div>
+            <h1 class="i9-page-title">
                 <i class="bi bi-journal-plus me-2"></i>{% if rdo %}Editar RDO{% else %}Novo RDO{% endif %}
-            </h3>
-            <p class="text-muted mb-0">Preencha os dados gerais e os apontamentos do dia.</p>
-        </div>
-        <div class="card-body p-4">
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                <h5 class="fw-bold mb-3">Dados gerais</h5>
-                <div class="alert alert-light border d-inline-flex align-items-center gap-2 py-2">
-                    <i class="bi bi-person-check"></i>
-                    <span><strong>Responsavel:</strong> {{ request.user }}</span>
-                </div>
-                <div class="row g-3 mb-4">
-                    {% for field in form %}
-                    <div class="{% if field.name == 'observacoes_gerais' %}col-12{% else %}col-md-4{% endif %}">
-                        <label class="form-label fw-semibold">{{ field.label }}</label>
-                        {% render_field field class+="form-control" %}
-                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                    </div>
-                    {% endfor %}
-                </div>
-
-                {% include 'rdo/partials/formset_section.html' with titulo='Efetivo' botao='+ Adicionar efetivo' formset=formsets.efetivos prefix='efetivos' %}
-                {% include 'rdo/partials/formset_section.html' with titulo='Equipamentos' botao='+ Adicionar equipamento' formset=formsets.equipamentos prefix='equipamentos' %}
-                {% include 'rdo/partials/formset_section.html' with titulo='Atividades executadas' botao='+ Adicionar atividade' formset=formsets.atividades prefix='atividades' %}
-                {% include 'rdo/partials/formset_section.html' with titulo='Ocorrencias' botao='+ Adicionar ocorrencia' formset=formsets.ocorrencias prefix='ocorrencias' %}
-                {% include 'rdo/partials/formset_section.html' with titulo='Fotos' botao='+ Adicionar foto' formset=formsets.fotos prefix='fotos' %}
-
-                <div class="d-flex justify-content-end gap-2">
-                    <a href="{% if rdo %}{% url 'rdo_detalhe' rdo.id %}{% else %}{% url 'rdo_list' %}{% endif %}" class="btn btn-outline-secondary">Cancelar</a>
-                    <button class="btn text-white fw-bold" style="background-color: var(--laranja-principal);">
-                        <i class="bi bi-check-lg me-1"></i> Salvar RDO
-                    </button>
-                </div>
-            </form>
+            </h1>
+            <p class="i9-page-description">Preencha os dados gerais e os apontamentos do dia.</p>
         </div>
     </div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <section class="i9-card mb-4">
+            <h2 class="i9-card-title">Dados gerais</h2>
+            <div class="alert alert-light border d-inline-flex align-items-center gap-2 py-2">
+                <i class="bi bi-person-check"></i>
+                <span><strong>Responsável:</strong> {{ request.user }}</span>
+            </div>
+            <div class="row g-3 mb-4">
+                {% for field in form %}
+                <div class="{% if field.name == 'observacoes_gerais' %}col-12{% else %}col-md-4{% endif %}">
+                    <label class="form-label">{{ field.label }}</label>
+                    {% render_field field class+="form-control" %}
+                    {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% include 'rdo/partials/formset_section.html' with titulo='Efetivo' botao='+ Adicionar efetivo' formset=formsets.efetivos prefix='efetivos' %}
+        {% include 'rdo/partials/formset_section.html' with titulo='Equipamentos' botao='+ Adicionar equipamento' formset=formsets.equipamentos prefix='equipamentos' %}
+        {% include 'rdo/partials/formset_section.html' with titulo='Atividades executadas' botao='+ Adicionar atividade' formset=formsets.atividades prefix='atividades' %}
+        {% include 'rdo/partials/formset_section.html' with titulo='Ocorrências' botao='+ Adicionar ocorrência' formset=formsets.ocorrencias prefix='ocorrencias' %}
+        {% include 'rdo/partials/formset_section.html' with titulo='Fotos' botao='+ Adicionar foto' formset=formsets.fotos prefix='fotos' %}
+
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% if rdo %}{% url 'rdo_detalhe' rdo.id %}{% else %}{% url 'rdo_list' %}{% endif %}" class="btn i9-btn-secondary">Cancelar</a>
+            <button class="btn i9-btn-primary fw-bold">
+                <i class="bi bi-check-lg me-1"></i> Salvar RDO
+            </button>
+        </div>
+    </form>
 </div>
 
 {% include 'rdo/partials/formset_script.html' %}
@@ -81,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('/rdo/obras/' + obraSelect.value + '/opcoes-rdo/')
             .then(function (response) { return response.json(); })
             .then(function (data) {
-                fillOptions('[name$="-funcao_cadastro"]', data.funcoes || [], 'Selecione a funcao', true);
+                fillOptions('[name$="-funcao_cadastro"]', data.funcoes || [], 'Selecione a função', true);
                 fillOptions('[name$="-equipamento_cadastro"]', data.equipamentos || [], 'Selecione o equipamento', (data.equipamentos || []).length > 0);
                 toggleTextFields('funcao', true);
                 toggleTextFields('equipamento', (data.equipamentos || []).length > 0);
