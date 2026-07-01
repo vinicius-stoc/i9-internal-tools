@@ -1,0 +1,61 @@
+:root {
+    --i9-color-primary: #141C3C;
+    --i9-color-primary-hover: #1E2A5A;
+    --i9-color-primary-strong: #111827;
+    --i9-color-accent: #F97316;
+    --i9-color-accent-strong: #EA580C;
+    --i9-color-accent-soft: #FFEDD5;
+
+    --i9-color-bg: #F5F6F8;
+    --i9-color-surface: #FFFFFF;
+    --i9-color-surface-muted: #F8FAFC;
+    --i9-color-border: #E5E7EB;
+    --i9-color-border-strong: #D1D5DB;
+    --i9-color-text: #111827;
+    --i9-color-text-muted: #6B7280;
+    --i9-color-text-soft: #9CA3AF;
+
+    --i9-color-success: #15803D;
+    --i9-color-success-bg: #DCFCE7;
+    --i9-color-warning: #B45309;
+    --i9-color-warning-bg: #FEF3C7;
+    --i9-color-danger: #B91C1C;
+    --i9-color-danger-bg: #FEE2E2;
+    --i9-color-info: #0369A1;
+    --i9-color-info-bg: #DBEAFE;
+    --i9-color-neutral: #4B5563;
+    --i9-color-neutral-bg: #F3F4F6;
+
+    --i9-font-family: "Segoe UI", Roboto, Inter, Arial, sans-serif;
+    --i9-font-size-body: 0.875rem;
+    --i9-font-size-table: 0.8125rem;
+    --i9-font-size-helper: 0.75rem;
+    --i9-font-size-card-title: 0.875rem;
+    --i9-font-size-section-title: 1.125rem;
+    --i9-font-size-page-title: 1.5rem;
+    --i9-font-size-kpi: 1.75rem;
+    --i9-font-size-kpi-compact: 1.375rem;
+
+    --i9-space-1: 0.25rem;
+    --i9-space-2: 0.5rem;
+    --i9-space-3: 0.75rem;
+    --i9-space-4: 1rem;
+    --i9-space-5: 1.25rem;
+    --i9-space-6: 1.5rem;
+    --i9-space-8: 2rem;
+
+    --i9-radius-sm: 0.25rem;
+    --i9-radius-md: 0.5rem;
+    --i9-radius-lg: 0.75rem;
+
+    --i9-shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04);
+    --i9-shadow-sm: 0 4px 12px rgba(17, 24, 39, 0.06);
+    --i9-focus-ring: 0 0 0 0.2rem rgba(20, 28, 60, 0.16);
+
+    --i9-sidebar-width: 250px;
+    --i9-topbar-height: 60px;
+
+    --azul-principal: var(--i9-color-primary);
+    --laranja-principal: var(--i9-color-accent);
+    --branco-fundo: var(--i9-color-bg);
+}
