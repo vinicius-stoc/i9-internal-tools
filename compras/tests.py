@@ -255,6 +255,94 @@ class PmsDashboardSelectorTests(TestCase):
         self.assertEqual(context['linhas_hierarquia'], [])
         self.assertEqual(context['pagination_querystring'], 'projeto=JP010125&projeto=JP020125')
 
+    def test_contexto_carteira_usa_apenas_ultima_revisao_por_projeto(self):
+        PmsProjeto.objects.create(
+            filial='01',
+            projeto='JP010125',
+            revisao='0001',
+            descricao='Revisao antiga',
+        )
+        PmsTarefa.objects.create(
+            filial='01',
+            projeto='JP010125',
+            revisao='0001',
+            tarefa='OLD',
+            edt='01',
+            descricao='Tarefa antiga',
+            custo_previsto=Decimal('999.00'),
+        )
+        PmsCustoTarefa.objects.create(
+            filial='01',
+            projeto='JP010125',
+            revisao='0001',
+            edt='01',
+            tarefa='OLD',
+            custo_previsto=Decimal('999.00'),
+            custo_realizado=Decimal('999.00'),
+            custo_empenhado=Decimal('999.00'),
+            saldo_previsto_realizado=Decimal('0.00'),
+            variacao_percentual=Decimal('100.00'),
+        )
+        PmsCustoTemporalMensal.objects.create(
+            filial='01',
+            projeto='JP010125',
+            revisao='0001',
+            edt='01',
+            tarefa='OLD',
+            competencia=date(2026, 6, 1),
+            custo_empenhado=Decimal('999.00'),
+            custo_realizado=Decimal('999.00'),
+        )
+        PmsProjeto.objects.create(
+            filial='01',
+            projeto='JP020125',
+            revisao='0001',
+            descricao='Projeto adicional',
+        )
+        PmsTarefa.objects.create(
+            filial='01',
+            projeto='JP020125',
+            revisao='0001',
+            tarefa='T2',
+            edt='02',
+            descricao='Tarefa adicional',
+            custo_previsto=Decimal('300.00'),
+        )
+        PmsCustoTarefa.objects.create(
+            filial='01',
+            projeto='JP020125',
+            revisao='0001',
+            edt='02',
+            tarefa='T2',
+            custo_previsto=Decimal('300.00'),
+            custo_realizado=Decimal('150.00'),
+            custo_empenhado=Decimal('200.00'),
+            saldo_previsto_realizado=Decimal('150.00'),
+            variacao_percentual=Decimal('50.00'),
+        )
+        PmsCustoTemporalMensal.objects.create(
+            filial='01',
+            projeto='JP020125',
+            revisao='0001',
+            edt='02',
+            tarefa='T2',
+            competencia=date(2026, 6, 1),
+            custo_empenhado=Decimal('200.00'),
+            custo_realizado=Decimal('150.00'),
+        )
+
+        context = PmsDashboardSelector.get_context({
+            'projeto': ['JP010125', 'JP020125'],
+        })
+
+        self.assertTrue(context['modo_carteira'])
+        self.assertEqual(context['kpis']['custo'], Decimal('400.00'))
+        self.assertEqual(context['kpis']['empenhado'], Decimal('300.00'))
+        self.assertEqual(context['grafico_projetos']['labels'], ['JP010125', 'JP020125'])
+        self.assertEqual(context['grafico_projetos']['custo'], [250.0, 150.0])
+        self.assertEqual(context['serie_temporal']['realizado'], [400.0])
+        self.assertNotIn(999.0, context['grafico_tarefas']['custo'])
+
     def test_paginacao_inclui_ancestrais_da_linha_paginada(self):
         linhas = [
             {'tipo': 'edt', 'codigo': '01', 'parent_chain': ''},
