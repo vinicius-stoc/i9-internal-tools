@@ -1,48 +1,50 @@
-<div class="card shadow-sm border-0 rounded-4 mb-3">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5 class="fw-bold mb-0">{{ titulo }}</h5>
-            {% if tipo == 'efetivo' %}<a class="btn btn-sm btn-outline-primary" href="{% url 'rdo_adicionar_efetivo' rdo.id %}">Adicionar</a>{% endif %}
-            {% if tipo == 'equipamento' %}<a class="btn btn-sm btn-outline-primary" href="{% url 'rdo_adicionar_equipamento' rdo.id %}">Adicionar</a>{% endif %}
-            {% if tipo == 'atividade' %}<a class="btn btn-sm btn-outline-primary" href="{% url 'rdo_adicionar_atividade' rdo.id %}">Adicionar</a>{% endif %}
-            {% if tipo == 'ocorrencia' %}<a class="btn btn-sm btn-outline-primary" href="{% url 'rdo_adicionar_ocorrencia' rdo.id %}">Adicionar</a>{% endif %}
-        </div>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead>
-                    {% if tipo == 'efetivo' %}
-                    <tr><th>Funcao</th><th>Qtd</th><th>Entrada</th><th>Horas</th><th>Observacoes</th></tr>
-                    {% elif tipo == 'equipamento' %}
-                    <tr><th>Equipamento</th><th>Qtd</th><th>Horas</th><th>Status</th><th>Observacoes</th></tr>
-                    {% elif tipo == 'atividade' %}
-                    <tr><th>Descricao</th><th>Execucao</th><th>Avanco</th><th>Observacoes</th></tr>
-                    {% else %}
-                    <tr><th>Tipo</th><th>Descricao</th><th>Impacto</th><th>Providencia</th></tr>
-                    {% endif %}
-                </thead>
-                <tbody>
-                    {% for item in itens %}
-                    <tr>
-                        {% if tipo == 'efetivo' %}
-                            <td>{{ item.nome_funcao|default:"-" }}</td><td>{{ item.quantidade }}</td><td>{{ item.horario_entrada|time:"H:i"|default:"-" }}</td><td>{{ item.horas_trabalhadas_formatadas }}</td><td>{{ item.observacoes|default:"-" }}</td>
-                        {% elif tipo == 'equipamento' %}
-                            <td>{{ item.nome_equipamento|default:"-" }}</td><td>{{ item.quantidade }}</td><td>{{ item.horas_utilizadas_formatadas }}</td><td>{{ item.get_status_display }}</td><td>{{ item.observacoes|default:"-" }}</td>
-                        {% elif tipo == 'atividade' %}
-                            <td>{{ item.descricao }}</td><td>{{ item.local_execucao|default:"-" }}</td><td>{% if item.percentual_avanco is not None %}{{ item.percentual_avanco }}%{% else %}-{% endif %}</td><td>{{ item.observacoes|default:"-" }}</td>
-                        {% else %}
-                            <td>{{ item.get_tipo_display }}</td><td>{{ item.descricao }}</td><td>{{ item.impacto|default:"-" }}</td><td>{{ item.providencia|default:"-" }}</td>
-                        {% endif %}
-                    </tr>
-                    {% empty %}
-                    <tr><td class="text-muted">Nenhum registro informado.</td></tr>
-                    {% endfor %}
-                </tbody>
-                {% if tipo == 'efetivo' %}
-                <tfoot>
-                    <tr><th>Total de efetivo</th><th colspan="4">{{ total_efetivo }}</th></tr>
-                </tfoot>
-                {% endif %}
-            </table>
-        </div>
+<section class="i9-card mb-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+        <h2 class="i9-card-title mb-0">{{ titulo }}</h2>
+        {% if tipo == 'efetivo' %}<a class="btn btn-sm i9-btn-secondary fw-bold" href="{% url 'rdo_adicionar_efetivo' rdo.id %}">Adicionar</a>{% endif %}
+        {% if tipo == 'equipamento' %}<a class="btn btn-sm i9-btn-secondary fw-bold" href="{% url 'rdo_adicionar_equipamento' rdo.id %}">Adicionar</a>{% endif %}
+        {% if tipo == 'atividade' %}<a class="btn btn-sm i9-btn-secondary fw-bold" href="{% url 'rdo_adicionar_atividade' rdo.id %}">Adicionar</a>{% endif %}
+        {% if tipo == 'ocorrencia' %}<a class="btn btn-sm i9-btn-secondary fw-bold" href="{% url 'rdo_adicionar_ocorrencia' rdo.id %}">Adicionar</a>{% endif %}
     </div>
-</div>
+    <div class="table-responsive">
+        <table class="table i9-table table-sm align-middle mb-0">
+            <thead>
+                {% if tipo == 'efetivo' %}
+                <tr><th>Função</th><th>Qtd</th><th>Entrada</th><th>Horas</th><th>Observações</th></tr>
+                {% elif tipo == 'equipamento' %}
+                <tr><th>Equipamento</th><th>Qtd</th><th>Horas</th><th>Status</th><th>Observações</th></tr>
+                {% elif tipo == 'atividade' %}
+                <tr><th>Descrição</th><th>Execução</th><th>Avanço</th><th>Observações</th></tr>
+                {% else %}
+                <tr><th>Tipo</th><th>Descrição</th><th>Impacto</th><th>Providência</th></tr>
+                {% endif %}
+            </thead>
+            <tbody>
+                {% for item in itens %}
+                <tr>
+                    {% if tipo == 'efetivo' %}
+                        <td>{{ item.nome_funcao|default:"-" }}</td><td>{{ item.quantidade }}</td><td>{{ item.horario_entrada|time:"H:i"|default:"-" }}</td><td>{{ item.horas_trabalhadas_formatadas }}</td><td>{{ item.observacoes|default:"-" }}</td>
+                    {% elif tipo == 'equipamento' %}
+                        <td>{{ item.nome_equipamento|default:"-" }}</td><td>{{ item.quantidade }}</td><td>{{ item.horas_utilizadas_formatadas }}</td><td>{{ item.get_status_display }}</td><td>{{ item.observacoes|default:"-" }}</td>
+                    {% elif tipo == 'atividade' %}
+                        <td>{{ item.descricao }}</td><td>{{ item.local_execucao|default:"-" }}</td><td>{% if item.percentual_avanco is not None %}{{ item.percentual_avanco }}%{% else %}-{% endif %}</td><td>{{ item.observacoes|default:"-" }}</td>
+                    {% else %}
+                        <td>{{ item.get_tipo_display }}</td><td>{{ item.descricao }}</td><td>{{ item.impacto|default:"-" }}</td><td>{{ item.providencia|default:"-" }}</td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{% if tipo == 'efetivo' or tipo == 'equipamento' %}5{% else %}4{% endif %}" class="p-3">
+                        <div class="i9-empty-state py-4">Nenhum registro informado.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if tipo == 'efetivo' %}
+            <tfoot>
+                <tr><th>Total de efetivo</th><th colspan="4">{{ total_efetivo }}</th></tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</section>

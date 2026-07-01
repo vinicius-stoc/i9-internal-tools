@@ -88,12 +88,16 @@
 
 .i9-btn-primary,
 .btn-primary {
+    --bs-btn-color: #FFFFFF;
     --bs-btn-bg: var(--i9-color-primary);
     --bs-btn-border-color: var(--i9-color-primary);
+    --bs-btn-hover-color: #FFFFFF;
     --bs-btn-hover-bg: var(--i9-color-primary-hover);
     --bs-btn-hover-border-color: var(--i9-color-primary-hover);
+    --bs-btn-active-color: #FFFFFF;
     --bs-btn-active-bg: var(--i9-color-primary-hover);
     --bs-btn-active-border-color: var(--i9-color-primary-hover);
+    --bs-btn-disabled-color: #FFFFFF;
 }
 
 .i9-btn-secondary {
