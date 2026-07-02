@@ -4,31 +4,31 @@
 
 {% block content %}
 <div class="container-fluid py-3">
-    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-start mb-4 gap-3">
+    <div class="i9-page-header">
         <div>
             <div class="text-muted small text-uppercase fw-semibold">Registro de manutenção</div>
-            <h3 class="fw-bold mb-1" style="color: var(--azul-principal);">{{ execucao.ativo_pcp.codigo }} - {{ execucao.get_tipo_display }}</h3>
-            <span class="badge rounded-pill {% if execucao.data_fim %}text-bg-success{% else %}text-bg-warning{% endif %}">
+            <h1 class="i9-page-title">{{ execucao.ativo_pcp.codigo }} - {{ execucao.get_tipo_display }}</h1>
+            <span class="i9-badge {% if execucao.data_fim %}i9-badge-success{% else %}i9-badge-warning{% endif %}">
                 {% if execucao.data_fim %}Concluída{% else %}Em execução{% endif %}
             </span>
-            <span class="badge rounded-pill text-bg-light border font-monospace">{{ execucao.protocolo }}</span>
+            <span class="i9-badge i9-badge-neutral font-monospace">{{ execucao.protocolo }}</span>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{% url 'pcp_detalhar_ativo' execucao.ativo_pcp.id %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar ao ativo</a>
+        <div class="i9-page-actions">
+            <a href="{% url 'pcp_detalhar_ativo' execucao.ativo_pcp.id %}" class="btn i9-btn-secondary fw-bold"><i class="bi bi-arrow-left me-1"></i>Voltar ao ativo</a>
             {% if execucao.data_fim and perms.pcp.corrigir_execucao_concluida %}
-                <a href="{% url 'pcp_corrigir_manutencao' execucao.id %}" class="btn btn-outline-primary"><i class="bi bi-pencil-square me-1"></i>Corrigir documentação</a>
+                <a href="{% url 'pcp_corrigir_manutencao' execucao.id %}" class="btn i9-btn-secondary fw-bold"><i class="bi bi-pencil-square me-1"></i>Corrigir documentação</a>
             {% endif %}
             {% if not execucao.data_fim %}
-                <a href="{% url 'pcp_concluir_manutencao' execucao.id %}" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Concluir manutenção</a>
+                <a href="{% url 'pcp_concluir_manutencao' execucao.id %}" class="btn i9-btn-primary fw-bold"><i class="bi bi-check-circle me-1"></i>Concluir manutenção</a>
             {% endif %}
         </div>
     </div>
 
     <div class="row g-3 mb-4">
         <div class="col-lg-7">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3">Registro documental</h5>
+            <div class="i9-card h-100">
+                <div>
+                    <h2 class="i9-card-title mb-3">Registro documental</h2>
                     <dl class="row mb-0">
                         <dt class="col-sm-4">Plano</dt><dd class="col-sm-8">{% if execucao.snapshot_plano_nome %}{{ execucao.snapshot_plano_nome }}{% elif execucao.programacao %}{{ execucao.programacao.plano.nome }}{% else %}Sem plano vinculado{% endif %}</dd>
                         <dt class="col-sm-4">Início</dt><dd class="col-sm-8">{{ execucao.data_inicio|date:"d/m/Y H:i" }}</dd>
@@ -44,13 +44,13 @@
             </div>
         </div>
         <div class="col-lg-5">
-            <form method="post" enctype="multipart/form-data" action="{% url 'pcp_adicionar_evidencia' execucao.id %}" class="card border-0 shadow-sm rounded-4 h-100">
+            <form method="post" enctype="multipart/form-data" action="{% url 'pcp_adicionar_evidencia' execucao.id %}" class="i9-card h-100">
                 {% csrf_token %}
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-1">Adicionar evidências</h5>
+                <div>
+                    <h2 class="i9-card-title mb-1">Adicionar evidências</h2>
                     <p class="small text-muted mb-3">Documente separadamente o estado encontrado e a solução executada.</p>
 
-                    <div class="border rounded-3 p-3 mb-3">
+                    <div class="i9-summary-box mb-3">
                         <div class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle me-1 text-warning"></i>Evidência do problema</div>
                         <div class="small text-muted mb-3">Fotos, logs ou arquivos que demonstrem a condição antes da manutenção.</div>
                         <label class="form-label" for="{{ evidencia_form.evidencia_problema.id_for_label }}">Arquivo</label>
@@ -59,7 +59,7 @@
                         {{ evidencia_form.descricao_problema }}
                     </div>
 
-                    <div class="border rounded-3 p-3 mb-3">
+                    <div class="i9-summary-box mb-3">
                         <div class="fw-semibold mb-1"><i class="bi bi-check2-circle me-1 text-success"></i>Evidência da solução / documentação</div>
                         <div class="small text-muted mb-3">Fotos da solução, checklists, laudos ou documentação técnica.</div>
                         <label class="form-label" for="{{ evidencia_form.evidencia_solucao.id_for_label }}">Arquivo</label>
@@ -68,7 +68,7 @@
                         {{ evidencia_form.descricao_solucao }}
                     </div>
 
-                    <button class="btn btn-primary"><i class="bi bi-paperclip me-1"></i>Anexar arquivos</button>
+                    <button class="btn i9-btn-primary"><i class="bi bi-paperclip me-1"></i>Anexar arquivos</button>
                     <div class="small text-muted mt-2">Envie ao menos um arquivo. Formatos permitidos: PDF, JPEG, PNG ou WebP.</div>
                 </div>
             </form>
@@ -77,17 +77,17 @@
 
     <div class="row g-3">
         <div class="col-lg-7">
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="fw-bold mb-0">Evidências</h5>
+            <div class="i9-card p-0 overflow-hidden">
+                <div class="p-4">
+                    <h2 class="i9-card-title mb-0">Evidências</h2>
                     <div class="small text-muted">Arquivos anexados permanecem preservados mesmo quando desativados.</div>
                 </div>
                 <div class="list-group list-group-flush">
                     {% regroup execucao.evidencias.all by finalidade as evidencias_por_finalidade %}
                     {% for grupo in evidencias_por_finalidade %}
-                    <div class="list-group-item bg-light px-4 py-2 fw-semibold">
+                    <div class="list-group-item i9-operational-list-item px-4 py-2 fw-semibold">
                         {{ grupo.list.0.get_finalidade_display }}
-                        <span class="badge rounded-pill text-bg-secondary ms-1">{{ grupo.list|length }}</span>
+                        <span class="i9-badge i9-badge-neutral ms-1">{{ grupo.list|length }}</span>
                     </div>
                     {% for evidencia in grupo.list %}
                     <div class="list-group-item px-4 py-3">
@@ -97,12 +97,12 @@
                                 <div class="small text-muted">{{ evidencia.descricao|default:evidencia.get_tipo_display }} · {{ evidencia.created_at|date:"d/m/Y H:i" }}</div>
                             </div>
                             <div class="d-flex flex-wrap gap-2 justify-content-xl-end">
-                                <a href="{% url 'pcp_baixar_evidencia' evidencia.id %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-download me-1"></i>Download</a>
+                                <a href="{% url 'pcp_baixar_evidencia' evidencia.id %}" class="btn btn-sm i9-btn-secondary"><i class="bi bi-download me-1"></i>Download</a>
                                 {% if perms.pcp.desativar_evidencia_manutencao %}
                                 <form method="post" action="{% url 'pcp_desativar_evidencia' evidencia.id %}" class="d-flex gap-2" onsubmit="return confirm('Confirma a desativação desta evidência? O arquivo será preservado para auditoria.');">
                                     {% csrf_token %}
                                     <input name="justificativa" class="form-control form-control-sm" placeholder="Justificativa" required>
-                                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-slash-circle me-1"></i>Desativar</button>
+                                    <button class="btn btn-sm i9-btn-secondary"><i class="bi bi-slash-circle me-1"></i>Desativar</button>
                                 </form>
                                 {% endif %}
                             </div>
@@ -110,15 +110,15 @@
                     </div>
                     {% endfor %}
                     {% empty %}
-                    <div class="text-center text-muted py-4">Nenhuma evidência anexada.</div>
+                    <div class="i9-empty-state m-3">Nenhuma evidência anexada.</div>
                     {% endfor %}
                 </div>
             </div>
         </div>
         <div class="col-lg-5">
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="fw-bold mb-0">Auditoria</h5>
+            <div class="i9-card p-0 overflow-hidden">
+                <div class="p-4">
+                    <h2 class="i9-card-title mb-0">Auditoria</h2>
                     <div class="small text-muted">Linha do tempo dos eventos documentais.</div>
                 </div>
                 <div class="list-group list-group-flush">
@@ -129,7 +129,7 @@
                         {% if evento.justificativa %}<div class="small mt-1">{{ evento.justificativa }}</div>{% endif %}
                     </div>
                     {% empty %}
-                    <div class="text-center text-muted py-4">Sem eventos registrados.</div>
+                    <div class="i9-empty-state m-3">Sem eventos registrados.</div>
                     {% endfor %}
                 </div>
             </div>
