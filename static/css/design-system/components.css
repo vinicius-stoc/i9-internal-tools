@@ -185,6 +185,92 @@
     border-radius: var(--i9-radius-md);
 }
 
+.i9-form-narrow {
+    max-width: 840px;
+}
+
+.i9-form-wide {
+    max-width: 1200px;
+}
+
+.i9-upload-box {
+    padding: var(--i9-space-4);
+    background: var(--i9-color-surface-muted);
+    border: 1px dashed var(--i9-color-border-strong);
+    border-radius: var(--i9-radius-md);
+}
+
+.i9-summary-box {
+    padding: var(--i9-space-4);
+    background: var(--i9-color-surface-muted);
+    border: 1px solid var(--i9-color-border);
+    border-radius: var(--i9-radius-md);
+}
+
+.i9-choice-card {
+    padding: var(--i9-space-4);
+    border: 1px solid var(--i9-color-border);
+    border-radius: var(--i9-radius-md);
+    background: var(--i9-color-surface);
+}
+
+.i9-text-prewrap {
+    white-space: pre-wrap;
+}
+
+.i9-table-col-title {
+    max-width: 300px;
+}
+
+.i9-attachment-thumb {
+    display: block;
+    overflow: hidden;
+    border: 1px solid var(--i9-color-border);
+    border-radius: var(--i9-radius-sm);
+}
+
+.i9-attachment-thumb img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+}
+
+.i9-calendar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--i9-space-2);
+}
+
+.i9-calendar-day {
+    min-height: 160px;
+    padding: var(--i9-space-3) !important;
+    background: var(--i9-color-surface) !important;
+    border: 1px solid var(--i9-color-border) !important;
+    border-radius: var(--i9-radius-md);
+}
+
+.i9-calendar-day.is-muted {
+    background: var(--i9-color-surface-muted) !important;
+    color: var(--i9-color-text-soft);
+}
+
+.i9-calendar-event {
+    padding: var(--i9-space-2);
+    background: var(--i9-color-surface-muted) !important;
+    border: 1px solid var(--i9-color-border) !important;
+    border-radius: var(--i9-radius-sm);
+    font-size: var(--i9-font-size-helper);
+}
+
+.i9-calendar-event.is-cancelled {
+    opacity: 0.72;
+}
+
+.i9-calendar-empty {
+    color: var(--i9-color-text-muted);
+    font-size: var(--i9-font-size-helper);
+}
+
 .modal-content {
     border: 1px solid var(--i9-color-border);
     border-radius: var(--i9-radius-md);
