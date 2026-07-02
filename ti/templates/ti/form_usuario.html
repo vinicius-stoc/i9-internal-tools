@@ -1,82 +1,82 @@
 {% extends "base.html" %}
 {% load widget_tweaks %}
 
+{% block title %}{% if form.instance.pk %}Editar usuário{% else %}Criar usuário{% endif %} | I9TMG{% endblock %}
+
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <div class="card shadow-sm">
-                <div class="card-header text-white" style="background-color: var(--azul-principal);">
-                    <h4 class="mb-0">{% if form.instance.pk %}Editar Usuário{% else %}Criar Novo Usuário{% endif %}</h4>
-                </div>
-                <div class="card-body">
-                    <form method="post" novalidate>
-                        {% csrf_token %}
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.username.id_for_label }}" class="form-label">Login (Username)</label>
-                                {% render_field form.username class="form-control" %}
-                                {% if form.username.errors %}<div class="invalid-feedback d-block">{{ form.username.errors.as_text }}</div>{% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.password.id_for_label }}" class="form-label">Senha</label>
-                                {% render_field form.password class="form-control" %}
-                                <small class="form-text text-muted">{{ form.password.help_text }}</small>
-                                {% if form.password.errors %}<div class="invalid-feedback d-block">{{ form.password.errors.as_text }}</div>{% endif %}
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.first_name.id_for_label }}" class="form-label">Nome</label>
-                                {% render_field form.first_name class="form-control" %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.last_name.id_for_label }}" class="form-label">Sobrenome</label>
-                                {% render_field form.last_name class="form-control" %}
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.email.id_for_label }}" class="form-label">Email Corporativo</label>
-                                {% render_field form.email class="form-control" %}
-                                {% if form.email.errors %}<div class="invalid-feedback d-block">{{ form.email.errors.as_text }}</div>{% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.teams_username.id_for_label }}" class="form-label">Usuário do Teams</label>
-                                {% render_field form.teams_username class="form-control" %}
-                            </div>
-                        </div>
-
-                        <hr>
-
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-check form-switch mb-3">
-                                    {% render_field form.is_active class="form-check-input" %}
-                                    <label for="{{ form.is_active.id_for_label }}" class="form-check-label">Usuário Ativo</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="alert alert-info" role="alert" style="border-left: 4px solid var(--laranja-principal);">
-                            <i class="fas fa-info-circle" style="color: var(--laranja-principal);"></i>
-                            <strong>Gestão de Acessos:</strong> As permissões de acesso aos módulos (Comercial, RH, Engenharia, etc.) agora são gerenciadas através de <strong>Grupos</strong>. Após salvar o usuário, vá ao painel Administrativo nativo (/painel-i9tmg-restrito/) e associe-o aos grupos de acesso necessários na seção de permissões.
-                        </div>
-
-
-                        <div class="d-flex justify-content-end mt-4">
-                            <a href="{% url 'gestao_usuarios' %}" class="btn btn-secondary me-2">Cancelar</a>
-                            <button type="submit" class="btn" style="background-color: var(--laranja-principal); color: white; border: none;">
-                                <i class="bi bi-save me-2"></i>Salvar Usuário
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+<div class="container-fluid py-3 i9-form-narrow mx-auto">
+    <div class="i9-page-header">
+        <div>
+            <h1 class="i9-page-title">{% if form.instance.pk %}Editar usuário{% else %}Criar novo usuário{% endif %}</h1>
+            <p class="i9-page-description">Atualize dados de acesso e informações corporativas do usuário.</p>
+        </div>
+        <div class="i9-page-actions">
+            <a href="{% url 'gestao_usuarios' %}" class="btn i9-btn-secondary fw-bold">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
         </div>
     </div>
+
+    <section class="i9-card">
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.username.id_for_label }}" class="form-label">Login (username)</label>
+                    {% render_field form.username class="form-control" %}
+                    {% if form.username.errors %}<div class="invalid-feedback d-block">{{ form.username.errors.as_text }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.password.id_for_label }}" class="form-label">Senha</label>
+                    {% render_field form.password class="form-control" %}
+                    <small class="form-text">{{ form.password.help_text }}</small>
+                    {% if form.password.errors %}<div class="invalid-feedback d-block">{{ form.password.errors.as_text }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.first_name.id_for_label }}" class="form-label">Nome</label>
+                    {% render_field form.first_name class="form-control" %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.last_name.id_for_label }}" class="form-label">Sobrenome</label>
+                    {% render_field form.last_name class="form-control" %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.email.id_for_label }}" class="form-label">E-mail corporativo</label>
+                    {% render_field form.email class="form-control" %}
+                    {% if form.email.errors %}<div class="invalid-feedback d-block">{{ form.email.errors.as_text }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.teams_username.id_for_label }}" class="form-label">Usuário do Teams</label>
+                    {% render_field form.teams_username class="form-control" %}
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="form-check form-switch mb-3">
+                {% render_field form.is_active class="form-check-input" %}
+                <label for="{{ form.is_active.id_for_label }}" class="form-check-label">Usuário ativo</label>
+            </div>
+
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-info-circle me-1"></i>
+                <strong>Gestão de acessos:</strong> as permissões de acesso aos módulos são gerenciadas por <strong>Grupos</strong>. Após salvar o usuário, use o painel administrativo nativo para associá-lo aos grupos necessários.
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
+                <a href="{% url 'gestao_usuarios' %}" class="btn i9-btn-secondary">Cancelar</a>
+                <button type="submit" class="btn i9-btn-primary">
+                    <i class="bi bi-save me-2"></i>Salvar usuário
+                </button>
+            </div>
+        </form>
+    </section>
 </div>
 {% endblock %}
