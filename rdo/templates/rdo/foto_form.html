@@ -5,41 +5,48 @@
 
 {% block content %}
 <div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="i9-page-header">
         <div>
-            <h3 class="fw-bold mb-0" style="color: var(--azul-principal);">Fotos do RDO #{{ rdo.numero }}</h3>
-            <p class="text-muted mb-0">{{ rdo.obra.nome }}</p>
+            <h1 class="i9-page-title">Fotos do RDO #{{ rdo.numero }}</h1>
+            <p class="i9-page-description">{{ rdo.obra.nome }}</p>
         </div>
-        <a href="{% url 'rdo_detalhe' rdo.id %}" class="btn btn-outline-secondary">Voltar</a>
+        <div class="i9-page-actions">
+            <a href="{% url 'rdo_detalhe' rdo.id %}" class="btn i9-btn-secondary fw-bold">Voltar</a>
+        </div>
     </div>
+
     <div class="row g-3">
         <div class="col-md-4">
-            <div class="card shadow-sm border-0 rounded-4"><div class="card-body">
-                <h5 class="fw-bold">Nova foto</h5>
+            <section class="i9-card">
+                <h2 class="i9-card-title">Nova foto</h2>
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     {% for field in form %}
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">{{ field.label }}</label>
+                        <label class="form-label">{{ field.label }}</label>
                         {% render_field field class+="form-control" %}
                         {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
                     {% endfor %}
-                    <button class="btn text-white fw-bold w-100" style="background-color: var(--laranja-principal);">Anexar Foto</button>
+                    <button class="btn i9-btn-primary fw-bold w-100">Anexar foto</button>
                 </form>
-            </div></div>
+            </section>
         </div>
         <div class="col-md-8">
             <div class="row g-3">
                 {% for foto in rdo.fotos.all %}
                 <div class="col-md-4">
-                    <div class="card shadow-sm border-0 rounded-4 h-100">
-                        <img src="{{ foto.imagem.url }}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="{{ foto.legenda }}">
-                        <div class="card-body small text-muted">{{ foto.legenda|default:"Sem legenda" }}</div>
-                    </div>
+                    <article class="i9-card h-100 p-0 overflow-hidden">
+                        <div class="ratio ratio-4x3">
+                            <img src="{{ foto.imagem.url }}" class="card-img-top w-100 h-100 object-fit-cover" alt="{{ foto.legenda }}">
+                        </div>
+                        <div class="p-3 small text-muted">{{ foto.legenda|default:"Sem legenda" }}</div>
+                    </article>
                 </div>
                 {% empty %}
-                <div class="col-12 text-muted">Nenhuma foto anexada.</div>
+                <div class="col-12">
+                    <div class="i9-empty-state">Nenhuma foto anexada.</div>
+                </div>
                 {% endfor %}
             </div>
         </div>
