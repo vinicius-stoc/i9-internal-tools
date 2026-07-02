@@ -4,19 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pesquisa Expirada - I9TMG</title>
+    <title>Pesquisa expirada - I9TMG</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/design-system/tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/design-system/components.css' %}">
+    <style> body { background: var(--i9-color-surface-muted); } .state-card { max-width: 560px; } .public-logo { max-height: 80px; }</style>
 </head>
-<body class="bg-light d-flex align-items-center justify-content-center min-vh-100">
-    <div class="card border-0 shadow-sm text-center" style="max-width: 560px;">
-        <div class="card-body p-5">
-            <img src="{% static 'img/logo.jpg' %}" alt="Logo I9TMG" class="img-fluid rounded-3 shadow-sm mb-4" style="max-height: 80px;">
-            <i class="bi bi-clock-history text-warning display-4"></i>
-            <h3 class="fw-bold mt-4 mb-3" style="color: #141C3C;">Link Expirado</h3>
-            <p class="text-muted mb-0">Olá, <strong>{{ pesquisa.ex_funcionario_nome }}</strong>.</p>
-            <p class="text-muted">Este link de pesquisa de desligamento expirou. Caso precise responder, solicite ao RH o envio de um novo link.</p>
-        </div>
-    </div>
+<body class="d-flex align-items-center justify-content-center min-vh-100">
+    <section class="i9-card text-center state-card">
+        <img src="{% static 'img/logo.jpg' %}" alt="Logo I9TMG" class="img-fluid rounded-3 mb-4 public-logo">
+        <span class="i9-badge i9-badge-warning mb-3">Expirada</span>
+        <h1 class="i9-page-title mb-3">Link expirado</h1>
+        <p class="text-muted mb-0">Olá, <strong>{{ pesquisa.ex_funcionario_nome }}</strong>.</p>
+        <p class="text-muted">Este link de pesquisa de desligamento expirou. Caso precise responder, solicite ao RH o envio de um novo link.</p>
+    </section>
 </body>
 </html>

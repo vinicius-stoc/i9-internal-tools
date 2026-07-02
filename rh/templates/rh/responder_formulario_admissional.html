@@ -8,16 +8,22 @@
     <title>Formulário Admissional - I9TMG</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/design-system/tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/design-system/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/design-system/components.css' %}">
+    <link rel="stylesheet" href="{% static 'css/design-system/forms.css' %}">
     <style>
-        body { background-color: #F2F3F5; font-family: 'Segoe UI', Roboto, sans-serif; }
-        .header-bg { background-color: #141C3C; height: 120px; width: 100%; position: absolute; top: 0; z-index: -1; }
-        .card-formulario { margin-top: 60px; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .btn-custom { background-color: #FF742E; border: none; color: white; transition: 0.3s; }
-        .btn-custom:hover { background-color: #e66220; color: white; }
-        .section-title { color: #141C3C; border-bottom: 2px solid #FF742E; padding-bottom: .5rem; margin-top: 2rem; margin-bottom: 1.5rem; }
+        body { background: var(--i9-color-surface-muted); font-family: 'Segoe UI', Roboto, sans-serif; }
+        .header-bg { background: var(--i9-color-primary); height: 120px; width: 100%; position: absolute; top: 0; z-index: -1; }
+        .card-formulario { margin-top: 60px; border-radius: var(--i9-radius-md); border: 1px solid var(--i9-color-border); box-shadow: var(--i9-shadow-xs); }
+        .btn-custom { background: var(--i9-color-primary); border: none; color: #fff; transition: 0.2s; }
+        .btn-custom:hover { background: var(--i9-color-primary-hover); color: #fff; }
+        .section-title { color: var(--i9-color-text); border-bottom: 1px solid var(--i9-color-border); padding-bottom: .5rem; margin-top: 2rem; margin-bottom: 1.5rem; }
         .required::after { content: ' *'; color: #dc3545; }
-        .help-text { font-size: .8rem; color: #6c757d; }
-        .tooltip-help { color: #0d6efd; cursor: help; margin-left: .25rem; }
+        .help-text { font-size: .8rem; color: var(--i9-color-text-muted); }
+        .tooltip-help { color: var(--i9-color-primary); cursor: help; margin-left: .25rem; }
+        .public-logo { max-height: 80px; }
+        .form-title { color: var(--i9-color-text); }
     </style>
 </head>
 <body>
@@ -26,12 +32,12 @@
         <div class="row justify-content-center">
             <div class="col-lg-10">
                 <div class="text-center mb-4 mt-3">
-                    <img src="{% static 'img/logo.jpg' %}" alt="Logo I9TMG" class="img-fluid rounded-3 shadow-sm" style="max-height: 80px;">
+                    <img src="{% static 'img/logo.jpg' %}" alt="Logo I9TMG" class="img-fluid rounded-3 shadow-sm public-logo">
                 </div>
 
                 <div class="card card-formulario">
                     <div class="card-body p-4 p-md-5">
-                        <h3 class="fw-bold mb-3 text-center" style="color: #141C3C;">Formulário Admissional</h3>
+                        <h3 class="fw-bold mb-3 text-center form-title">Formulário admissional</h3>
                         <p class="text-muted text-center mb-4">
                             Olá, <strong>{{ formulario.candidato_nome_interno }}</strong>. Preencha seus dados com atenção. As informações serão utilizadas pelo RH para fins admissionais.
                         </p>
@@ -167,7 +173,7 @@
 
                             <div class="d-grid gap-2 mt-4">
                                 <button type="submit" class="btn btn-custom btn-lg py-3 fw-bold">
-                                    Enviar Formulário <i class="bi bi-send ms-2"></i>
+                                    Enviar formulário <i class="bi bi-send ms-2"></i>
                                 </button>
                             </div>
                         </form>

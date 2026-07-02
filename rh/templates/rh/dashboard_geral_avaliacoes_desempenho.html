@@ -1,53 +1,54 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}Dashboard Geral de Avalia&ccedil;&otilde;es - I9TMG{% endblock %}
+{% block title %}Dashboard geral de avaliações - I9TMG{% endblock %}
 
 {% block content %}
-<div class="container-fluid p-0">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+<div class="container-fluid py-3">
+    <div class="i9-page-header">
         <div>
-            <h3 class="mb-0 text-dark fw-bold"><i class="bi bi-speedometer2 me-2" style="color: var(--laranja-principal);"></i>Dashboard Geral de Avalia&ccedil;&otilde;es</h3>
-            <p class="text-muted small mb-0">Vis&atilde;o consolidada das avalia&ccedil;&otilde;es de desempenho</p>
+            <h1 class="i9-page-title">Dashboard geral de avaliações</h1>
+            <p class="i9-page-description">Visão consolidada das avaliações de desempenho.</p>
         </div>
-        <div class="d-flex gap-2"><a href="{% url 'listar_avaliacoes_desempenho' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Listagem</a>{% if pode_criar_avaliacao %}<a href="{% url 'nova_avaliacao_desempenho' %}" class="btn btn-primary" style="background-color: var(--laranja-principal); border: none;"><i class="bi bi-plus-circle me-2"></i>Nova Avalia&ccedil;&atilde;o</a>{% endif %}</div>
-    </div>
-
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-        <div class="card-body">
-            <form method="get" id="formFiltrosDashboardAvaliacoes" class="row g-3 align-items-end">
-                <div class="col-md-3"><label class="form-label small fw-semibold text-muted">Usu&aacute;rio avaliado</label><select name="avaliado" class="form-select auto-submit-filter"><option value="">Todos</option>{% for funcionario in funcionarios %}<option value="{{ funcionario.id }}" {% if filtros.avaliado == funcionario.id|stringformat:"s" or filtros.funcionario == funcionario.id|stringformat:"s" %}selected{% endif %}>{{ funcionario.get_full_name|default:funcionario.username }}</option>{% endfor %}</select></div>
-                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ano</label><select name="ano" class="form-select auto-submit-filter"><option value="">Todos</option>{% for ano in anos %}<option value="{{ ano }}" {% if filtros.ano == ano|stringformat:"s" %}selected{% endif %}>{{ ano }}</option>{% endfor %}</select></div>
-                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ciclo</label><select name="ciclo" class="form-select auto-submit-filter"><option value="">Todos</option>{% for valor, rotulo in ciclo_choices %}<option value="{{ valor }}" {% if filtros.ciclo == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select></div>
-                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Setor</label><select name="setor" class="form-select auto-submit-filter"><option value="">Todos</option>{% for valor, rotulo in setores %}<option value="{{ valor }}" {% if filtros.setor == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select></div>
-                <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Status</label><select name="status" class="form-select auto-submit-filter"><option value="">Todos</option>{% for valor, rotulo in status_choices %}<option value="{{ valor }}" {% if filtros.status == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select></div>
-                <div class="col-md-1 d-flex gap-2"><button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i></button><a href="{% url 'dashboard_geral_avaliacoes_desempenho' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a></div>
-            </form>
+        <div class="i9-page-actions">
+            <a href="{% url 'listar_avaliacoes_desempenho' %}" class="btn i9-btn-secondary">Listagem</a>
+            {% if pode_criar_avaliacao %}<a href="{% url 'nova_avaliacao_desempenho' %}" class="btn i9-btn-primary">Nova avaliação</a>{% endif %}
         </div>
     </div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4 border-bottom border-4 border-primary"><div class="card-body"><span class="text-muted small fw-semibold">M&eacute;dia Geral</span><h2 class="fw-bold mb-0">{{ media_geral|default:"-" }}</h2></div></div></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4 border-bottom border-4 border-info"><div class="card-body"><span class="text-muted small fw-semibold">Avalia&ccedil;&otilde;es</span><h2 class="fw-bold mb-0">{{ avaliacoes|length }}</h2></div></div></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4 border-bottom border-4 border-success"><div class="card-body"><span class="text-muted small fw-semibold">Compet&ecirc;ncias com m&eacute;dia</span><h2 class="fw-bold mb-0">{{ media_por_competencia|length }}</h2></div></div></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm rounded-4 border-bottom border-4 border-warning"><div class="card-body"><span class="text-muted small fw-semibold">Setores avaliados</span><h2 class="fw-bold mb-0">{{ media_por_setor|length }}</h2></div></div></div>
+    <form method="get" id="formFiltrosDashboardAvaliacoes" class="i9-toolbar">
+        <div class="row g-3 align-items-end w-100">
+            <div class="col-md-3"><label class="form-label small fw-semibold text-muted">Usuário avaliado</label><select name="avaliado" class="form-select auto-submit-filter"><option value="">Todos</option>{% for funcionario in funcionarios %}<option value="{{ funcionario.id }}" {% if filtros.avaliado == funcionario.id|stringformat:"s" or filtros.funcionario == funcionario.id|stringformat:"s" %}selected{% endif %}>{{ funcionario.get_full_name|default:funcionario.username }}</option>{% endfor %}</select></div>
+            <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ano</label><select name="ano" class="form-select auto-submit-filter"><option value="">Todos</option>{% for ano in anos %}<option value="{{ ano }}" {% if filtros.ano == ano|stringformat:"s" %}selected{% endif %}>{{ ano }}</option>{% endfor %}</select></div>
+            <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Ciclo</label><select name="ciclo" class="form-select auto-submit-filter"><option value="">Todos</option>{% for valor, rotulo in ciclo_choices %}<option value="{{ valor }}" {% if filtros.ciclo == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select></div>
+            <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Setor</label><select name="setor" class="form-select auto-submit-filter"><option value="">Todos</option>{% for valor, rotulo in setores %}<option value="{{ valor }}" {% if filtros.setor == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select></div>
+            <div class="col-md-2"><label class="form-label small fw-semibold text-muted">Status</label><select name="status" class="form-select auto-submit-filter"><option value="">Todos</option>{% for valor, rotulo in status_choices %}<option value="{{ valor }}" {% if filtros.status == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}</select></div>
+            <div class="col-md-1 d-flex gap-2"><button type="submit" class="btn i9-btn-secondary w-100">Filtrar</button><a href="{% url 'dashboard_geral_avaliacoes_desempenho' %}" class="btn i9-btn-secondary">Limpar</a></div>
+        </div>
+    </form>
+
+    <div class="i9-dashboard-grid mb-4">
+        <article class="i9-kpi-card"><div class="i9-kpi-label">Média geral</div><div class="i9-kpi-value">{{ media_geral|default:"-" }}</div></article>
+        <article class="i9-kpi-card"><div class="i9-kpi-label">Avaliações</div><div class="i9-kpi-value">{{ avaliacoes|length }}</div></article>
+        <article class="i9-kpi-card"><div class="i9-kpi-label">Competências com média</div><div class="i9-kpi-value">{{ media_por_competencia|length }}</div></article>
+        <article class="i9-kpi-card"><div class="i9-kpi-label">Setores avaliados</div><div class="i9-kpi-value">{{ media_por_setor|length }}</div></article>
     </div>
 
     <div class="row g-4 mb-4">
-        <div class="col-lg-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h5 class="fw-bold mb-3" style="color: var(--azul-principal);">M&eacute;dia por compet&ecirc;ncia</h5><canvas id="competenciaChart" height="180"></canvas></div></div></div>
-        <div class="col-lg-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h5 class="fw-bold mb-3" style="color: var(--azul-principal);">M&eacute;dia por setor</h5><canvas id="setorChart" height="180"></canvas></div></div></div>
+        <div class="col-lg-6"><section class="i9-chart-card h-100"><h2 class="i9-chart-title">Média por competência</h2><canvas id="competenciaChart" height="180"></canvas></section></div>
+        <div class="col-lg-6"><section class="i9-chart-card h-100"><h2 class="i9-chart-title">Média por setor</h2><canvas id="setorChart" height="180"></canvas></section></div>
     </div>
 
     <div class="row g-4 mb-4">
-        <div class="col-lg-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h5 class="fw-bold mb-3" style="color: var(--azul-principal);">Quantidade por ciclo</h5><canvas id="cicloChart" height="160"></canvas></div></div></div>
-        <div class="col-lg-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h5 class="fw-bold mb-3" style="color: var(--azul-principal);">Quantidade por status</h5><canvas id="statusChart" height="160"></canvas></div></div></div>
+        <div class="col-lg-6"><section class="i9-chart-card h-100"><h2 class="i9-chart-title">Quantidade por ciclo</h2><canvas id="cicloChart" height="160"></canvas></section></div>
+        <div class="col-lg-6"><section class="i9-chart-card h-100"><h2 class="i9-chart-title">Quantidade por status</h2><canvas id="statusChart" height="160"></canvas></section></div>
     </div>
 
     <div class="row g-4 mb-4">
-        <div class="col-lg-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h5 class="fw-bold text-success mb-3">Ranking de maiores m&eacute;dias</h5>{% for avaliacao, media in ranking_maiores %}<div class="d-flex justify-content-between border-bottom py-2"><span>{{ avaliacao.funcionario_nome }} <small class="text-muted">{{ avaliacao.ano_formatado }}{{ avaliacao.ciclo }}</small></span><strong>{{ media }}</strong></div>{% empty %}<p class="text-muted mb-0">Sem dados.</p>{% endfor %}</div></div></div>
-        <div class="col-lg-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h5 class="fw-bold text-danger mb-3">Ranking de menores m&eacute;dias</h5>{% for avaliacao, media in ranking_menores %}<div class="d-flex justify-content-between border-bottom py-2"><span>{{ avaliacao.funcionario_nome }} <small class="text-muted">{{ avaliacao.ano_formatado }}{{ avaliacao.ciclo }}</small></span><strong>{{ media }}</strong></div>{% empty %}<p class="text-muted mb-0">Sem dados.</p>{% endfor %}</div></div></div>
+        <div class="col-lg-6"><section class="i9-card h-100"><h2 class="i9-card-title">Ranking de maiores médias</h2>{% for avaliacao, media in ranking_maiores %}<div class="d-flex justify-content-between border-bottom py-2"><span>{{ avaliacao.funcionario_nome }} <small class="text-muted">{{ avaliacao.ano_formatado }}{{ avaliacao.ciclo }}</small></span><strong>{{ media }}</strong></div>{% empty %}<p class="text-muted mb-0">Sem dados.</p>{% endfor %}</section></div>
+        <div class="col-lg-6"><section class="i9-card h-100"><h2 class="i9-card-title">Ranking de menores médias</h2>{% for avaliacao, media in ranking_menores %}<div class="d-flex justify-content-between border-bottom py-2"><span>{{ avaliacao.funcionario_nome }} <small class="text-muted">{{ avaliacao.ano_formatado }}{{ avaliacao.ciclo }}</small></span><strong>{{ media }}</strong></div>{% empty %}<p class="text-muted mb-0">Sem dados.</p>{% endfor %}</section></div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 mb-4"><div class="card-body p-4"><h5 class="fw-bold mb-3" style="color: var(--azul-principal);">Evolu&ccedil;&atilde;o por per&iacute;odo</h5><canvas id="evolucaoChart" height="90"></canvas></div></div>
+    <section class="i9-chart-card mb-4"><h2 class="i9-chart-title">Evolução por período</h2><canvas id="evolucaoChart" height="90"></canvas></section>
 </div>
 
 {{ media_por_competencia|json_script:"media-competencia" }}
@@ -58,16 +59,23 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 function dataFrom(id) { return JSON.parse(document.getElementById(id).textContent); }
+const styles = getComputedStyle(document.documentElement);
+const primary = styles.getPropertyValue('--i9-color-primary').trim();
+const accent = styles.getPropertyValue('--i9-color-accent').trim();
+const success = styles.getPropertyValue('--i9-color-success').trim();
+const warning = styles.getPropertyValue('--i9-color-warning').trim();
+const neutral = styles.getPropertyValue('--i9-color-neutral').trim();
+const info = styles.getPropertyValue('--i9-color-info').trim();
 const competencias = dataFrom('media-competencia');
 const setores = dataFrom('media-setor');
 const ciclos = dataFrom('qtd-ciclo');
 const statuses = dataFrom('qtd-status');
 const evolucao = dataFrom('evolucao-data');
-new Chart(document.getElementById('competenciaChart'), {type:'bar', data:{labels:competencias.map(i => i.competencia__nome), datasets:[{data:competencias.map(i => Number(i.media).toFixed(2)), backgroundColor:'#FF742E', borderRadius:8}]}, options:{scales:{y:{min:0,max:10}}, plugins:{legend:{display:false}}}});
-new Chart(document.getElementById('setorChart'), {type:'bar', data:{labels:setores.map(i => i.setor), datasets:[{data:setores.map(i => Number(i.media).toFixed(2)), backgroundColor:'#141C3C', borderRadius:8}]}, options:{scales:{y:{min:0,max:10}}, plugins:{legend:{display:false}}}});
-new Chart(document.getElementById('cicloChart'), {type:'doughnut', data:{labels:ciclos.map(i => `${i.ano}${i.ciclo}`), datasets:[{data:ciclos.map(i => i.total), backgroundColor:['#FF742E','#141C3C','#198754','#0dcaf0','#ffc107']}]}}); 
-new Chart(document.getElementById('statusChart'), {type:'doughnut', data:{labels:statuses.map(i => i.status), datasets:[{data:statuses.map(i => i.total), backgroundColor:['#ffc107','#198754','#6c757d']}]}}); 
-new Chart(document.getElementById('evolucaoChart'), {type:'line', data:{labels:evolucao.map(i => i.label), datasets:[{label:'M&eacute;dia', data:evolucao.map(i => i.media), borderColor:'#FF742E', backgroundColor:'rgba(255,116,46,0.15)', tension:.35, fill:true}]}, options:{scales:{y:{min:0,max:10}}}});
+new Chart(document.getElementById('competenciaChart'), {type:'bar', data:{labels:competencias.map(i => i.competencia__nome), datasets:[{data:competencias.map(i => Number(i.media).toFixed(2)), backgroundColor:primary, borderRadius:8}]}, options:{scales:{y:{min:0,max:10}}, plugins:{legend:{display:false}}}});
+new Chart(document.getElementById('setorChart'), {type:'bar', data:{labels:setores.map(i => i.setor), datasets:[{data:setores.map(i => Number(i.media).toFixed(2)), backgroundColor:info, borderRadius:8}]}, options:{scales:{y:{min:0,max:10}}, plugins:{legend:{display:false}}}});
+new Chart(document.getElementById('cicloChart'), {type:'doughnut', data:{labels:ciclos.map(i => `${i.ano}${i.ciclo}`), datasets:[{data:ciclos.map(i => i.total), backgroundColor:[primary, info, success, warning, neutral]}]}});
+new Chart(document.getElementById('statusChart'), {type:'doughnut', data:{labels:statuses.map(i => i.status), datasets:[{data:statuses.map(i => i.total), backgroundColor:[warning, success, neutral, info]}]}});
+new Chart(document.getElementById('evolucaoChart'), {type:'line', data:{labels:evolucao.map(i => i.label), datasets:[{label:'Média', data:evolucao.map(i => i.media), borderColor:primary, backgroundColor:'rgba(20,28,60,0.12)', tension:.35, fill:true}]}, options:{scales:{y:{min:0,max:10}}}});
 document.querySelectorAll('.auto-submit-filter').forEach(function (filtro) {
     filtro.addEventListener('change', function () {
         const form = filtro.closest('form');
@@ -78,4 +86,3 @@ document.querySelectorAll('.auto-submit-filter').forEach(function (filtro) {
 });
 </script>
 {% endblock %}
-

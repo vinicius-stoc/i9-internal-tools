@@ -1,33 +1,32 @@
 {% extends 'base.html' %}
-{% block title %}Importar Base de RH{% endblock %}
+{% block title %}Importar base de RH{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-5 text-center">
-                    <h3 class="fw-bold mb-3" style="color: var(--azul-principal);">
-                        <i class="bi bi-file-earmark-excel me-2 text-success"></i>Atualizar Base de Colaboradores
-                    </h3>
-                    <p class="text-muted mb-4">Faça o upload da planilha atualizada do sistema de folha de pagamento (.xls ou .xlsx). O sistema irá identificar automaticamente contratações e demissões.</p>
-                    
-                    <form method="POST" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="mb-4">
-                            <input class="form-control form-control-lg" type="file" name="arquivo_excel" accept=".xls,.xlsx" required>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg" style="background-color: var(--laranja-principal); border: none;">
-                                Iniciar Processamento
-                            </button>
-                            <a href="{% url 'dashboard_rh' %}" class="btn btn-light">Voltar para o Dashboard</a>
-                        </div>
-                    </form>
-                    
-                </div>
-            </div>
+<div class="container-fluid py-3">
+    <div class="i9-page-header">
+        <div>
+            <h1 class="i9-page-title">Atualizar base de colaboradores</h1>
+            <p class="i9-page-description">Envie a planilha atualizada da folha para identificar contratações e demissões.</p>
+        </div>
+        <div class="i9-page-actions">
+            <a href="{% url 'dashboard_rh' %}" class="btn i9-btn-secondary">Voltar para o dashboard</a>
         </div>
     </div>
+
+    <section class="i9-card i9-form-narrow">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="i9-upload-box mb-4">
+                <label class="form-label fw-bold">Arquivo Excel (.xls ou .xlsx)</label>
+                <input class="form-control form-control-lg" type="file" name="arquivo_excel" accept=".xls,.xlsx" required>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{% url 'dashboard_rh' %}" class="btn i9-btn-secondary">Cancelar</a>
+                <button type="submit" class="btn i9-btn-primary btn-lg fw-bold">
+                    Iniciar processamento
+                </button>
+            </div>
+        </form>
+    </section>
 </div>
 {% endblock %}
