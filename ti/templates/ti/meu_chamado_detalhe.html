@@ -3,75 +3,75 @@
 {% block title %}Meu Chamado #{{ chamado.id }} | I9TMG{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-3" style="max-width: 800px;">
-    
-    <div class="d-flex align-items-center mb-4">
-        <a href="{% url 'meus_chamados' %}" class="btn btn-white border rounded-circle me-3 shadow-sm text-secondary">
-            <i class="bi bi-arrow-left"></i>
-        </a>
+<div class="container-fluid py-3 i9-form-narrow mx-auto">
+    <div class="i9-page-header">
         <div>
-            <h3 class="fw-bold mb-0 text-dark">Detalhes do Chamado <span class="text-secondary">#{{ chamado.id }}</span></h3>
-            <small class="text-muted"><i class="bi bi-calendar-event me-1"></i> Aberto em {{ chamado.data_abertura|date:"d/m/Y" }}</small>
+            <h1 class="i9-page-title">Detalhes do chamado #{{ chamado.id }}</h1>
+            <p class="i9-page-description">Aberto em {{ chamado.data_abertura|date:"d/m/Y" }}.</p>
+        </div>
+        <div class="i9-page-actions">
+            <a href="{% url 'meus_chamados' %}" class="btn i9-btn-secondary fw-bold">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
         </div>
     </div>
 
     {% if chamado.status == 'RESOLVIDO' %}
-    <div class="card border-0 shadow-lg rounded-4 mb-4 bg-success bg-opacity-10 border border-success border-opacity-25">
-        <div class="card-body p-4 text-center">
-            <h4 class="fw-bold text-success mb-3"><i class="bi bi-check-circle-fill me-2"></i>A TI marcou este chamado como Resolvido!</h4>
-            <p class="text-dark mb-4">Por favor, verifique se o problema foi realmente solucionado. Se estiver tudo certo, clique no botão verde para encerrar. Caso contrário, devolva o chamado para a TI.</p>
+    <section class="i9-card mb-4">
+        <div class="d-flex flex-column align-items-center text-center">
+            <span class="badge i9-badge i9-badge-success mb-3">Resolvido pela TI</span>
+            <h2 class="i9-card-title">Valide a solução aplicada</h2>
+            <p class="text-muted mb-4">Verifique se o problema foi solucionado. Se estiver correto, conclua o chamado; caso contrário, devolva para a equipe de TI.</p>
 
             <form method="post" class="d-flex justify-content-center gap-3 flex-wrap">
                 {% csrf_token %}
-                <button type="submit" name="validar_concluir" class="btn btn-success btn-lg fw-bold px-4 shadow-sm">
-                    <i class="bi bi-hand-thumbs-up-fill me-2"></i> Sim, resolvido (Concluir)
+                <button type="submit" name="validar_concluir" class="btn i9-btn-primary fw-bold px-4">
+                    <i class="bi bi-hand-thumbs-up-fill me-2"></i>Sim, resolvido
                 </button>
-                <button type="submit" name="recusar_resolucao" class="btn btn-outline-danger btn-lg fw-bold px-4 shadow-sm">
-                    <i class="bi bi-hand-thumbs-down-fill me-2"></i> Não, o problema continua
+                <button type="submit" name="recusar_resolucao" class="btn i9-btn-secondary fw-bold px-4">
+                    <i class="bi bi-hand-thumbs-down-fill me-2"></i>O problema continua
                 </button>
             </form>
         </div>
-    </div>
+    </section>
     {% endif %}
 
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
-        <div class="card-header bg-white pt-4 pb-0 border-0 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold text-secondary mb-0">Descrição Original</h5>
-            <span class="badge bg-light text-dark border">{{ chamado.get_status_display }}</span>
+    <section class="i9-card mb-4">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+            <h2 class="i9-card-title mb-0">Descrição original</h2>
+            {% if chamado.status == 'CONCLUIDO' %}<span class="badge i9-badge i9-badge-success">{{ chamado.get_status_display }}</span>
+            {% elif chamado.status == 'RESOLVIDO' %}<span class="badge i9-badge i9-badge-warning">{{ chamado.get_status_display }}</span>
+            {% elif chamado.status == 'EM_ATENDIMENTO' %}<span class="badge i9-badge i9-badge-info">{{ chamado.get_status_display }}</span>
+            {% else %}<span class="badge i9-badge i9-badge-neutral">{{ chamado.get_status_display }}</span>{% endif %}
         </div>
-        <div class="card-body p-4">
-            <h5 class="fw-bold text-dark">{{ chamado.titulo }}</h5>
-            <p class="text-dark mb-0" style="white-space: pre-wrap;">{{ chamado.descricao }}</p>
+        <h3 class="h5 fw-bold text-dark">{{ chamado.titulo }}</h3>
+        <p class="text-dark mb-0 i9-text-prewrap">{{ chamado.descricao }}</p>
 
-            {% if chamado.imagens.exists %}
-            <hr class="my-4">
-            <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-paperclip me-2"></i>Meus Anexos</h6>
-            <div class="row g-2">
-                {% for anexo in chamado.imagens.all %}
-                <div class="col-sm-4">
-                    <a href="{{ anexo.imagem.url }}" target="_blank" class="d-block border rounded overflow-hidden">
-                        <img src="{{ anexo.imagem.url }}" class="img-fluid" style="height: 120px; width: 100%; object-fit: cover;" alt="Anexo">
-                    </a>
-                </div>
-                {% endfor %}
+        {% if chamado.imagens.exists %}
+        <hr class="my-4">
+        <h3 class="i9-card-title"><i class="bi bi-paperclip me-2"></i>Meus anexos</h3>
+        <div class="row g-2">
+            {% for anexo in chamado.imagens.all %}
+            <div class="col-sm-4">
+                <a href="{{ anexo.imagem.url }}" target="_blank" class="i9-attachment-thumb">
+                    <img src="{{ anexo.imagem.url }}" alt="Anexo">
+                </a>
             </div>
-            {% endif %}
+            {% endfor %}
         </div>
-    </div>
+        {% endif %}
+    </section>
 
     {% if chamado.solucao %}
-    <div class="card border-0 shadow-sm rounded-4 border-start border-primary border-4">
-        <div class="card-body p-4">
-            <h5 class="fw-bold text-primary mb-3"><i class="bi bi-tools me-2"></i>Solução da Equipe de TI</h5>
-            <div class="bg-light p-3 rounded-3 border">
-                <p class="text-dark mb-0" style="white-space: pre-wrap;">{{ chamado.solucao }}</p>
-            </div>
-            <div class="mt-2 text-end text-muted small">
-                Atendido por: <strong>{{ chamado.tecnico.get_full_name|default:chamado.tecnico.username }}</strong>
-            </div>
+    <section class="i9-card">
+        <h2 class="i9-card-title"><i class="bi bi-tools me-2"></i>Solução da equipe de TI</h2>
+        <div class="i9-summary-box">
+            <p class="text-dark mb-0 i9-text-prewrap">{{ chamado.solucao }}</p>
         </div>
-    </div>
+        <div class="mt-2 text-end text-muted small">
+            Atendido por: <strong>{{ chamado.tecnico.get_full_name|default:chamado.tecnico.username }}</strong>
+        </div>
+    </section>
     {% endif %}
-
 </div>
 {% endblock %}
