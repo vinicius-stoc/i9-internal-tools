@@ -176,6 +176,22 @@
     border-radius: var(--i9-radius-md);
 }
 
+.i9-toolbar-search {
+    flex: 1 1 320px;
+    max-width: 420px;
+}
+
+.i9-operational-list-item {
+    color: var(--i9-color-text);
+    background: var(--i9-color-surface);
+    border-color: var(--i9-color-border);
+}
+
+.i9-operational-list-item:hover {
+    color: var(--i9-color-text);
+    background: var(--i9-color-surface-muted);
+}
+
 .i9-empty-state {
     padding: var(--i9-space-8);
     color: var(--i9-color-text-muted);
