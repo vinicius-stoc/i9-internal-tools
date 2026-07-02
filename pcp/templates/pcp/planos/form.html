@@ -4,27 +4,27 @@
 
 {% block content %}
 <div class="container py-3">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 gap-3">
+    <div class="i9-page-header">
         <div>
             <div class="text-muted small text-uppercase fw-semibold">{{ ativo.codigo }} - {{ ativo.nome }}</div>
-            <h3 class="fw-bold mb-1" style="color: var(--azul-principal);">{{ titulo }}</h3>
-            <p class="text-muted mb-0">Defina quando a rotina começa e com qual frequência deve ser executada.</p>
+            <h1 class="i9-page-title">{{ titulo }}</h1>
+            <p class="i9-page-description">Defina quando a rotina começa e com qual frequência deve ser executada.</p>
         </div>
-        <div class="d-flex flex-wrap gap-2">
+        <div class="i9-page-actions">
             {% if plano %}
-                <a href="{% url 'pcp_preview_plano_pdf' plano.id %}" target="_blank" class="btn btn-outline-danger">
+                <a href="{% url 'pcp_preview_plano_pdf' plano.id %}" target="_blank" class="btn i9-btn-secondary fw-bold">
                     <i class="bi bi-file-earmark-pdf me-1"></i>Visualizar PDF
                 </a>
             {% endif %}
-            <a href="{% url 'pcp_detalhar_ativo' ativo.id %}" class="btn btn-outline-secondary">
+            <a href="{% url 'pcp_detalhar_ativo' ativo.id %}" class="btn i9-btn-secondary fw-bold">
                 <i class="bi bi-arrow-left me-1"></i>Voltar ao ativo
             </a>
         </div>
     </div>
 
-    <div class="alert alert-primary border-0 shadow-sm rounded-4 mb-4">
+    <div class="i9-summary-box mb-4">
         <div class="d-flex gap-3 align-items-start">
-            <i class="bi bi-calendar2-check-fill fs-4"></i>
+            <i class="bi bi-calendar2-check-fill text-primary"></i>
             <div>
                 <div class="fw-bold">Como a programação será gerada</div>
                 <div>A primeira manutenção será criada para a data de início. Após cada conclusão, a próxima data será calculada usando o intervalo informado.</div>
@@ -32,9 +32,9 @@
         </div>
     </div>
 
-    <form method="post" class="card border-0 shadow-sm rounded-4">
+    <form method="post" class="i9-card">
         {% csrf_token %}
-        <div class="card-body p-4">
+        <div>
             {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
             <div class="row g-3">
                 {% for field in form %}
@@ -55,10 +55,10 @@
 
             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
                 <div>
-                    <h5 class="fw-bold mb-1" style="color: var(--azul-principal);">Itens de manutenção</h5>
+                    <h2 class="i9-card-title mb-1">Itens de manutenção</h2>
                     <div class="small text-muted">Selecione os serviços que farão parte do checklist deste plano.</div>
                 </div>
-                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalItensManutencao"{% if not form.itens_manutencao_queryset %} disabled{% endif %}>
+                <button type="button" class="btn i9-btn-secondary" data-bs-toggle="modal" data-bs-target="#modalItensManutencao"{% if not form.itens_manutencao_queryset %} disabled{% endif %}>
                     <i class="bi bi-ui-checks-grid me-1"></i>Selecionar itens de manuten&ccedil;&atilde;o
                 </button>
             </div>
@@ -73,12 +73,12 @@
             </div>
 
             {% if not form.itens_manutencao_queryset %}
-                <div class="alert alert-light border mb-0">
+                <div class="i9-empty-state mb-0">
                     Nenhum item de manutenção cadastrado para este ativo. O plano pode ser salvo sem itens.
                 </div>
             {% endif %}
 
-            <div class="border rounded-3 p-3 mb-3 bg-light" id="itens-manutencao-amostra">
+            <div class="i9-summary-box mb-3" id="itens-manutencao-amostra">
                 <div class="small text-muted fw-semibold text-uppercase mb-2">Itens associados ao plano</div>
                 <div id="itens-manutencao-amostra-lista">
                     {% if form.deve_sincronizar_itens_manutencao %}
@@ -145,8 +145,8 @@
                             {% endif %}
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="button" class="btn btn-primary" id="salvar-selecao-itens-manutencao">
+                            <button type="button" class="btn i9-btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn i9-btn-primary" id="salvar-selecao-itens-manutencao">
                                 <i class="bi bi-check-lg me-1"></i>Salvar sele&ccedil;&atilde;o
                             </button>
                         </div>
@@ -154,9 +154,9 @@
                 </div>
             </div>
         </div>
-        <div class="card-footer bg-white border-0 p-4 pt-0 d-flex flex-column-reverse flex-sm-row justify-content-end gap-2">
-            <a href="{% url 'pcp_detalhar_ativo' ativo.id %}" class="btn btn-outline-secondary">Cancelar</a>
-            <button type="submit" class="btn btn-primary px-4">
+        <div class="d-flex flex-column-reverse flex-sm-row justify-content-end gap-2 mt-4">
+            <a href="{% url 'pcp_detalhar_ativo' ativo.id %}" class="btn i9-btn-secondary">Cancelar</a>
+            <button type="submit" class="btn i9-btn-primary px-4">
                 <i class="bi bi-check-lg me-1"></i>Salvar plano
             </button>
         </div>

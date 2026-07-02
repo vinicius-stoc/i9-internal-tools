@@ -1,147 +1,132 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Pesquisas Demissionais - I9TMG{% endblock %}
+{% block title %}Pesquisas demissionais - I9TMG{% endblock %}
 
 {% block content %}
-<div class="container-fluid p-0">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid py-3">
+    <div class="i9-page-header">
         <div>
-            <h3 class="mb-0 text-dark fw-bold"><i class="bi bi-file-earmark-bar-graph me-2" style="color: var(--laranja-principal);"></i>Pesquisas Demissionais</h3>
-            <p class="text-muted small mb-0">Gerencie e envie pesquisas para ex-colaboradores</p>
+            <h1 class="i9-page-title">Pesquisas demissionais</h1>
+            <p class="i9-page-description">Gerencie links de pesquisa e acompanhe respostas de ex-colaboradores.</p>
         </div>
-        <div class="d-flex gap-2">
-            <a href="?export_csv=1" class="btn btn-success shadow-sm border-0">
-                <i class="bi bi-file-earmark-excel me-2"></i>Exportar Base
+        <div class="i9-page-actions">
+            <a href="?export_csv=1" class="btn i9-btn-secondary">
+                <i class="bi bi-file-earmark-excel me-2"></i>Exportar base
             </a>
-            <a href="{% url 'gerar_pesquisa' %}" class="btn btn-primary shadow-sm" style="background-color: var(--laranja-principal); border: none;">
-                <i class="bi bi-plus-circle me-2"></i>Nova Pesquisa
+            <a href="{% url 'gerar_pesquisa' %}" class="btn i9-btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Nova pesquisa
             </a>
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 border-bottom border-4 border-primary">
-                <div class="card-body">
-                    <h6 class="text-muted fw-semibold mb-1">Total Geradas</h6>
-                    <h2 class="mb-0 fw-bold">{{ total_geradas }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 border-bottom border-4 border-success">
-                <div class="card-body">
-                    <h6 class="text-muted fw-semibold mb-1">Respondidas</h6>
-                    <h2 class="mb-0 fw-bold">{{ total_respondidas }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 border-bottom border-4 border-danger">
-                <div class="card-body">
-                    <h6 class="text-muted fw-semibold mb-1">Expiradas</h6>
-                    <h2 class="mb-0 fw-bold">{{ total_expiradas }}</h2>
-                </div>
-            </div>
-        </div>
+    <div class="i9-dashboard-grid mb-4">
+        <article class="i9-kpi-card">
+            <div class="i9-kpi-label">Total geradas</div>
+            <div class="i9-kpi-value">{{ total_geradas }}</div>
+        </article>
+        <article class="i9-kpi-card">
+            <div class="i9-kpi-label">Respondidas</div>
+            <div class="i9-kpi-value">{{ total_respondidas }}</div>
+        </article>
+        <article class="i9-kpi-card">
+            <div class="i9-kpi-label">Expiradas</div>
+            <div class="i9-kpi-value">{{ total_expiradas }}</div>
+        </article>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-3">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-secondary">
-                        <tr>
-                            <th class="ps-4">Ex-Colaborador</th>
-                            <th>Setor</th>
-                            <th>Data de Geração</th>
-                            <th>Expira em</th>
-                            <th>Status</th>
-                            <th class="text-end pe-4">Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for p in pesquisas %}
-                        <tr>
-                            <td class="ps-4 fw-semibold">{{ p.ex_funcionario_nome }}</td>
-                            <td>{{ p.get_setor_display }}</td>
-                            <td>{{ p.data_geracao|date:"d/m/Y H:i" }}</td>
-                            <td>{{ p.data_expiracao|date:"d/m/Y H:i"|default:"-" }}</td>
-                            <td>
-                                {% if p.status == 'RESPONDIDA' or p.respondida or p.nota_lideranca %}
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1"><i class="bi bi-check-circle me-1"></i>Respondida</span>
-                                {% elif p.status == 'EXPIRADA' %}
-                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-2 py-1"><i class="bi bi-x-circle me-1"></i>Expirada</span>
-                                {% else %}
-                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning px-2 py-1"><i class="bi bi-clock-history me-1"></i>Pendente</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end pe-4">
-                                {% if p.status == 'EXPIRADA' %}
-                                    <form method="post" action="{% url 'gerar_novo_link_pesquisa_demissional' p.id_pesquisa %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-arrow-clockwise me-1"></i>Gerar Novo Link
-                                        </button>
-                                    </form>
-                                {% elif not p.respondida and not p.nota_lideranca %}
-                                    <button class="btn btn-sm btn-outline-secondary btn-copiar" data-link="{{ p.get_link_externo }}" onclick="copiarLink(this)">
-                                        <i class="bi bi-clipboard me-1"></i>Copiar Link
+    <section class="i9-card p-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table i9-table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Ex-colaborador</th>
+                        <th>Setor</th>
+                        <th>Data de geração</th>
+                        <th>Expira em</th>
+                        <th>Status</th>
+                        <th class="i9-table-actions pe-4">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pesquisas %}
+                    <tr>
+                        <td class="ps-4 fw-semibold">{{ p.ex_funcionario_nome }}</td>
+                        <td>{{ p.get_setor_display }}</td>
+                        <td>{{ p.data_geracao|date:"d/m/Y H:i" }}</td>
+                        <td>{{ p.data_expiracao|date:"d/m/Y H:i"|default:"-" }}</td>
+                        <td>
+                            {% if p.status == 'RESPONDIDA' or p.respondida or p.nota_lideranca %}
+                                <span class="i9-badge i9-badge-success">Respondida</span>
+                            {% elif p.status == 'EXPIRADA' %}
+                                <span class="i9-badge i9-badge-danger">Expirada</span>
+                            {% else %}
+                                <span class="i9-badge i9-badge-warning">Pendente</span>
+                            {% endif %}
+                        </td>
+                        <td class="i9-table-actions pe-4">
+                            {% if p.status == 'EXPIRADA' %}
+                                <form method="post" action="{% url 'gerar_novo_link_pesquisa_demissional' p.id_pesquisa %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm i9-btn-secondary">
+                                        Gerar novo link
                                     </button>
-                                {% else %}
-                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalPesquisaUnico"
-                                        data-nome="{{ p.ex_funcionario_nome }}"
-                                        data-setor="{{ p.get_setor_display }}"
-                                        data-tempo="{{ p.tempo_casa }}"
-                                        data-saida="{{ p.periodo_saida }}"
-                                        data-motivo="{{ p.motivo_saida|default:'Não informado' }}"
-                                        data-recomendacao="{{ p.nota_recomendacao }}"
-                                        data-lideranca="{{ p.nota_lideranca }}"
-                                        data-oportunidade="{{ p.nota_oportunidade }}"
-                                        data-reconhecimento="{{ p.nota_reconhecimento }}"
-                                        data-clima="{{ p.nota_clima }}"
-                                        data-diferente="{{ p.diferente|default:'Nenhum comentário adicional.' }}">
-                                        <i class="bi bi-eye"></i> Ver Respostas
-                                    </button>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">Nenhuma pesquisa gerada até o momento.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                                </form>
+                            {% elif not p.respondida and not p.nota_lideranca %}
+                                <button class="btn btn-sm i9-btn-secondary btn-copiar" data-link="{{ p.get_link_externo }}" onclick="copiarLink(this)">
+                                    Copiar link
+                                </button>
+                            {% else %}
+                                <button class="btn btn-sm i9-btn-secondary" data-bs-toggle="modal" data-bs-target="#modalPesquisaUnico"
+                                    data-nome="{{ p.ex_funcionario_nome }}"
+                                    data-setor="{{ p.get_setor_display }}"
+                                    data-tempo="{{ p.tempo_casa }}"
+                                    data-saida="{{ p.periodo_saida }}"
+                                    data-motivo="{{ p.motivo_saida|default:'Não informado' }}"
+                                    data-recomendacao="{{ p.nota_recomendacao }}"
+                                    data-lideranca="{{ p.nota_lideranca }}"
+                                    data-oportunidade="{{ p.nota_oportunidade }}"
+                                    data-reconhecimento="{{ p.nota_reconhecimento }}"
+                                    data-clima="{{ p.nota_clima }}"
+                                    data-diferente="{{ p.diferente|default:'Nenhum comentário adicional.' }}">
+                                    Ver respostas
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="i9-empty-state m-3">Nenhuma pesquisa gerada até o momento.</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
+    </section>
 </div>
 
-<!-- Modal Único Dinâmico -->
 <div class="modal fade" id="modalPesquisaUnico" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title fw-bold" style="color: var(--azul-principal);">
-                    Feedback: <span id="modal-nome"></span>
-                </h5>
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Feedback: <span id="modal-nome"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body pt-2 text-start">
-                <p class="text-muted small border-bottom pb-2 mb-3">Setor: <span id="modal-setor"></span> | Tempo de Casa: <span id="modal-tempo"></span> | Saída: <span id="modal-saida"></span></p>
+            <div class="modal-body text-start">
+                <p class="text-muted small border-bottom pb-2 mb-3">Setor: <span id="modal-setor"></span> | Tempo de casa: <span id="modal-tempo"></span> | Saída: <span id="modal-saida"></span></p>
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <div class="p-3 bg-light rounded h-100">
-                            <span class="d-block small text-muted fw-bold mb-1">Motivo Principal da Saída:</span>
+                        <div class="i9-summary-box h-100">
+                            <span class="d-block small text-muted fw-bold mb-1">Motivo principal da saída:</span>
                             <span id="modal-motivo"></span>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="p-3 bg-light rounded h-100">
-                            <span class="d-block small text-muted fw-bold mb-1">NPS (Recomendaria a empresa?):</span>
+                        <div class="i9-summary-box h-100">
+                            <span class="d-block small text-muted fw-bold mb-1">NPS (recomendaria a empresa?):</span>
                             <span class="fs-5 fw-bold" id="modal-recomendacao-container">
                                 Nota: <span id="modal-recomendacao"></span> / 10
                             </span>
@@ -149,39 +134,19 @@
                     </div>
                 </div>
 
-                <h6 class="fw-bold mt-4 mb-2">Avaliação Interna (1 a 5)</h6>
+                <h6 class="fw-bold mt-4 mb-2">Avaliação interna (1 a 5)</h6>
                 <div class="row g-2 text-center mb-4">
-                    <div class="col-3">
-                        <div class="border rounded p-2">
-                            <div class="small text-muted">Liderança</div>
-                            <div class="fw-bold fs-5 text-primary" id="modal-lideranca"></div>
-                        </div>
-                    </div>
-                    <div class="col-3">
-                        <div class="border rounded p-2">
-                            <div class="small text-muted">Oportunidades</div>
-                            <div class="fw-bold fs-5 text-primary" id="modal-oportunidade"></div>
-                        </div>
-                    </div>
-                    <div class="col-3">
-                        <div class="border rounded p-2">
-                            <div class="small text-muted">Reconhecimento</div>
-                            <div class="fw-bold fs-5 text-primary" id="modal-reconhecimento"></div>
-                        </div>
-                    </div>
-                    <div class="col-3">
-                        <div class="border rounded p-2">
-                            <div class="small text-muted">Clima</div>
-                            <div class="fw-bold fs-5 text-primary" id="modal-clima"></div>
-                        </div>
-                    </div>
+                    <div class="col-6 col-md-3"><div class="i9-summary-box"><div class="small text-muted">Liderança</div><div class="fw-bold fs-5" id="modal-lideranca"></div></div></div>
+                    <div class="col-6 col-md-3"><div class="i9-summary-box"><div class="small text-muted">Oportunidades</div><div class="fw-bold fs-5" id="modal-oportunidade"></div></div></div>
+                    <div class="col-6 col-md-3"><div class="i9-summary-box"><div class="small text-muted">Reconhecimento</div><div class="fw-bold fs-5" id="modal-reconhecimento"></div></div></div>
+                    <div class="col-6 col-md-3"><div class="i9-summary-box"><div class="small text-muted">Clima</div><div class="fw-bold fs-5" id="modal-clima"></div></div></div>
                 </div>
 
-                <h6 class="fw-bold mb-2">O que faria de diferente se fosse o Diretor/Gestor?</h6>
-                <div class="p-3 border rounded bg-light" id="modal-diferente" style="white-space: pre-wrap; font-size: 0.95rem;"></div>
+                <h6 class="fw-bold mb-2">O que faria de diferente se fosse o diretor/gestor?</h6>
+                <div class="i9-summary-box i9-text-prewrap" id="modal-diferente"></div>
             </div>
-            <div class="modal-footer border-top-0">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            <div class="modal-footer">
+                <button type="button" class="btn i9-btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
     </div>
@@ -193,17 +158,17 @@ function copiarLink(btn) {
     const absoluteLink = window.location.origin + relativeLink;
 
     navigator.clipboard.writeText(absoluteLink).then(() => {
-        const icon = btn.querySelector('i');
         const originalHtml = btn.innerHTML;
-
-        btn.classList.replace('btn-outline-secondary', 'btn-success');
+        btn.classList.remove('i9-btn-secondary');
+        btn.classList.add('i9-btn-primary');
         btn.innerHTML = '<i class="bi bi-check2-all me-1"></i>Copiado!';
 
         setTimeout(() => {
-            btn.classList.replace('btn-success', 'btn-outline-secondary');
+            btn.classList.remove('i9-btn-primary');
+            btn.classList.add('i9-btn-secondary');
             btn.innerHTML = originalHtml;
         }, 3000);
-    }).catch(err => {
+    }).catch(() => {
         alert('Erro ao copiar o link. Tente manualmente.');
     });
 }
@@ -212,9 +177,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var modalPesquisa = document.getElementById('modalPesquisaUnico');
     if (modalPesquisa) {
         modalPesquisa.addEventListener('show.bs.modal', function (event) {
-            var button = event.relatedTarget; // Botão que acionou o modal
+            var button = event.relatedTarget;
 
-            // Atualiza os textos simples
             modalPesquisa.querySelector('#modal-nome').textContent = button.getAttribute('data-nome');
             modalPesquisa.querySelector('#modal-setor').textContent = button.getAttribute('data-setor');
             modalPesquisa.querySelector('#modal-tempo').textContent = button.getAttribute('data-tempo');
@@ -230,7 +194,6 @@ document.addEventListener('DOMContentLoaded', function() {
             modalPesquisa.querySelector('#modal-clima').textContent = button.getAttribute('data-clima');
             modalPesquisa.querySelector('#modal-diferente').textContent = button.getAttribute('data-diferente');
 
-            // Atualiza cor do NPS
             var npsContainer = modalPesquisa.querySelector('#modal-recomendacao-container');
             npsContainer.classList.remove('text-success', 'text-warning', 'text-danger');
 

@@ -3,111 +3,113 @@
 {% block title %}RP: {{ solicitacao.nome_vaga }} | I9TMG{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-3" style="max-width: 1200px;">
-    
-    <div class="mb-4">
-        <a href="{% url 'listar_solicitacoes' %}" class="btn btn-sm btn-white border rounded-circle shadow-sm text-secondary me-2">
-            <i class="bi bi-arrow-left"></i>
-        </a>
-        <span class="text-muted fw-semibold">Voltar para Lista de Requisições</span>
+<div class="container-fluid py-3">
+    <div class="i9-page-header">
+        <div>
+            <h1 class="i9-page-title">Detalhes da solicitação</h1>
+            <p class="i9-page-description">{{ solicitacao.nome_vaga }} - {{ solicitacao.get_departamento_display }}</p>
+        </div>
+        <div class="i9-page-actions">
+            <a href="{% url 'listar_solicitacoes' %}" class="btn i9-btn-secondary fw-bold">
+                <i class="bi bi-arrow-left me-1"></i> Voltar para lista
+            </a>
+        </div>
     </div>
 
     <div class="row g-4">
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-header bg-white pt-4 pb-3 border-bottom d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-file-text text-primary me-2"></i>Detalhes da Solicitação</h5>
-                    <span class="badge bg-light text-secondary border">Data do Pedido: {{ solicitacao.data_solicitacao|date:"d/m/Y" }}</span>
+            <section class="i9-card mb-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+                    <h2 class="i9-card-title mb-0">Dados da requisição</h2>
+                    <span class="i9-badge i9-badge-neutral align-self-start">Pedido em {{ solicitacao.data_solicitacao|date:"d/m/Y" }}</span>
                 </div>
-                <div class="card-body p-4 p-md-5">
-                    
-                    <div class="row g-4 mb-4 pb-4 border-bottom">
-                        <div class="col-sm-6">
-                            <span class="text-muted small fw-bold d-block mb-1 text-uppercase">Gestor Solicitante</span>
-                            <span class="fw-semibold text-dark">{{ solicitacao.solicitante.username|title }} ({{ solicitacao.cargo_solicitante }})</span>
-                        </div>
-                        <div class="col-sm-6">
-                            <span class="text-muted small fw-bold d-block mb-1 text-uppercase">Vaga e Departamento</span>
-                            <span class="fw-semibold text-dark">{{ solicitacao.nome_vaga }} • {{ solicitacao.get_departamento_display }}</span>
-                        </div>
-                        <div class="col-sm-4">
-                            <span class="text-muted small fw-bold d-block mb-1 text-uppercase">Data Prevista</span>
-                            <span class="fw-semibold text-primary">
-                                {% if solicitacao.banco_de_talentos %}
-                                    <i class="bi bi-people me-1"></i> Banco de Talentos
-                                {% else %}
-                                    <i class="bi bi-calendar-event me-1"></i> {{ solicitacao.data_prevista_inicio|date:"d/m/Y" }}
-                                {% endif %}
-                            </span>
-                        </div>
-                        <div class="col-sm-4">
-                            <span class="text-muted small fw-bold d-block mb-1 text-uppercase">Quantidade</span>
-                            <span class="fw-semibold text-dark">{{ solicitacao.quantidade_vagas }} Vaga(s)</span>
-                        </div>
-                        <div class="col-sm-4">
-                            <span class="text-muted small fw-bold d-block mb-1 text-uppercase">Motivo</span>
-                            <span class="fw-semibold text-dark">{{ solicitacao.get_motivo_display }}</span>
-                        </div>
-                        
-                        {% if solicitacao.nome_substituido %}
-                        <div class="col-12 mt-3 p-3 bg-light rounded border border-danger border-opacity-25">
-                            <span class="text-danger small fw-bold d-block mb-1"><i class="bi bi-person-dash me-1"></i>SUBSTITUINDO O COLABORADOR:</span>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-sm-6">
+                        <span class="i9-kpi-label d-block mb-1">Gestor solicitante</span>
+                        <span class="fw-semibold text-dark">{{ solicitacao.solicitante.username|title }} ({{ solicitacao.cargo_solicitante }})</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="i9-kpi-label d-block mb-1">Vaga e departamento</span>
+                        <span class="fw-semibold text-dark">{{ solicitacao.nome_vaga }} - {{ solicitacao.get_departamento_display }}</span>
+                    </div>
+                    <div class="col-sm-4">
+                        <span class="i9-kpi-label d-block mb-1">Data prevista</span>
+                        <span class="fw-semibold text-dark">
+                            {% if solicitacao.banco_de_talentos %}
+                                Banco de talentos
+                            {% else %}
+                                {{ solicitacao.data_prevista_inicio|date:"d/m/Y" }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="col-sm-4">
+                        <span class="i9-kpi-label d-block mb-1">Quantidade</span>
+                        <span class="fw-semibold text-dark">{{ solicitacao.quantidade_vagas }} vaga(s)</span>
+                    </div>
+                    <div class="col-sm-4">
+                        <span class="i9-kpi-label d-block mb-1">Motivo</span>
+                        <span class="fw-semibold text-dark">{{ solicitacao.get_motivo_display }}</span>
+                    </div>
+
+                    {% if solicitacao.nome_substituido %}
+                    <div class="col-12">
+                        <div class="i9-summary-box">
+                            <span class="i9-kpi-label d-block mb-1">Substituindo colaborador</span>
                             <span class="fw-bold text-dark">{{ solicitacao.nome_substituido }}</span>
                         </div>
-                        {% endif %}
-                    </div>
-
-                    <h6 class="fw-bold text-secondary text-uppercase mb-3">Perfil Desejado</h6>
-                    <div class="row g-3">
-                        <div class="col-sm-6"><span class="text-muted small d-block">Escolaridade:</span> <span class="fw-medium">{{ solicitacao.get_escolaridade_display }}</span></div>
-                        <div class="col-sm-6"><span class="text-muted small d-block">Sexo:</span> <span class="fw-medium">{{ solicitacao.get_sexo_display }}</span></div>
-                        {% if solicitacao.curso_area %}
-                        <div class="col-12"><span class="text-muted small d-block">Curso/Área:</span> <span class="fw-medium">{{ solicitacao.curso_area }}</span></div>
-                        {% endif %}
-                        
-                        <div class="col-12 mt-3"><span class="text-muted small d-block fw-bold mb-1">Descrição Sumária das Atividades:</span> <p class="bg-light p-3 rounded border small">{{ solicitacao.descricao_atividades|linebreaksbr }}</p></div>
-                        <div class="col-12"><span class="text-muted small d-block fw-bold mb-1">Conhecimentos Desejáveis:</span> <p class="bg-light p-3 rounded border small">{{ solicitacao.conhecimentos_desejaveis|linebreaksbr }}</p></div>
-                        <div class="col-12"><span class="text-muted small d-block fw-bold mb-1">Atitudes Desejáveis:</span> <p class="bg-light p-3 rounded border small">{{ solicitacao.atitudes_desejaveis|linebreaksbr }}</p></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-4 border-top border-primary border-4 position-sticky" style="top: 20px;">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold text-dark mb-4"><i class="bi bi-shield-check me-2 text-primary"></i>Parecer do RH</h5>
-                    
-                    <form method="post">
-                        {% csrf_token %}
-                        
-                        <div class="mb-4">
-                            <label class="form-label fw-bold text-secondary small">Decisão (Status da Vaga)</label>
-                            <select name="status" class="form-select fw-semibold shadow-sm {% if solicitacao.status == 'PENDENTE' %}border-warning{% endif %}">
-                                {% for key, value in solicitacao.STATUS_APROVACAO %}
-                                    <option value="{{ key }}" {% if solicitacao.status == key %}selected{% endif %}>{{ value }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-bold text-secondary small">Observações / Motivo da Aprovação ou Reprovação</label>
-                            <textarea name="observacoes_rh" class="form-control" rows="5" placeholder="Digite o parecer do RH para o Gestor (orçamento, disponibilidade, etc)...">{{ solicitacao.observacoes_rh|default_if_none:"" }}</textarea>
-                            <small class="text-muted mt-1 d-block">Este texto ficará registrado no histórico da requisição.</small>
-                        </div>
-
-                        <button type="submit" class="btn text-white fw-bold w-100 py-3 shadow-sm" style="background-color: var(--azul-principal);">
-                            <i class="bi bi-floppy-fill me-2"></i> Gravar Parecer
-                        </button>
-                    </form>
-
-                    {% if solicitacao.status == 'APROVADA' %}
-                    <div class="alert alert-success mt-4 border-0 border-start border-success border-4 small">
-                        <strong>Dica:</strong> Após aprovar, você deve ir na tela de <a href="{% url 'job_management' %}" class="alert-link">Gestão de Vagas</a> para publicar essa vaga no site.
                     </div>
                     {% endif %}
                 </div>
-            </div>
+
+                <h2 class="i9-card-title">Perfil desejado</h2>
+                <div class="row g-3">
+                    <div class="col-sm-6"><span class="text-muted small d-block">Escolaridade:</span> <span class="fw-medium">{{ solicitacao.get_escolaridade_display }}</span></div>
+                    <div class="col-sm-6"><span class="text-muted small d-block">Sexo:</span> <span class="fw-medium">{{ solicitacao.get_sexo_display }}</span></div>
+                    {% if solicitacao.curso_area %}
+                    <div class="col-12"><span class="text-muted small d-block">Curso/área:</span> <span class="fw-medium">{{ solicitacao.curso_area }}</span></div>
+                    {% endif %}
+
+                    <div class="col-12"><span class="text-muted small d-block fw-bold mb-1">Descrição sumária das atividades:</span> <p class="i9-summary-box small">{{ solicitacao.descricao_atividades|linebreaksbr }}</p></div>
+                    <div class="col-12"><span class="text-muted small d-block fw-bold mb-1">Conhecimentos desejáveis:</span> <p class="i9-summary-box small">{{ solicitacao.conhecimentos_desejaveis|linebreaksbr }}</p></div>
+                    <div class="col-12"><span class="text-muted small d-block fw-bold mb-1">Atitudes desejáveis:</span> <p class="i9-summary-box small">{{ solicitacao.atitudes_desejaveis|linebreaksbr }}</p></div>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-lg-4">
+            <section class="i9-card">
+                <h2 class="i9-card-title">Parecer do RH</h2>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary small">Decisão (status da vaga)</label>
+                        <select name="status" class="form-select fw-semibold {% if solicitacao.status == 'PENDENTE' %}border-warning{% endif %}">
+                            {% for key, value in solicitacao.STATUS_APROVACAO %}
+                                <option value="{{ key }}" {% if solicitacao.status == key %}selected{% endif %}>{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary small">Observações / motivo da aprovação ou reprovação</label>
+                        <textarea name="observacoes_rh" class="form-control" rows="5" placeholder="Digite o parecer do RH para o gestor.">{{ solicitacao.observacoes_rh|default_if_none:"" }}</textarea>
+                        <small class="text-muted mt-1 d-block">Este texto ficará registrado no histórico da requisição.</small>
+                    </div>
+
+                    <button type="submit" class="btn i9-btn-primary fw-bold w-100 py-3">
+                        <i class="bi bi-floppy-fill me-2"></i> Gravar parecer
+                    </button>
+                </form>
+
+                {% if solicitacao.status == 'APROVADA' %}
+                <div class="alert alert-success mt-4 border-0 small">
+                    <strong>Dica:</strong> Após aprovar, publique a vaga em <a href="{% url 'job_management' %}" class="alert-link">Gestão de vagas</a>.
+                </div>
+                {% endif %}
+            </section>
         </div>
     </div>
 </div>

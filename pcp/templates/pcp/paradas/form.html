@@ -4,11 +4,11 @@
 
 {% block content %}
 <div class="container py-3">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 gap-3">
+    <div class="i9-page-header">
         <div>
             <div class="text-muted small text-uppercase fw-semibold">{{ ativo.codigo }} - {{ ativo.nome }}</div>
-            <h3 class="fw-bold mb-1" style="color: var(--azul-principal);">{{ titulo }}</h3>
-            <p class="text-muted mb-0">
+            <h1 class="i9-page-title">{{ titulo }}</h1>
+            <p class="i9-page-description">
                 {% if downtime %}
                     Confirme o retorno do ativo à operação e registre informações complementares.
                 {% else %}
@@ -16,15 +16,17 @@
                 {% endif %}
             </p>
         </div>
-        <a href="{% url 'pcp_detalhar_ativo' ativo.id %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Voltar ao ativo
-        </a>
+        <div class="i9-page-actions">
+            <a href="{% url 'pcp_detalhar_ativo' ativo.id %}" class="btn i9-btn-secondary fw-bold">
+                <i class="bi bi-arrow-left me-1"></i>Voltar ao ativo
+            </a>
+        </div>
     </div>
 
     {% if downtime %}
-    <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4" role="alert">
+    <div class="i9-summary-box mb-4" role="alert">
         <div class="d-flex gap-3 align-items-start">
-            <i class="bi bi-exclamation-octagon-fill fs-4"></i>
+            <i class="bi bi-exclamation-octagon-fill text-danger"></i>
             <div>
                 <div class="fw-bold">Parada aberta desde {{ downtime.inicio|date:"d/m/Y H:i" }}</div>
                 <div>{{ downtime.motivo }}</div>
@@ -32,9 +34,9 @@
         </div>
     </div>
     {% else %}
-    <div class="alert alert-warning border-0 shadow-sm rounded-4 mb-4" role="alert">
+    <div class="i9-summary-box mb-4" role="alert">
         <div class="d-flex gap-3 align-items-start">
-            <i class="bi bi-info-circle-fill fs-4"></i>
+            <i class="bi bi-info-circle-fill text-warning"></i>
             <div>
                 <div class="fw-bold">Alteração de status operacional</div>
                 <div>Ao confirmar, o ativo será exibido como Parado no dashboard até o encerramento desta ocorrência.</div>
@@ -46,46 +48,42 @@
     {% if not downtime %}
     <div class="row g-3 mb-4">
         <div class="col-lg-6">
-            <div class="card border-danger-subtle bg-danger-subtle rounded-4 h-100">
-                <div class="card-body p-4">
-                    <h6 class="fw-bold text-danger-emphasis mb-2">Tempo de Produção (Perdido)</h6>
-                    <p class="small text-danger-emphasis mb-2">A máquina possui demanda, mas está impedida de operar.</p>
-                    <div class="small text-danger-emphasis">Falta de mão de obra, maquinário estragou, falta de material ou manutenção.</div>
-                </div>
-            </div>
+            <article class="i9-kpi-card h-100">
+                <span class="i9-badge i9-badge-danger mb-3">Produção perdida</span>
+                <h2 class="i9-card-title">Tempo de Produção (Perdido)</h2>
+                <p class="i9-kpi-description mb-2">A máquina possui demanda, mas está impedida de operar.</p>
+                <div class="i9-dashboard-muted-note">Falta de mão de obra, máquina parada por falha, falta de material ou manutenção.</div>
+            </article>
         </div>
         <div class="col-lg-6">
-            <div class="card border-secondary-subtle bg-light rounded-4 h-100">
-                <div class="card-body p-4">
-                    <h6 class="fw-bold mb-2">Tempo Ocioso</h6>
-                    <p class="small text-muted mb-2">A máquina está disponível para operar, mas não possui demanda liberada.</p>
-                    <div class="small text-muted">Falta de desenho.</div>
-                </div>
-            </div>
+            <article class="i9-kpi-card h-100">
+                <span class="i9-badge i9-badge-neutral mb-3">Ociosidade</span>
+                <h2 class="i9-card-title">Tempo Ocioso</h2>
+                <p class="i9-kpi-description mb-2">A máquina está disponível para operar, mas não possui demanda liberada.</p>
+                <div class="i9-dashboard-muted-note">Falta de desenho.</div>
+            </article>
         </div>
     </div>
     {% endif %}
 
-    <form method="post" class="card border-0 shadow-sm rounded-4">
+    <form method="post" class="i9-card">
         {% csrf_token %}
-        <div class="card-body p-4">
-            {% if form.non_field_errors %}
-                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-            {% endif %}
-            <div class="row g-3">
-                {% for field in form %}
-                <div class="{% if field.name == 'observacao' or field.name == 'motivo' %}col-12{% else %}col-md-6{% endif %}">
-                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-                    {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
-                </div>
-                {% endfor %}
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="row g-3">
+            {% for field in form %}
+            <div class="{% if field.name == 'observacao' or field.name == 'motivo' %}col-12{% else %}col-md-6{% endif %}">
+                <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
             </div>
+            {% endfor %}
         </div>
-        <div class="card-footer bg-white border-0 p-4 pt-0 d-flex flex-column-reverse flex-sm-row justify-content-end gap-2">
-            <a href="{% url 'pcp_detalhar_ativo' ativo.id %}" class="btn btn-outline-secondary">Cancelar</a>
-            <button type="submit" class="btn {% if downtime %}btn-success{% else %}btn-danger{% endif %} px-4">
+        <div class="d-flex flex-column-reverse flex-sm-row justify-content-end gap-2 mt-4">
+            <a href="{% url 'pcp_detalhar_ativo' ativo.id %}" class="btn i9-btn-secondary">Cancelar</a>
+            <button type="submit" class="btn {% if downtime %}i9-btn-primary{% else %}i9-btn-secondary{% endif %} px-4">
                 {% if downtime %}
                     <i class="bi bi-check-circle me-1"></i>Encerrar parada
                 {% else %}
