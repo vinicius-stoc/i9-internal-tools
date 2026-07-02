@@ -163,6 +163,11 @@
     background-color: var(--i9-color-neutral-bg);
 }
 
+.i9-help-icon {
+    color: var(--i9-color-primary);
+    cursor: help;
+}
+
 .i9-toolbar {
     display: flex;
     flex-wrap: wrap;

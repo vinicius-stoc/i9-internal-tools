@@ -1,321 +1,211 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard RH - I9TMG{% endblock %}
+{% block title %}Dashboard de RH - I9TMG{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
+    <div class="i9-page-header">
         <div>
-            <h2 class="fw-bold m-0" style="color: var(--azul-principal);">
-                BI - Recursos Humanos
-            </h2>
+            <h1 class="i9-page-title">Dashboard de RH</h1>
+            <p class="i9-page-description">Acompanhe indicadores de rotatividade, recrutamento, absenteísmo e jornada.</p>
         </div>
-
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
-                <i class="bi bi-file-earmark-pdf me-1"></i> Extrair Relatório
+        <div class="i9-page-actions">
+            <button class="btn btn-sm i9-btn-secondary" onclick="window.print()">
+                <i class="bi bi-file-earmark-pdf me-1"></i> Extrair relatório
             </button>
-
             <a href="{% url 'importar_base_rh' %}"
-               class="btn btn-primary btn-sm d-flex align-items-center"
-               style="background-color: var(--azul-principal); border: none;"
+               class="btn btn-sm i9-btn-primary d-flex align-items-center"
                onclick="mostrarCarregamento(this)">
-                <i class="bi bi-cloud-arrow-down-fill me-2"></i> Atualizar Indicadores
+                <i class="bi bi-cloud-arrow-down-fill me-2"></i> Atualizar indicadores
             </a>
             <a href="{% url 'importar_ponto_rh' %}"
-               class="btn btn-warning btn-sm d-flex align-items-center"
+               class="btn btn-sm i9-btn-secondary d-flex align-items-center"
                onclick="mostrarCarregamento(this)">
-                <i class="bi bi-clock-history me-2"></i> Importar Ponto
+                <i class="bi bi-clock-history me-2"></i> Importar ponto
             </a>
         </div>
     </div>
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-        <h5 class="text-muted mb-3 text-uppercase" style="font-size: 0.85rem; letter-spacing: 1px;">
-            Indicadores de Rotatividade
-        </h5>
-        <div class="dropdown">
-                <button class="btn btn-secondary btn-sm dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-calendar3 me-2"></i> Ano Base: {{ ano }}
+
+    <section class="i9-dashboard-section mt-0">
+        <div class="i9-toolbar">
+            <div>
+                <h2 class="i9-card-title mb-1">Indicadores de rotatividade</h2>
+                <p class="i9-dashboard-muted-note mb-0">Base anual para admissões, desligamentos e composição do quadro.</p>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-sm i9-btn-secondary dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-calendar3 me-2"></i> Ano base: {{ ano }}
                 </button>
                 <ul class="dropdown-menu shadow-sm">
-                    <li>
-                        <a class="dropdown-item {% if ano == 2026 %}active{% endif %}" href="?ano=2026">2026</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item {% if ano == 2025 %}active{% endif %}" href="?ano=2025">2025</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item {% if ano == 2024 %}active{% endif %}" href="?ano=2024">2024</a>
-                    </li>
+                    <li><a class="dropdown-item {% if ano == 2026 %}active{% endif %}" href="?ano=2026">2026</a></li>
+                    <li><a class="dropdown-item {% if ano == 2025 %}active{% endif %}" href="?ano=2025">2025</a></li>
+                    <li><a class="dropdown-item {% if ano == 2024 %}active{% endif %}" href="?ano=2024">2024</a></li>
                 </ul>
             </div>
-    </div>
+        </div>
 
-
-    <div class="row g-2">
-        <div class="col-12 col-md-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-arrow-repeat me-2"></i> Turnover Geral</span>
-                        <i class="bi bi-info-circle text-primary"
-                           data-bs-toggle="tooltip"
-                           data-bs-placement="top"
-                           title="Fórmula: [(Admissões + Desligamentos) / 2] / Média de Colab. no Ano"
-                           style="cursor: help;">
-                        </i>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0" style="color: var(--laranja-principal);">
-                        {{ turnover_geral }}%
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">Taxa de Rotatividade Anual</p>
+        <div class="i9-dashboard-grid">
+            <article class="i9-kpi-card">
+                <div class="d-flex justify-content-between gap-3">
+                    <div class="i9-kpi-label">Turnover geral</div>
+                    <i class="bi bi-info-circle i9-help-icon"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       title="Fórmula: [(Admissões + Desligamentos) / 2] / Média de colaboradores no ano"></i>
                 </div>
+                <div class="i9-kpi-value">{{ turnover_geral }}%</div>
+                <div class="i9-kpi-description">Taxa de rotatividade anual</div>
+            </article>
+
+            <article class="i9-kpi-card">
+                <div class="d-flex justify-content-between gap-3">
+                    <div class="i9-kpi-label">Colab. início do ano</div>
+                    <i class="bi bi-info-circle i9-help-icon"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       title="Admitidos antes do ano base e não demitidos até o início do ano"></i>
+                </div>
+                <div class="i9-kpi-value">{{ colaboradores_inicio }}</div>
+                <div class="i9-kpi-description">Em 01/01/{{ ano }}</div>
+            </article>
+
+            <article class="i9-kpi-card">
+                <div class="d-flex justify-content-between gap-3">
+                    <div class="i9-kpi-label">Total atual</div>
+                    <i class="bi bi-info-circle i9-help-icon"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       title="Contagem distinta de colaboradores ativos no momento"></i>
+                </div>
+                <div class="i9-kpi-value">{{ total_funcionarios }}</div>
+                <div class="i9-kpi-description">No quadro hoje</div>
+            </article>
+
+            <article class="i9-kpi-card">
+                <div class="d-flex justify-content-between gap-3">
+                    <div class="i9-kpi-label">Admissões</div>
+                    <i class="bi bi-info-circle i9-help-icon"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       title="Contratações realizadas no ano base"></i>
+                </div>
+                <div class="i9-kpi-value">{{ admissoes }}</div>
+                <div class="i9-kpi-description">Neste ano</div>
+            </article>
+
+            <article class="i9-kpi-card">
+                <div class="d-flex justify-content-between gap-3">
+                    <div class="i9-kpi-label">Desligamentos</div>
+                    <i class="bi bi-info-circle i9-help-icon"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       title="Desligamentos realizados no ano base"></i>
+                </div>
+                <div class="i9-kpi-value">{{ desligamento }}</div>
+                <div class="i9-kpi-description">Neste ano</div>
+            </article>
+        </div>
+    </section>
+
+    <section class="i9-dashboard-section">
+        <div class="i9-toolbar">
+            <div>
+                <h2 class="i9-card-title mb-1">Funil de contratação</h2>
+                <p class="i9-dashboard-muted-note mb-0">Acompanhamento de vagas, candidaturas e candidatos contratados.</p>
             </div>
         </div>
 
-        <div class="col-12 col-md-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-calendar-event me-2"></i> Colab. Início do Ano</span>
-                        <i class="bi bi-info-circle text-primary"
-                           data-bs-toggle="tooltip"
-                           data-bs-placement="top"
-                           title="Admitidos antes do ano base e não demitidos até o início do ano"
-                           style="cursor: help;">
-                        </i>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0" style="color: var(--laranja-principal);">
-                        {{ colaboradores_inicio }}
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">Em 01/01/{{ ano }}</p>
-                </div>
+        <div class="i9-dashboard-grid">
+            <article class="i9-kpi-card">
+                <div class="i9-kpi-label">Contratados</div>
+                <div class="i9-kpi-value">{{ contratados }}</div>
+                <div class="i9-kpi-description">Neste ano</div>
+            </article>
+
+            <article class="i9-kpi-card">
+                <div class="i9-kpi-label">Candidatos em processo</div>
+                <div class="i9-kpi-value">{{ em_processo }}</div>
+                <div class="i9-kpi-description">No pipeline atual</div>
+            </article>
+
+            <article class="i9-kpi-card">
+                <div class="i9-kpi-label">CVs recebidos</div>
+                <div class="i9-kpi-value">{{ cvs_recebidos }}</div>
+                <div class="i9-kpi-description">Neste ano</div>
+            </article>
+
+            <article class="i9-kpi-card">
+                <div class="i9-kpi-label">Vagas criadas</div>
+                <div class="i9-kpi-value">{{ total_vagas }}</div>
+                <div class="i9-kpi-description">Neste ano</div>
+            </article>
+
+            <article class="i9-kpi-card">
+                <div class="i9-kpi-label">Vagas abertas</div>
+                <div class="i9-kpi-value">{{ vagas_abertas }}</div>
+                <div class="i9-kpi-description">No quadro hoje</div>
+            </article>
+        </div>
+    </section>
+
+    <section class="i9-dashboard-section mb-5">
+        <div class="i9-toolbar">
+            <div>
+                <h2 class="i9-card-title mb-1">Absenteísmo e jornada</h2>
+                <p class="i9-dashboard-muted-note mb-0">Indicadores de faltas, atrasos e horas extras no período selecionado.</p>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-sm i9-btn-secondary dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-calendar-month me-2"></i>
+                    {% if mes_atual == 0 %}Ano inteiro{% else %}Mês {{ mes_atual }}{% endif %}
+                </button>
+                <ul class="dropdown-menu shadow-sm">
+                    <li><a class="dropdown-item {% if mes_atual == 0 %}active{% endif %}" href="?ano={{ ano }}&mes=0">Ano inteiro</a></li>
+                    <li><a class="dropdown-item {% if mes_atual == 1 %}active{% endif %}" href="?ano={{ ano }}&mes=1">Janeiro</a></li>
+                    <li><a class="dropdown-item {% if mes_atual == 2 %}active{% endif %}" href="?ano={{ ano }}&mes=2">Fevereiro</a></li>
+                    <li><a class="dropdown-item {% if mes_atual == 3 %}active{% endif %}" href="?ano={{ ano }}&mes=3">Março</a></li>
+                </ul>
             </div>
         </div>
 
-        <div class="col-12 col-md-2">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-people-fill me-2"></i> Total Atual</span>
-                        <i class="bi bi-info-circle text-primary"
-                           data-bs-toggle="tooltip"
-                           data-bs-placement="top"
-                           title="Contagem Distinta de Colaboradores Ativos no momento"
-                           style="cursor: help;">
-                        </i>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0" style="color: var(--laranja-principal);">
-                        {{ total_funcionarios }}
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">No quadro hoje</p>
+        <div class="i9-dashboard-grid">
+            <article class="i9-kpi-card">
+                <div class="d-flex justify-content-between gap-3">
+                    <div class="i9-kpi-label">Horas de falta/atraso</div>
+                    <i class="bi bi-info-circle i9-help-icon"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       title="Soma total de horas não trabalhadas no ano base"></i>
                 </div>
-            </div>
-        </div>
+                <div class="i9-kpi-value">{{ total_horas_falta }}<span class="fs-4 text-muted">h</span></div>
+                <div class="i9-kpi-description">Impacto direto na produtividade</div>
+            </article>
 
-        <div class="col-12 col-md-2">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-person-plus me-2"></i> Admissões</span>
-                        <i class="bi bi-info-circle text-primary"
-                           data-bs-toggle="tooltip"
-                           data-bs-placement="top"
-                           title="Contratações realizadas no ano base"
-                           style="cursor: help;">
-                        </i>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0" style="color: var(--laranja-principal);">
-                        {{ admissoes }}
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">Neste ano</p>
+            <article class="i9-kpi-card">
+                <div class="d-flex justify-content-between gap-3">
+                    <div class="i9-kpi-label">Média por colaborador</div>
+                    <i class="bi bi-info-circle i9-help-icon"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       title="Total de faltas dividido pelo número de colaboradores ativos"></i>
                 </div>
-            </div>
-        </div>
+                <div class="i9-kpi-value">{{ media_faltas_colab }}<span class="fs-4 text-muted">h</span></div>
+                <div class="i9-kpi-description">Horas perdidas por pessoa no ano</div>
+            </article>
 
-        <div class="col-12 col-md-2">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-person-dash me-2"></i> Desligamentos</span>
-                        <i class="bi bi-info-circle text-primary"
-                           data-bs-toggle="tooltip"
-                           data-bs-placement="top"
-                           title="Desligamentos realizados no ano base"
-                           style="cursor: help;">
-                        </i>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0" style="color: var(--laranja-principal);">
-                        {{ desligamento }}
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">Neste ano</p>
+            <article class="i9-kpi-card">
+                <div class="d-flex justify-content-between gap-3">
+                    <div class="i9-kpi-label">Horas extras totais</div>
+                    <i class="bi bi-info-circle i9-help-icon"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       title="Soma de todas as horas extras realizadas no ano base"></i>
                 </div>
-            </div>
+                <div class="i9-kpi-value">{{ total_horas_extra }}<span class="fs-4 text-muted">h</span></div>
+                <div class="i9-kpi-description">Custo adicional na folha</div>
+            </article>
         </div>
-    </div>
-
-    <hr class="my-5 text-muted" style="opacity: 0.1;">
-
-    <h5 class="text-muted mb-3 text-uppercase" style="font-size: 0.85rem; letter-spacing: 1px;">
-        Funil de Contratação
-    </h5>
-
-    <div class="row g-2">
-        <div class="col-12 col-md-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-file-earmark-person me-2"></i> Contratados </span>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0" style="color: var(--laranja-principal);">
-                        {{ contratados }}
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">Neste ano</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-md-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-file-earmark-person me-2"></i> Candidatos em Processo </span>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0" style="color: var(--laranja-principal);">
-                        {{ em_processo }}
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">No quadro hoje</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-md-2">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-file-earmark-person me-2"></i> CVs Recebidos</span>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0" style="color: var(--laranja-principal);">
-                        {{ cvs_recebidos }}
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">Neste ano</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-md-2">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-file-earmark-person me-2"></i> Vagas Criadas</span>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0" style="color: var(--laranja-principal);">
-                        {{ total_vagas }}
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">Neste ano</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-md-2">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-file-earmark-person me-2"></i> Vagas Aberta </span>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0" style="color: var(--laranja-principal);">
-                        {{ vagas_abertas }}
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">No quadro hoje</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    <hr class="my-5 text-muted" style="opacity: 0.1;">
-
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-        <h5 class="text-muted mb-0 text-uppercase" style="font-size: 0.85rem; letter-spacing: 1px;">
-            Absenteísmo e Jornada
-        </h5>
-        <div class="dropdown">
-            <button class="btn btn-secondary btn-sm dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-calendar-month me-2"></i>
-                {% if mes_atual == 0 %}Ano Inteiro{% else %}Mês {{ mes_atual }}{% endif %}
-            </button>
-            <ul class="dropdown-menu shadow-sm">
-                <li><a class="dropdown-item {% if mes_atual == 0 %}active{% endif %}" href="?ano={{ ano }}&mes=0">Ano Inteiro</a></li>
-                <li><a class="dropdown-item {% if mes_atual == 1 %}active{% endif %}" href="?ano={{ ano }}&mes=1">Janeiro</a></li>
-                <li><a class="dropdown-item {% if mes_atual == 2 %}active{% endif %}" href="?ano={{ ano }}&mes=2">Fevereiro</a></li>
-                <li><a class="dropdown-item {% if mes_atual == 3 %}active{% endif %}" href="?ano={{ ano }}&mes=3">Março</a></li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="row g-2 mb-5">
-
-        <div class="col-12 col-md-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-clock-history me-2 text-danger"></i> Horas de Falta/Atraso</span>
-                        <i class="bi bi-info-circle text-primary"
-                           data-bs-toggle="tooltip"
-                           data-bs-placement="top"
-                           title="Soma total de horas não trabalhadas no ano base"
-                           style="cursor: help;">
-                        </i>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0 text-danger">
-                        {{ total_horas_falta }}<span class="fs-4 text-muted">h</span>
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">Impacto direto na produtividade</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-md-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-person-exclamation me-2"></i> Média por Colaborador</span>
-                        <i class="bi bi-info-circle text-primary"
-                           data-bs-toggle="tooltip"
-                           data-bs-placement="top"
-                           title="Total de Faltas dividido pelo número de colaboradores ativos"
-                           style="cursor: help;">
-                        </i>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0" style="color: var(--laranja-principal);">
-                        {{ media_faltas_colab }}<span class="fs-4 text-muted">h</span>
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">Horas perdidas por pessoa no ano</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-md-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="card-title text-muted fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-lightning-charge-fill me-2 text-warning"></i> Horas Extras Totais</span>
-                        <i class="bi bi-info-circle text-primary"
-                           data-bs-toggle="tooltip"
-                           data-bs-placement="top"
-                           title="Soma de todas as horas extras realizadas no ano base"
-                           style="cursor: help;">
-                        </i>
-                    </h6>
-                    <h2 class="display-6 fw-bold mb-0 text-warning">
-                        {{ total_horas_extra }}<span class="fs-4 text-muted">h</span>
-                    </h2>
-                    <p class="text-muted small mt-2 mb-0">Custo adicional na folha</p>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
+    </section>
 </div>
 
 <script>

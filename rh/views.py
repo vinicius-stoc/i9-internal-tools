@@ -71,7 +71,7 @@ def job_apply(request, pk):
             candidatura.vaga = vaga
             candidatura.save()
 
-            messages.success(request, 'CurrÃ­culo enviado com sucesso!')
+            messages.success(request, 'Currículo enviado com sucesso!')
             return redirect('job_list')
     else:
         form = CandidaturaForm()
@@ -134,7 +134,7 @@ def candidate_datail(request, pk):
 
         candidatura.save()
 
-        messages.success(request, f'AvaliaÃ§Ã£o de {candidatura.nome_completo} atualizada.')
+        messages.success(request, f'Avaliação de {candidatura.nome_completo} atualizada.')
 
         return redirect('candidate_datail', pk= candidatura.id)
 
@@ -196,7 +196,7 @@ def solicitar_abertura_vaga(request):
             solicitacao.solicitante = request.user
             solicitacao.save()
 
-            messages.success(request, "SolicitaÃ§Ã£o enviada! O RH analisarÃ¡ o pedido em breve.")
+            messages.success(request, "Solicitação enviada! O RH analisará o pedido em breve.")
             return redirect('home')
     else:
         form = SolicitacaoVagaForm()
@@ -250,7 +250,7 @@ def detalhe_solicitacao(request, pk):
             solicitacao.observacoes_rh = parecer
 
         solicitacao.save()
-        messages.success(request, f"Parecer registrado! A solicitaÃ§Ã£o para {solicitacao.nome_vaga} foi atualizada.")
+        messages.success(request, f"Parecer registrado! A solicitação para {solicitacao.nome_vaga} foi atualizada.")
 
         return redirect('listar_solicitacoes')
 
@@ -1296,7 +1296,7 @@ def listar_avaliacoes_desempenho(request):
 @login_required(login_url='/login/')
 def nova_avaliacao_desempenho(request):
     if not pode_criar_avaliacao(request.user):
-        messages.error(request, 'Voce nao possui permissao para criar avaliacoes.')
+        messages.error(request, 'Você não possui permissão para criar avaliações.')
         return redirect('listar_avaliacoes_desempenho')
 
     initial = {}
@@ -1329,7 +1329,7 @@ def nova_avaliacao_desempenho(request):
                 avaliacao.save()
                 _salvar_notas_desempenho(avaliacao, notas_form.notas_limpas())
 
-            messages.success(request, 'Avaliacao de desempenho cadastrada com sucesso.')
+            messages.success(request, 'Avaliação de desempenho cadastrada com sucesso.')
             return redirect('dashboard_avaliacao_desempenho', pk=avaliacao.pk)
     else:
         form = AvaliacaoDesempenhoForm(initial=initial, usuario_logado=request.user)
@@ -1360,7 +1360,7 @@ def detalhe_avaliacao_desempenho(request, pk):
 def editar_avaliacao_desempenho(request, pk):
     avaliacao = get_object_or_404(avaliacoes_visiveis_para(request.user), pk=pk)
     if not pode_editar_avaliacao(request.user, avaliacao):
-        messages.error(request, 'Voce nao tem permissao para editar esta avaliacao.')
+        messages.error(request, 'Você não tem permissão para editar esta avaliação.')
         return redirect('dashboard_avaliacao_desempenho', pk=avaliacao.pk)
 
     if request.method == 'POST':
@@ -1377,7 +1377,7 @@ def editar_avaliacao_desempenho(request, pk):
                 avaliacao.save()
                 _salvar_notas_desempenho(avaliacao, notas_form.notas_limpas())
 
-            messages.success(request, 'Avaliacao de desempenho atualizada com sucesso.')
+            messages.success(request, 'Avaliação de desempenho atualizada com sucesso.')
             return redirect('dashboard_avaliacao_desempenho', pk=avaliacao.pk)
     else:
         form = AvaliacaoDesempenhoForm(instance=avaliacao, usuario_logado=request.user)
@@ -1406,7 +1406,7 @@ def dashboard_avaliacao_desempenho(request, pk):
 def dar_ciencia_gestor_avaliacao(request, pk):
     avaliacao = get_object_or_404(avaliacoes_visiveis_para(request.user), pk=pk)
     if not pode_dar_ciencia_gestor(request.user, avaliacao):
-        messages.error(request, 'Voce nao tem permissao para registrar ciencia e concordancia como gestor nesta avaliacao.')
+        messages.error(request, 'Você não tem permissão para registrar ciência e concordância como gestor nesta avaliação.')
         return redirect('dashboard_avaliacao_desempenho', pk=avaliacao.pk)
 
     avaliacao.ciencia_gestor = True
@@ -1581,7 +1581,7 @@ def exportar_pdf_avaliacao_desempenho(request, pk):
 @login_required(login_url='/login/')
 def dashboard_geral_avaliacoes_desempenho(request):
     if not pode_criar_avaliacao(request.user):
-        messages.error(request, 'Voce nao possui permissao para acessar o dashboard geral de avaliacoes.')
+        messages.error(request, 'Você não possui permissão para acessar o dashboard geral de avaliações.')
         return redirect('listar_avaliacoes_desempenho')
 
     avaliacoes = _aplicar_filtros_avaliacoes_desempenho(
@@ -1787,7 +1787,7 @@ def importar_base_rh(request):
             return redirect('importar_base_rh')
 
         if not arquivo.name.endswith(('.xls', '.xlsx')):
-            messages.error(request, 'Formato invÃ¡lido. Envie um arquivo Excel (.xls ou .xlsx).')
+            messages.error(request, 'Formato inválido. Envie um arquivo Excel (.xls ou .xlsx).')
             return redirect('importar_base_rh')
 
         try:
@@ -1879,7 +1879,7 @@ def importar_ponto_rh(request):
         data_referencia_form = request.POST.get('data_referencia')
 
         if not arquivo or not data_referencia_form:
-            messages.error(request, 'Por favor, selecione o arquivo e a data de referÃªncia.')
+            messages.error(request, 'Por favor, selecione o arquivo e a data de referência.')
             return redirect('importar_ponto_rh')
 
         # TODO 1: Valide se o arquivo termina com '.csv' (Se nÃ£o, retorne um erro igual na outra view)
@@ -1888,7 +1888,7 @@ def importar_ponto_rh(request):
             return redirect('importar_ponto_rh')
 
         if not arquivo.name.lower().endswith('.csv'):
-            messages.error(request, 'Formato invÃ¡lido. Envie um arquivo CSV (.csv).')
+            messages.error(request, 'Formato inválido. Envie um arquivo CSV (.csv).')
             return redirect('importar_ponto_rh')
 
         try:
@@ -1926,7 +1926,7 @@ def importar_ponto_rh(request):
                 sucesso += 1
 
             messages.success(request,
-                             f'Ponto importado com sucesso! {sucesso} registros salvos. {erros} nÃ£o encontrados.')
+                             f'Ponto importado com sucesso! {sucesso} registros salvos. {erros} não encontrados.')
             return redirect('dashboard_rh')
 
         except Exception as e:

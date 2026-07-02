@@ -118,14 +118,14 @@ body {
 
 .sidebar-group-title {
     width: 100%;
-    padding: 0.4rem 0.55rem;
-    color: rgba(255, 255, 255, 0.66) !important;
+    padding: 0.5rem 0.9rem;
+    color: rgba(255, 255, 255, 0.62) !important;
     border-left: 0;
     border-radius: var(--i9-radius-sm);
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .sidebar-group-title:hover,

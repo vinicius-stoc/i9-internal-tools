@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard de Avalia&ccedil;&atilde;o - I9TMG{% endblock %}
+{% block title %}Dashboard de avaliação - I9TMG{% endblock %}
 
 {% block content %}
 <style>
@@ -8,192 +8,171 @@
     .avaliacao-chart-container-sm { height: 280px; position: relative; }
     .avaliacao-lista-compacta { max-height: 260px; overflow-y: auto; }
     .avaliacao-lista-compacta .list-group-item { padding: .55rem .75rem; }
+    .avaliacao-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--i9-space-4);
+        align-items: start;
+    }
+    .avaliacao-summary-item strong {
+        display: block;
+        line-height: 1.35;
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+    .avaliacao-summary-status strong {
+        max-width: 220px;
+    }
 </style>
 
-<div class="container-fluid p-0">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+<div class="container-fluid py-3">
+    <div class="i9-page-header">
         <div>
-            <h3 class="mb-1 text-dark fw-bold"><i class="bi bi-speedometer2 me-2" style="color: var(--laranja-principal);"></i>Dashboard de Avalia&ccedil;&atilde;o de Desempenho</h3>
-            <p class="text-muted small mb-0">{{ avaliacao.funcionario_nome }} | {{ avaliacao.funcionario_cargo }} | {{ avaliacao.funcionario_setor }} | {{ avaliacao.periodo_formatado }} | {{ avaliacao.status_calculado_display }}</p>
+            <h1 class="i9-page-title">Dashboard de avaliação de desempenho</h1>
+            <p class="i9-page-description">{{ avaliacao.funcionario_nome }} | {{ avaliacao.funcionario_cargo }} | {{ avaliacao.funcionario_setor }} | {{ avaliacao.periodo_formatado }} | {{ avaliacao.status_calculado_display }}</p>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            {% if pode_editar %}<a href="{% url 'editar_avaliacao_desempenho' avaliacao.pk %}" class="btn btn-primary" style="background-color: var(--laranja-principal); border: none;"><i class="bi bi-pencil me-2"></i>Editar Avalia&ccedil;&atilde;o</a>{% endif %}
-            <a href="{% url 'exportar_pdf_avaliacao_desempenho' avaliacao.pk %}" class="btn btn-outline-danger"><i class="bi bi-filetype-pdf me-2"></i>Exportar PDF</a>
-            <a href="{% url 'listar_avaliacoes_desempenho' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Voltar</a>
-        </div>
-    </div>
-
-    <div class="card border-0 shadow-sm rounded-3 mb-3">
-        <div class="card-body p-3">
-            <div class="row g-3 align-items-center">
-                <div class="col-lg-3 col-md-6"><span class="text-muted small d-block">Colaborador</span><strong>{{ avaliacao.funcionario_nome }}</strong></div>
-                <div class="col-lg-2 col-md-6"><span class="text-muted small d-block">Cargo</span><strong>{{ avaliacao.funcionario_cargo }}</strong></div>
-                <div class="col-lg-2 col-md-6"><span class="text-muted small d-block">Setor</span><strong>{{ avaliacao.funcionario_setor }}</strong></div>
-                <div class="col-lg-2 col-md-6"><span class="text-muted small d-block">Per&iacute;odo</span><strong>{{ avaliacao.periodo_formatado }}</strong></div>
-                <div class="col-lg-1 col-md-4"><span class="text-muted small d-block">Status</span><strong>{{ avaliacao.status_calculado_display }}</strong></div>
-                <div class="col-lg-1 col-md-4"><span class="text-muted small d-block">Avaliador</span><strong>{{ avaliacao.avaliada_por.get_username }}</strong></div>
-                <div class="col-lg-1 col-md-4"><span class="text-muted small d-block">Data</span><strong>{{ avaliacao.data_avaliacao|date:"d/m/Y" }}</strong></div>
-            </div>
+        <div class="i9-page-actions">
+            {% if pode_editar %}<a href="{% url 'editar_avaliacao_desempenho' avaliacao.pk %}" class="btn i9-btn-primary">Editar avaliação</a>{% endif %}
+            <a href="{% url 'exportar_pdf_avaliacao_desempenho' avaliacao.pk %}" class="btn i9-btn-secondary">Exportar PDF</a>
+            <a href="{% url 'listar_avaliacoes_desempenho' %}" class="btn i9-btn-secondary">Voltar</a>
         </div>
     </div>
 
-    <div class="row g-3 mb-3">
-        <div class="col-xl-2 col-md-4"><div class="card border-0 shadow-sm rounded-3 h-100"><div class="card-body p-3"><span class="text-muted small fw-semibold">M&eacute;dia Geral</span><h2 class="fw-bold mb-0">{{ media|default:"-" }}</h2></div></div></div>
-        <div class="col-xl-3 col-md-4"><div class="card border-0 shadow-sm rounded-3 h-100"><div class="card-body p-3"><span class="text-muted small fw-semibold">Classifica&ccedil;&atilde;o</span><h5 class="fw-bold mb-0">{{ avaliacao.classificacao }}</h5></div></div></div>
-        <div class="col-xl-2 col-md-4"><div class="card border-0 shadow-sm rounded-3 h-100"><div class="card-body p-3"><span class="text-muted small fw-semibold">Maior Nota</span><h2 class="fw-bold mb-0">{{ maior_nota|default:"-" }}</h2></div></div></div>
-        <div class="col-xl-2 col-md-4"><div class="card border-0 shadow-sm rounded-3 h-100"><div class="card-body p-3"><span class="text-muted small fw-semibold">Menor Nota</span><h2 class="fw-bold mb-0">{{ menor_nota|default:"-" }}</h2></div></div></div>
-        <div class="col-xl-3 col-md-8">
-            <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-body p-3">
-                    <span class="text-muted small fw-semibold d-block mb-2">Status de Ci&ecirc;ncia e Concord&acirc;ncia</span>
-                    <div class="d-flex flex-wrap gap-2">
-                        <span class="badge {% if avaliacao.ciencia_gestor %}bg-success{% else %}bg-warning text-dark{% endif %}">Gestor: {% if avaliacao.ciencia_gestor %}Ciente e de acordo{% else %}Pendente{% endif %}</span>
-                        <span class="badge {% if avaliacao.ciencia_colaborador %}bg-success{% else %}bg-warning text-dark{% endif %}">Colaborador: {% if avaliacao.ciencia_colaborador %}Ciente e de acordo{% else %}Pendente{% endif %}</span>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2 mt-3">
-                        {% if pode_dar_ciencia_gestor %}
-                            <form id="formCienciaGestor" method="post" action="{% url 'dar_ciencia_gestor_avaliacao' avaliacao.pk %}">{% csrf_token %}</form>
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalCienciaGestor">Registrar ci&ecirc;ncia e concord&acirc;ncia como gestor</button>
-                        {% endif %}
-                        {% if pode_dar_ciencia_colaborador %}
-                            <form id="formCienciaColaborador" method="post" action="{% url 'dar_ciencia_colaborador_avaliacao' avaliacao.pk %}">{% csrf_token %}</form>
-                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalCienciaColaborador">Registrar ci&ecirc;ncia e concord&acirc;ncia como colaborador</button>
-                        {% endif %}
-                    </div>
-                    {% if request.user == avaliacao.avaliado %}
-                        {% if avaliacao.ciencia_colaborador %}
-                            <span class="badge bg-success mt-3">Sua ci&ecirc;ncia e concord&acirc;ncia j&aacute; foi registrada</span>
-                        {% elif colaborador_aguardando_ciencia_gestor %}
-                            <div class="alert alert-warning small mt-3 mb-0">
-                                A ci&ecirc;ncia e concord&acirc;ncia do colaborador ficar&aacute; dispon&iacute;vel ap&oacute;s o registro da ci&ecirc;ncia e concord&acirc;ncia do gestor.
-                            </div>
-                        {% endif %}
-                    {% endif %}
-                </div>
-            </div>
+    <section class="i9-card mb-3">
+        <div class="avaliacao-summary-grid">
+            <div class="avaliacao-summary-item"><span class="text-muted small d-block">Colaborador</span><strong>{{ avaliacao.funcionario_nome }}</strong></div>
+            <div class="avaliacao-summary-item"><span class="text-muted small d-block">Cargo</span><strong>{{ avaliacao.funcionario_cargo }}</strong></div>
+            <div class="avaliacao-summary-item"><span class="text-muted small d-block">Setor</span><strong>{{ avaliacao.funcionario_setor }}</strong></div>
+            <div class="avaliacao-summary-item"><span class="text-muted small d-block">Período</span><strong>{{ avaliacao.periodo_formatado }}</strong></div>
+            <div class="avaliacao-summary-item avaliacao-summary-status"><span class="text-muted small d-block">Status</span><strong>{{ avaliacao.status_calculado_display }}</strong></div>
+            <div class="avaliacao-summary-item"><span class="text-muted small d-block">Avaliador</span><strong>{{ avaliacao.avaliada_por.get_username }}</strong></div>
+            <div class="avaliacao-summary-item"><span class="text-muted small d-block">Data</span><strong>{{ avaliacao.data_avaliacao|date:"d/m/Y" }}</strong></div>
         </div>
+    </section>
+
+    <div class="i9-dashboard-grid mb-3">
+        <article class="i9-kpi-card"><div class="i9-kpi-label">Média geral</div><div class="i9-kpi-value">{{ media|default:"-" }}</div></article>
+        <article class="i9-kpi-card"><div class="i9-kpi-label">Classificação</div><div class="i9-kpi-value is-compact">{{ avaliacao.classificacao }}</div></article>
+        <article class="i9-kpi-card"><div class="i9-kpi-label">Maior nota</div><div class="i9-kpi-value">{{ maior_nota|default:"-" }}</div></article>
+        <article class="i9-kpi-card"><div class="i9-kpi-label">Menor nota</div><div class="i9-kpi-value">{{ menor_nota|default:"-" }}</div></article>
+        <article class="i9-kpi-card">
+            <div class="i9-kpi-label">Ciência e concordância</div>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="i9-badge {% if avaliacao.ciencia_gestor %}i9-badge-success{% else %}i9-badge-warning{% endif %}">Gestor: {% if avaliacao.ciencia_gestor %}Ciente{% else %}Pendente{% endif %}</span>
+                <span class="i9-badge {% if avaliacao.ciencia_colaborador %}i9-badge-success{% else %}i9-badge-warning{% endif %}">Colaborador: {% if avaliacao.ciencia_colaborador %}Ciente{% else %}Pendente{% endif %}</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                {% if pode_dar_ciencia_gestor %}
+                    <form id="formCienciaGestor" method="post" action="{% url 'dar_ciencia_gestor_avaliacao' avaliacao.pk %}">{% csrf_token %}</form>
+                    <button type="button" class="btn btn-sm i9-btn-secondary" data-bs-toggle="modal" data-bs-target="#modalCienciaGestor">Ciência do gestor</button>
+                {% endif %}
+                {% if pode_dar_ciencia_colaborador %}
+                    <form id="formCienciaColaborador" method="post" action="{% url 'dar_ciencia_colaborador_avaliacao' avaliacao.pk %}">{% csrf_token %}</form>
+                    <button type="button" class="btn btn-sm i9-btn-secondary" data-bs-toggle="modal" data-bs-target="#modalCienciaColaborador">Registrar ci&ecirc;ncia e concord&acirc;ncia como colaborador</button>
+                {% endif %}
+            </div>
+            {% if request.user == avaliacao.avaliado %}
+                {% if avaliacao.ciencia_colaborador %}
+                    <span class="i9-badge i9-badge-success mt-3">Sua ciência e concordância já foi registrada</span>
+                {% elif colaborador_aguardando_ciencia_gestor %}
+                    <div class="alert alert-warning small mt-3 mb-0">A ci&ecirc;ncia e concord&acirc;ncia do colaborador ficar&aacute; dispon&iacute;vel ap&oacute;s o registro da ci&ecirc;ncia e concord&acirc;ncia do gestor.</div>
+                {% endif %}
+            {% endif %}
+        </article>
     </div>
 
     <div class="row g-3 mb-3">
         <div class="col-xl-7">
-            <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-body p-3">
-                    <h5 class="fw-bold mb-3" style="color: var(--azul-principal);">Notas por compet&ecirc;ncia da avalia&ccedil;&atilde;o atual</h5>
-                    <div id="sem-dados-competencias" class="alert alert-light border text-muted d-none mb-0">Sem dados suficientes para gerar gr&aacute;fico.</div>
-                    <div class="avaliacao-chart-container"><canvas id="barChart"></canvas></div>
-                </div>
-            </div>
+            <section class="i9-chart-card h-100">
+                <h2 class="i9-chart-title">Notas por competência da avaliação atual</h2>
+                <div id="sem-dados-competencias" class="alert alert-light border text-muted d-none mb-0">Sem dados suficientes para gerar gráfico.</div>
+                <div class="avaliacao-chart-container"><canvas id="barChart"></canvas></div>
+            </section>
         </div>
         <div class="col-xl-5">
-            <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-body p-3">
-                    <h5 class="fw-bold mb-2" style="color: var(--azul-principal);">Evolu&ccedil;&atilde;o da m&eacute;dia por ciclo</h5>
-                    {% if medias_historico|length == 1 %}
-                        <div class="alert alert-info py-2 small mb-3">Hist&oacute;rico insuficiente para an&aacute;lise de evolu&ccedil;&atilde;o. Cadastre novas avalia&ccedil;&otilde;es nos pr&oacute;ximos ciclos.</div>
-                    {% endif %}
-                    <div id="sem-dados-evolucao" class="alert alert-light border text-muted d-none mb-0">Sem hist&oacute;rico suficiente para evolu&ccedil;&atilde;o.</div>
-                    <div class="avaliacao-chart-container-sm"><canvas id="evolucaoChart"></canvas></div>
-                </div>
-            </div>
+            <section class="i9-chart-card h-100">
+                <h2 class="i9-chart-title">Evolução da média por ciclo</h2>
+                {% if medias_historico|length == 1 %}<div class="alert alert-info py-2 small mb-3">Histórico insuficiente para análise de evolução.</div>{% endif %}
+                <div id="sem-dados-evolucao" class="alert alert-light border text-muted d-none mb-0">Sem histórico suficiente para evolução.</div>
+                <div class="avaliacao-chart-container-sm"><canvas id="evolucaoChart"></canvas></div>
+            </section>
         </div>
     </div>
 
     <div class="row g-3 mb-3">
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-body p-3">
-                    <h5 class="fw-bold text-success mb-3">Pontos fortes</h5>
-                    <div class="list-group list-group-flush avaliacao-lista-compacta">
-                        {% for nota in pontos_fortes %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-0"><span>{{ nota.competencia.nome }}</span><span class="badge bg-success">Nota {{ nota.nota }}</span></div>
-                        {% empty %}
-                            <p class="text-muted mb-0">Nenhuma compet&ecirc;ncia nesta categoria.</p>
-                        {% endfor %}
-                    </div>
+            <section class="i9-card h-100">
+                <h2 class="i9-card-title">Pontos fortes</h2>
+                <div class="list-group list-group-flush avaliacao-lista-compacta">
+                    {% for nota in pontos_fortes %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0"><span>{{ nota.competencia.nome }}</span><span class="i9-badge i9-badge-success">Nota {{ nota.nota }}</span></div>
+                    {% empty %}<p class="text-muted mb-0">Nenhuma competência nesta categoria.</p>{% endfor %}
                 </div>
-            </div>
+            </section>
         </div>
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-body p-3">
-                    <h5 class="fw-bold text-warning mb-3">Pontos de aten&ccedil;&atilde;o</h5>
-                    <div class="list-group list-group-flush avaliacao-lista-compacta">
-                        {% for nota in pontos_atencao %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-0"><span>{{ nota.competencia.nome }}</span><span class="badge bg-warning text-dark">Nota {{ nota.nota }}</span></div>
-                        {% empty %}
-                            <p class="text-muted mb-0">Nenhuma compet&ecirc;ncia nesta categoria.</p>
-                        {% endfor %}
-                    </div>
+            <section class="i9-card h-100">
+                <h2 class="i9-card-title">Pontos de atenção</h2>
+                <div class="list-group list-group-flush avaliacao-lista-compacta">
+                    {% for nota in pontos_atencao %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0"><span>{{ nota.competencia.nome }}</span><span class="i9-badge i9-badge-warning">Nota {{ nota.nota }}</span></div>
+                    {% empty %}<p class="text-muted mb-0">Nenhuma competência nesta categoria.</p>{% endfor %}
                 </div>
-            </div>
+            </section>
         </div>
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-body p-3">
-                    <h5 class="fw-bold text-danger mb-3">Abaixo da m&eacute;dia</h5>
-                    <div class="list-group list-group-flush avaliacao-lista-compacta">
-                        {% for nota in competencias_abaixo_media %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-0"><span>{{ nota.competencia.nome }}</span><span class="badge bg-danger">Nota {{ nota.nota }}</span></div>
-                        {% empty %}
-                            <p class="text-muted mb-0">Nenhuma compet&ecirc;ncia nesta categoria.</p>
-                        {% endfor %}
-                    </div>
+            <section class="i9-card h-100">
+                <h2 class="i9-card-title">Abaixo da média</h2>
+                <div class="list-group list-group-flush avaliacao-lista-compacta">
+                    {% for nota in competencias_abaixo_media %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0"><span>{{ nota.competencia.nome }}</span><span class="i9-badge i9-badge-danger">Nota {{ nota.nota }}</span></div>
+                    {% empty %}<p class="text-muted mb-0">Nenhuma competência nesta categoria.</p>{% endfor %}
                 </div>
-            </div>
+            </section>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-3 mb-3">
-        <div class="card-body p-3">
-            <h5 class="fw-bold mb-3" style="color: var(--azul-principal);">Tabela de compet&ecirc;ncias</h5>
-            <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0">
-                    <thead class="bg-light"><tr><th>Compet&ecirc;ncia</th><th>Descri&ccedil;&atilde;o</th><th class="text-center">Nota</th><th>Coment&aacute;rio</th></tr></thead>
-                    <tbody>{% for nota in notas %}<tr><td class="fw-semibold">{{ nota.competencia.nome }}</td><td class="text-muted small">{{ nota.competencia.descricao }}</td><td class="text-center"><span class="badge rounded-pill fs-6" style="background-color: var(--azul-principal);">{{ nota.nota }}</span></td><td>{{ nota.comentario|default:"-" }}</td></tr>{% endfor %}</tbody>
-                </table>
-            </div>
+    <section class="i9-card p-0 overflow-hidden mb-3">
+        <div class="p-3 pb-0"><h2 class="i9-card-title">Tabela de competências</h2></div>
+        <div class="table-responsive">
+            <table class="table i9-table table-sm align-middle mb-0">
+                <thead><tr><th>Competência</th><th>Descrição</th><th class="text-center">Nota</th><th>Comentário</th></tr></thead>
+                <tbody>{% for nota in notas %}<tr><td class="fw-semibold">{{ nota.competencia.nome }}</td><td class="text-muted small">{{ nota.competencia.descricao }}</td><td class="text-center"><span class="i9-badge i9-badge-info">{{ nota.nota }}</span></td><td>{{ nota.comentario|default:"-" }}</td></tr>{% endfor %}</tbody>
+            </table>
         </div>
-    </div>
+    </section>
 
-    <div class="card border-0 shadow-sm rounded-3 mb-3">
-        <div class="card-body p-3">
-            <h5 class="fw-bold mb-3" style="color: var(--azul-principal);">Hist&oacute;rico do colaborador por ciclo</h5>
-            <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0">
-                    <thead class="bg-light"><tr><th>Compet&ecirc;ncia</th>{% for periodo in historico_periodos %}<th class="text-center">{{ periodo }}</th>{% endfor %}</tr></thead>
-                    <tbody>
-                        {% for linha in tabela_historico %}
-                            <tr><td class="fw-semibold">{{ linha.competencia.nome }}</td>{% for valor in linha.valores %}<td class="text-center">{{ valor|default:"-" }}</td>{% endfor %}</tr>
-                        {% empty %}
-                            <tr><td colspan="2" class="text-muted text-center py-4">Sem hist&oacute;rico para este colaborador.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+    <section class="i9-card p-0 overflow-hidden mb-3">
+        <div class="p-3 pb-0"><h2 class="i9-card-title">Histórico do colaborador por ciclo</h2></div>
+        <div class="table-responsive">
+            <table class="table i9-table table-sm align-middle mb-0">
+                <thead><tr><th>Competência</th>{% for periodo in historico_periodos %}<th class="text-center">{{ periodo }}</th>{% endfor %}</tr></thead>
+                <tbody>
+                    {% for linha in tabela_historico %}
+                        <tr><td class="fw-semibold">{{ linha.competencia.nome }}</td>{% for valor in linha.valores %}<td class="text-center">{{ valor|default:"-" }}</td>{% endfor %}</tr>
+                    {% empty %}
+                        <tr><td colspan="2"><div class="i9-empty-state m-3">Sem histórico para este colaborador.</div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
+    </section>
 
-    <div class="card border-0 shadow-sm rounded-3 mb-3"><div class="card-body p-3"><h5 class="fw-bold mb-3" style="color: var(--azul-principal);">Coment&aacute;rios gerais</h5><div class="p-3 bg-light rounded" style="white-space: pre-wrap;">{{ avaliacao.comentarios|default:"Nenhum comentario geral informado." }}</div></div></div>
+    <section class="i9-card mb-3"><h2 class="i9-card-title">Comentários gerais</h2><div class="i9-summary-box i9-text-prewrap">{{ avaliacao.comentarios|default:"Nenhum comentário geral informado." }}</div></section>
 </div>
 
 {% if pode_dar_ciencia_gestor %}
 <div class="modal fade" id="modalCienciaGestor" tabindex="-1" aria-labelledby="modalCienciaGestorLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalCienciaGestorLabel">Confirmar Ci&ecirc;ncia e Concord&acirc;ncia do Gestor</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-            </div>
+            <div class="modal-header"><h5 class="modal-title" id="modalCienciaGestorLabel">Confirmar ciência e concordância do gestor</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
             <div class="modal-body">
-                <p>Ao registrar sua ci&ecirc;ncia e concord&acirc;ncia, voc&ecirc; confirma que analisou a avalia&ccedil;&atilde;o de desempenho deste colaborador, est&aacute; ciente das notas, coment&aacute;rios e crit&eacute;rios aplicados, e concorda com o resultado registrado no sistema.</p>
-                <p>Ap&oacute;s a confirma&ccedil;&atilde;o, sua ci&ecirc;ncia ficar&aacute; registrada com seu usu&aacute;rio, data e hor&aacute;rio.</p>
-                <p>Se o colaborador tamb&eacute;m registrar ci&ecirc;ncia e concord&acirc;ncia, a avalia&ccedil;&atilde;o ser&aacute; considerada conclu&iacute;da e n&atilde;o poder&aacute; mais ser alterada por gestores.</p>
-                <p class="fw-semibold mb-0">Deseja confirmar sua ci&ecirc;ncia e concord&acirc;ncia?</p>
+                <p>Ao registrar sua ciência e concordância, você confirma que analisou a avaliação de desempenho deste colaborador, está ciente das notas, comentários e critérios aplicados, e concorda com o resultado registrado no sistema.</p>
+                <p>Após a confirmação, sua ciência ficará registrada com seu usuário, data e horário.</p>
+                <p>Se o colaborador também registrar ciência e concordância, a avaliação será considerada concluída e não poderá mais ser alterada por gestores.</p>
+                <p class="fw-semibold mb-0">Deseja confirmar sua ciência e concordância?</p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="submit" form="formCienciaGestor" class="btn btn-success">Confirmar ci&ecirc;ncia e concord&acirc;ncia</button>
-            </div>
+            <div class="modal-footer"><button type="button" class="btn i9-btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" form="formCienciaGestor" class="btn i9-btn-primary">Confirmar ciência e concordância</button></div>
         </div>
     </div>
 </div>
@@ -203,20 +182,14 @@
 <div class="modal fade" id="modalCienciaColaborador" tabindex="-1" aria-labelledby="modalCienciaColaboradorLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalCienciaColaboradorLabel">Confirmar Ci&ecirc;ncia e Concord&acirc;ncia do Colaborador</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-            </div>
+            <div class="modal-header"><h5 class="modal-title" id="modalCienciaColaboradorLabel">Confirmar ciência e concordância do colaborador</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
             <div class="modal-body">
-                <p>Ao registrar sua ci&ecirc;ncia e concord&acirc;ncia, voc&ecirc; confirma que visualizou sua avalia&ccedil;&atilde;o de desempenho, est&aacute; ciente das notas, coment&aacute;rios e crit&eacute;rios aplicados, e concorda que recebeu acesso ao resultado registrado no sistema.</p>
-                <p>Ap&oacute;s a confirma&ccedil;&atilde;o, sua ci&ecirc;ncia ficar&aacute; registrada com seu usu&aacute;rio, data e hor&aacute;rio.</p>
-                <p>Quando gestor e colaborador registrarem ci&ecirc;ncia e concord&acirc;ncia, a avalia&ccedil;&atilde;o ser&aacute; considerada conclu&iacute;da.</p>
-                <p class="fw-semibold mb-0">Deseja confirmar sua ci&ecirc;ncia e concord&acirc;ncia?</p>
+                <p>Ao registrar sua ciência e concordância, você confirma que visualizou sua avaliação de desempenho, está ciente das notas, comentários e critérios aplicados, e concorda que recebeu acesso ao resultado registrado no sistema.</p>
+                <p>Após a confirmação, sua ciência ficará registrada com seu usuário, data e horário.</p>
+                <p>Quando gestor e colaborador registrarem ciência e concordância, a avaliação será considerada concluída.</p>
+                <p class="fw-semibold mb-0">Deseja confirmar sua ciência e concordância?</p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="submit" form="formCienciaColaborador" class="btn btn-success">Confirmar ci&ecirc;ncia e concord&acirc;ncia</button>
-            </div>
+            <div class="modal-footer"><button type="button" class="btn i9-btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" form="formCienciaColaborador" class="btn i9-btn-primary">Confirmar ciência e concordância</button></div>
         </div>
     </div>
 </div>
@@ -232,6 +205,10 @@ const labels = JSON.parse(document.getElementById('chart-labels').textContent);
 const values = JSON.parse(document.getElementById('chart-values').textContent).map(Number);
 const historicoLabels = JSON.parse(document.getElementById('historico-labels').textContent);
 const historicoValues = JSON.parse(document.getElementById('historico-values').textContent).map(Number);
+const styles = getComputedStyle(document.documentElement);
+const primary = styles.getPropertyValue('--i9-color-primary').trim();
+const primaryHover = styles.getPropertyValue('--i9-color-primary-hover').trim();
+const info = styles.getPropertyValue('--i9-color-info').trim();
 
 const escalaNotas = {
     y: {
@@ -250,22 +227,14 @@ if (labels.length && values.length && labels.length === values.length) {
             datasets: [{
                 label: 'Nota',
                 data: values,
-                backgroundColor: '#FF742E',
-                borderColor: '#d95d1f',
+                backgroundColor: primary,
+                borderColor: primaryHover,
                 borderWidth: 1,
                 borderRadius: 6,
                 maxBarThickness: 42
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: escalaNotas,
-            plugins: {
-                legend: { display: false },
-                tooltip: { enabled: true }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, scales: escalaNotas, plugins: { legend: { display: false }, tooltip: { enabled: true } } }
     });
 } else {
     document.getElementById('sem-dados-competencias').classList.remove('d-none');
@@ -279,28 +248,20 @@ if (historicoLabels.length && historicoValues.length && historicoLabels.length =
         data: {
             labels: historicoLabels,
             datasets: [{
-                label: 'Media por ciclo',
+                label: 'Média por ciclo',
                 data: historicoValues,
-                borderColor: '#141C3C',
-                backgroundColor: apenasUmCiclo ? '#141C3C' : 'rgba(20,28,60,0.12)',
+                borderColor: info,
+                backgroundColor: apenasUmCiclo ? info : 'rgba(13,110,253,0.12)',
                 tension: .35,
                 fill: !apenasUmCiclo,
-                pointBackgroundColor: '#FF742E',
+                pointBackgroundColor: primary,
                 pointRadius: 4,
                 borderWidth: 2,
                 borderRadius: apenasUmCiclo ? 6 : 0,
                 maxBarThickness: 56
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: escalaNotas,
-            plugins: {
-                legend: { display: false },
-                tooltip: { enabled: true }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, scales: escalaNotas, plugins: { legend: { display: false }, tooltip: { enabled: true } } }
     });
 } else {
     document.getElementById('sem-dados-evolucao').classList.remove('d-none');
